@@ -194,7 +194,7 @@ This project is licensed under the MIT License.
 
 ## Support
 
-For support, email support@cleanpro.com or contact us through the website.
+For support, email contactneatrix@gmail.com or contact us through the website.
 
 ---
 

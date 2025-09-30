@@ -5,11 +5,12 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import HomePage from "@/components/dashboard/HomePage";
 import DryCleaningPage from "@/components/dashboard/DryCleaningPage";
 import BookInspectionPage from "@/components/dashboard/BookInspectionPage";
-import ReviewsFeedback from "@/components/dashboard/ReviewsFeedback";
-import PaymentPage from "@/components/dashboard/PaymentPage";
-import NotificationsPage from "@/pages/dashboard/NotificationsPage";
+
+
 import SupportPage from "@/components/dashboard/SupportPage";
 import ProfileSettings from "@/components/dashboard/ProfileSettings";
+import PaymentPage from "@/components/dashboard/PaymentPage";
+import NotificationsPage from "@/pages/dashboard/NotificationsPage";
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -27,10 +28,10 @@ const DashboardPage = () => {
       case 'dry-cleaning': return 'dry-cleaning';
       case 'book-inspection': return 'inspection';
       case 'reviews-feedback': return 'reviews';
-      case 'payment': return 'payment';
-      case 'notifications': return 'notifications';
       case 'support': return 'support';
       case 'profile': return 'profile';
+      case 'payment': return 'payment';
+      case 'notifications': return 'notifications';
       default: return 'home';
     }
   };
@@ -51,11 +52,11 @@ const DashboardPage = () => {
       'home': '/dashboard/home',
       'dry-cleaning': '/dashboard/dry-cleaning',
       'inspection': '/dashboard/book-inspection',
-      'reviews': '/dashboard/reviews-feedback',
-      'payment': '/dashboard/payment',
-      'notifications': '/dashboard/notifications',
+      'reviews': '/support', // Redirect to new support page
       'support': '/dashboard/support',
-      'profile': '/dashboard/profile'
+      'profile': '/dashboard/profile',
+      'payment': '/dashboard/payment',
+      'notifications': '/dashboard/notifications'
     };
     
     const path = pathMap[tabId] || '/dashboard/home';
@@ -73,11 +74,12 @@ const DashboardPage = () => {
         <Route path="/home" element={<HomePage onNavigate={handleNavigate} />} />
         <Route path="/dry-cleaning" element={<DryCleaningPage />} />
         <Route path="/book-inspection" element={<BookInspectionPage />} />
-        <Route path="/reviews-feedback" element={<ReviewsFeedback />} />
-        <Route path="/payment" element={<PaymentPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
+
+
         <Route path="/support" element={<SupportPage />} />
         <Route path="/profile" element={<ProfileSettings />} />
+        <Route path="/payment" element={<PaymentPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="*" element={<Navigate to="/dashboard/home" replace />} />
       </Routes>
     </DashboardLayout>

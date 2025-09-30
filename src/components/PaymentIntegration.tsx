@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CreditCard, Smartphone, Building, Zap, Shield, CheckCircle, AlertCircle, Copy, Phone } from 'lucide-react';
+import { usePaystackPayment } from 'react-paystack';
 
 interface PaymentMethod {
   id: string;
@@ -55,6 +56,37 @@ const PaymentIntegration: React.FC = () => {
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'failed'>('idle');
+
+  // Paystack configuration
+  const paystackConfig = {
+    reference: `ref_${new Date().getTime()}`,
+    email: paymentData.customerInfo.email,
+    amount: paymentData.amount * 100, // Paystack expects amount in kobo (multiply by 100)
+    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_your_paystack_public_key_here',
+    currency: 'NGN',
+    metadata: {
+      custom_fields: [
+        {
+          display_name: "Service",
+          variable_name: "service",
+          value: paymentData.service
+        },
+        {
+          display_name: "Customer Name",
+          variable_name: "customer_name", 
+          value: paymentData.customerInfo.name
+        },
+        {
+          display_name: "Phone Number",
+          variable_name: "phone_number",
+          value: paymentData.customerInfo.phone
+        }
+      ]
+    }
+  };
+
+  // Initialize Paystack payment
+  const initializePayment = usePaystackPayment(paystackConfig);
 
   const paymentMethods: PaymentMethod[] = [
     {
@@ -115,21 +147,51 @@ const PaymentIntegration: React.FC = () => {
   ];
 
   const handlePayment = async () => {
+    // Validate customer information
+    if (!paymentData.customerInfo.name || !paymentData.customerInfo.email || !paymentData.customerInfo.phone) {
+      alert('Please fill in all customer information fields.');
+      return;
+    }
+
     setIsProcessing(true);
     setPaymentStatus('processing');
 
-    // Simulate payment processing
-    setTimeout(() => {
-      const success = Math.random() > 0.1; // 90% success rate for demo
-      if (success) {
-        setPaymentStatus('success');
-        alert('Payment successful! Your booking has been confirmed.');
-      } else {
+    // Handle Paystack payment for card and paystack methods
+    if (selectedMethod === 'paystack' || selectedMethod === 'card') {
+      try {
+        initializePayment({
+          onSuccess: (reference: any) => {
+            setPaymentStatus('success');
+            setIsProcessing(false);
+            alert(`Payment successful! Reference: ${reference.reference}. Your booking has been confirmed.`);
+            console.log('Payment successful:', reference);
+          },
+          onClose: () => {
+            setPaymentStatus('idle');
+            setIsProcessing(false);
+            alert('Payment was cancelled.');
+          }
+        });
+      } catch (error) {
         setPaymentStatus('failed');
+        setIsProcessing(false);
         alert('Payment failed. Please try again or use a different payment method.');
+        console.error('Payment error:', error);
       }
-      setIsProcessing(false);
-    }, 3000);
+    } else {
+      // For other payment methods, simulate processing
+      setTimeout(() => {
+        const success = Math.random() > 0.1; // 90% success rate for demo
+        if (success) {
+          setPaymentStatus('success');
+          alert('Payment successful! Your booking has been confirmed.');
+        } else {
+          setPaymentStatus('failed');
+          alert('Payment failed. Please try again or use a different payment method.');
+        }
+        setIsProcessing(false);
+      }, 3000);
+    }
   };
 
   const copyToClipboard = (text: string) => {

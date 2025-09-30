@@ -1,4 +1,5 @@
 import { Sparkles, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   const scrollToSection = (sectionId: string) => {
@@ -84,6 +85,18 @@ const Footer = () => {
               >
                 Our Team
               </button>
+              <Link 
+                to="/dashboard/payment" 
+                className="block text-background/80 hover:text-primary transition-colors text-left"
+              >
+                Payment
+              </Link>
+              <Link 
+                to="/dashboard/alerts" 
+                className="block text-background/80 hover:text-primary transition-colors text-left"
+              >
+                Alerts
+              </Link>
               <button 
                 onClick={() => scrollToSection('services')} 
                 className="block text-background/80 hover:text-primary transition-colors text-left"

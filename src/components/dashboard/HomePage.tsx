@@ -132,22 +132,22 @@ const HomePage = ({ onNavigate }: HomePageProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6 px-1 sm:px-0">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 text-white">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-3 sm:mb-4 lg:mb-0">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold mb-1 sm:mb-2">
               {getGreeting()}, {userName}! 👋
             </h1>
-            <p className="text-blue-100">
+            <p className="text-blue-100 text-xs sm:text-sm lg:text-base leading-relaxed">
               Welcome back to your Neatrix dashboard. Here's what's happening with your services.
             </p>
           </div>
-          <div className="hidden md:flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-sm text-blue-200">Current Time</p>
-              <p className="text-lg font-semibold">
+          <div className="flex items-center justify-between lg:justify-end lg:space-x-4">
+            <div className="text-left lg:text-right">
+              <p className="text-xs lg:text-sm text-blue-200">Current Time</p>
+              <p className="text-sm sm:text-base lg:text-lg font-semibold">
                 {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -156,80 +156,80 @@ const HomePage = ({ onNavigate }: HomePageProps) => {
       </div>
 
       {/* Service Snapshots */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active Dry Cleaning</p>
-              <p className="text-2xl font-bold text-gray-900">{activeServices.dryCleaningOrders}</p>
-              <p className="text-sm text-gray-500">Orders in progress</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+        <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 border border-gray-200 hover:shadow-lg transition-all duration-200 touch-manipulation">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Active Dry Cleaning</p>
+              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{activeServices.dryCleaningOrders}</p>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">Orders in progress</p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <Shirt className="h-6 w-6 text-blue-600" />
+            <div className="p-2 sm:p-2 lg:p-3 bg-blue-100 rounded-lg sm:rounded-xl flex-shrink-0">
+              <Shirt className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-blue-600" />
             </div>
           </div>
           <button
             onClick={() => onNavigate("dry-cleaning")}
-            className="mt-4 text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center"
+            className="w-full text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium flex items-center justify-center py-2 sm:py-2 px-3 bg-blue-50 hover:bg-blue-100 rounded-md sm:rounded-lg transition-colors touch-manipulation min-h-[44px]"
           >
-            View Details <ArrowRight className="ml-1 h-4 w-4" />
+            View Details <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
           </button>
         </div>
 
-        <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Upcoming Inspections</p>
-              <p className="text-2xl font-bold text-gray-900">{activeServices.upcomingInspections}</p>
-              <p className="text-sm text-gray-500">Scheduled this week</p>
+        <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 border border-gray-200 hover:shadow-lg transition-all duration-200 touch-manipulation">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Upcoming Inspections</p>
+              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{activeServices.upcomingInspections}</p>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">Scheduled this week</p>
             </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <ClipboardCheck className="h-6 w-6 text-green-600" />
+            <div className="p-2 sm:p-2 lg:p-3 bg-green-100 rounded-lg sm:rounded-xl flex-shrink-0">
+              <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-green-600" />
             </div>
           </div>
           <button
             onClick={() => onNavigate("inspection")}
-            className="mt-4 text-green-600 hover:text-green-700 text-sm font-medium flex items-center"
+            className="w-full text-green-600 hover:text-green-700 text-xs sm:text-sm font-medium flex items-center justify-center py-2 sm:py-2 px-3 bg-green-50 hover:bg-green-100 rounded-md sm:rounded-lg transition-colors touch-manipulation min-h-[44px]"
           >
-            View Schedule <ArrowRight className="ml-1 h-4 w-4" />
+            View Schedule <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
           </button>
         </div>
 
-        <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending Reviews</p>
-              <p className="text-2xl font-bold text-gray-900">{activeServices.pendingReviews}</p>
-              <p className="text-sm text-gray-500">Services to review</p>
+        <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 border border-gray-200 hover:shadow-lg transition-all duration-200 touch-manipulation sm:col-span-2 lg:col-span-1">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">Pending Reviews</p>
+              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{activeServices.pendingReviews}</p>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">Services to review</p>
             </div>
-            <div className="p-3 bg-yellow-100 rounded-full">
-              <Bell className="h-6 w-6 text-yellow-600" />
+            <div className="p-2 sm:p-2 lg:p-3 bg-yellow-100 rounded-lg sm:rounded-xl flex-shrink-0">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-yellow-600" />
             </div>
           </div>
           <button
-            onClick={() => onNavigate("reviews")}
-            className="mt-4 text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center"
+            onClick={() => onNavigate("support")}
+            className="w-full text-yellow-600 hover:text-yellow-700 text-xs sm:text-sm font-medium flex items-center justify-center py-2 sm:py-2 px-3 bg-yellow-50 hover:bg-yellow-100 rounded-md sm:rounded-lg transition-colors touch-manipulation min-h-[44px]"
           >
-            Leave Review <ArrowRight className="ml-1 h-4 w-4" />
+            View Support <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
           </button>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 border border-gray-200">
+        <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
               <button
                 key={action.id}
                 onClick={action.action}
-                className={`${action.color} text-white p-4 rounded-lg transition-colors text-left`}
+                className={`${action.color} text-white p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl transition-all duration-200 text-left touch-manipulation hover:scale-105 min-h-[80px] sm:min-h-[100px]`}
               >
-                <Icon className="h-8 w-8 mb-3" />
-                <h3 className="font-semibold mb-1">{action.title}</h3>
-                <p className="text-sm opacity-90">{action.description}</p>
+                <Icon className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 mb-2 sm:mb-3" />
+                <h3 className="font-semibold mb-1 text-xs sm:text-sm lg:text-base leading-tight">{action.title}</h3>
+                <p className="text-xs lg:text-sm opacity-90 leading-tight">{action.description}</p>
               </button>
             );
           })}
@@ -237,38 +237,45 @@ const HomePage = ({ onNavigate }: HomePageProps) => {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        <div className="space-y-4">
-          {recentActivity.map((activity) => {
+      <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 border border-gray-200">
+        <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Recent Activity</h2>
+        <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+          {recentActivity.length > 0 ? recentActivity.map((activity) => {
             const Icon = activity.icon;
             return (
-              <div key={activity.id} className="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                <div className={`p-2 rounded-full bg-gray-100`}>
-                  <Icon className={`h-5 w-5 ${activity.color}`} />
+              <div key={activity.id} className="flex items-center space-x-2 sm:space-x-3 lg:space-x-4 p-2 sm:p-3 hover:bg-gray-50 rounded-lg sm:rounded-xl transition-colors touch-manipulation min-h-[60px]">
+                <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gray-100 flex-shrink-0`}>
+                  <Icon className={`h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 ${activity.color}`} />
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">{activity.title}</p>
-                  <p className="text-sm text-gray-600">{activity.status}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 text-xs sm:text-sm lg:text-base truncate leading-tight">{activity.title}</p>
+                  <p className="text-xs lg:text-sm text-gray-600 truncate leading-tight">{activity.status}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">{activity.time}</p>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-xs lg:text-sm text-gray-500">{activity.time}</p>
                 </div>
               </div>
             );
-          })}
+          }) : (
+            <div className="text-center py-6 sm:py-8">
+              <div className="p-2 sm:p-3 bg-gray-100 rounded-lg sm:rounded-xl w-fit mx-auto mb-2 sm:mb-3">
+                <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
+              </div>
+              <p className="text-gray-500 text-xs sm:text-sm">No recent activity</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Tips & Updates */}
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-200">
-        <div className="flex items-start space-x-4">
-          <div className="p-2 bg-purple-100 rounded-full">
-            <Bell className="h-5 w-5 text-purple-600" />
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 border border-purple-200">
+        <div className="flex items-start space-x-2 sm:space-x-3 lg:space-x-4">
+          <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg sm:rounded-xl flex-shrink-0">
+            <Bell className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-purple-600" />
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-2">💡 Pro Tip</h3>
-            <p className="text-gray-700 text-sm">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-gray-900 mb-1 sm:mb-2 text-xs sm:text-sm lg:text-base">💡 Pro Tip</h3>
+            <p className="text-gray-700 text-xs sm:text-sm leading-relaxed">
               Schedule your dry cleaning pickups in advance to ensure same-day service. 
               Our team is available Monday through Saturday from 8 AM to 6 PM.
             </p>

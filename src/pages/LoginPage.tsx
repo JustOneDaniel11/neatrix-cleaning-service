@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useSupabaseData } from "@/contexts/SupabaseDataContext";
@@ -45,10 +45,6 @@ const LoginPage = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-md mx-auto">
             <div className="text-center mb-8">
-              <Link to="/" className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors mb-6">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Home
-              </Link>
               <h1 className="text-3xl font-bold text-foreground mb-2">Welcome Back</h1>
               <p className="text-muted-foreground">Sign in to your Neatrix account</p>
             </div>

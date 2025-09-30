@@ -36,9 +36,11 @@ const NotificationsPage: React.FC = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high':
+      case 'urgent':
         return 'border-l-red-500';
-      case 'medium':
+      case 'high':
+        return 'border-l-orange-500';
+      case 'normal':
         return 'border-l-yellow-500';
       case 'low':
         return 'border-l-green-500';
@@ -303,17 +305,116 @@ const NotificationsPage: React.FC = () => {
                 {/* Expanded Content */}
                 {expandedNotification === notification.id && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Details</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-700">Full Details</span>
                       <button
-                        onClick={() => setExpandedNotification(null)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedNotification(null);
+                        }}
                         className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Collapse"
                       >
                         <ChevronUp className="w-4 h-4" />
                       </button>
                     </div>
                     
-
+                    {/* Full notification body/content */}
+                    <div className="bg-gray-50 rounded-lg p-4 mb-3">
+                      <div className="prose prose-sm max-w-none">
+                        <h4 className="text-base font-semibold text-gray-900 mb-2">
+                          {notification.title}
+                        </h4>
+                        <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                          {notification.message || 'No additional details available.'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Notification metadata */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-600">Type:</span>
+                        <span className="ml-2 capitalize text-gray-900">{notification.type}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-600">Priority:</span>
+                        <span className={`ml-2 capitalize ${
+                          notification.priority === 'urgent' ? 'text-red-600' :
+                          notification.priority === 'high' ? 'text-orange-600' :
+                          notification.priority === 'normal' ? 'text-yellow-600' :
+                          'text-green-600'
+                        }`}>
+                          {notification.priority}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-600">Status:</span>
+                        <span className={`ml-2 capitalize ${
+                          notification.status === 'unread' ? 'text-blue-600' : 'text-gray-600'
+                        }`}>
+                          {notification.status}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-600">Received:</span>
+                        <span className="ml-2 text-gray-900">
+                          {new Date(notification.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Action buttons for expanded view */}
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
+                      <div className="flex space-x-2">
+                        {notification.type === 'support' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/dashboard/support');
+                            }}
+                            className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium"
+                          >
+                            Go to Support Chat
+                          </button>
+                        )}
+                        {notification.type === 'booking' && notification.metadata?.booking_id && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/dashboard/dry-cleaning');
+                            }}
+                            className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                          >
+                            View Booking
+                          </button>
+                        )}
+                        {notification.type === 'payment' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/dashboard/payment');
+                            }}
+                            className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
+                          >
+                            View Payment
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={(e) => toggleReadStatus(e, notification.id)}
+                          className={`px-3 py-1.5 rounded-lg transition-colors text-sm font-medium ${
+                            notification.status === 'read'
+                              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          }`}
+                        >
+                          Mark as {notification.status === 'read' ? 'Unread' : 'Read'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

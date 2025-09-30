@@ -161,20 +161,20 @@ const DryCleaningPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6 px-1 sm:px-0">
       {/* Header */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Dry Cleaning Services</h1>
-        <p className="text-gray-600">Schedule pickups, drop-offs, and track your orders</p>
+      <div className="bg-white rounded-lg p-3 sm:p-4 lg:p-6 border border-gray-200">
+        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">Dry Cleaning Services</h1>
+        <p className="text-gray-600 text-xs sm:text-sm lg:text-base">Schedule pickups, drop-offs, and track your orders</p>
       </div>
 
       {/* Tab Navigation */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
+          <nav className="flex px-3 sm:px-4 lg:px-6 overflow-x-auto">
             <button
               onClick={() => setActiveTab('request')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 sm:py-4 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'request'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -184,7 +184,7 @@ const DryCleaningPage = () => {
             </button>
             <button
               onClick={() => setActiveTab('tracker')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 sm:py-4 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap flex-shrink-0 ml-4 sm:ml-8 ${
                 activeTab === 'tracker'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -195,50 +195,50 @@ const DryCleaningPage = () => {
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-3 sm:p-4 lg:p-6">
           {activeTab === 'request' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-5 lg:space-y-6">
               {addressesLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-500">Loading addresses...</p>
+                <div className="text-center py-6 sm:py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3 sm:mb-4"></div>
+                  <p className="text-gray-500 text-xs sm:text-sm">Loading addresses...</p>
                 </div>
               ) : (
                 <>
               {/* Service Type Selection */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Choose Service Type</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Choose Service Type</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <button
                     onClick={() => setServiceType('pickup')}
-                    className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                    className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-colors touch-manipulation min-h-[80px] ${
                       serviceType === 'pickup'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center space-x-3">
-                      <Truck className={`h-6 w-6 ${serviceType === 'pickup' ? 'text-blue-600' : 'text-gray-400'}`} />
-                      <div>
-                        <h4 className="font-medium text-gray-900">Request Pickup</h4>
-                        <p className="text-sm text-gray-600">We'll come to you</p>
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <Truck className={`h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 ${serviceType === 'pickup' ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-gray-900 text-sm sm:text-base">Request Pickup</h4>
+                        <p className="text-xs sm:text-sm text-gray-600">We'll come to you</p>
                       </div>
                     </div>
                   </button>
                   
                   <button
                     onClick={() => setServiceType('dropoff')}
-                    className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                    className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-colors touch-manipulation min-h-[80px] ${
                       serviceType === 'dropoff'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center space-x-3">
-                      <MapPin className={`h-6 w-6 ${serviceType === 'dropoff' ? 'text-blue-600' : 'text-gray-400'}`} />
-                      <div>
-                        <h4 className="font-medium text-gray-900">Book Drop-off</h4>
-                        <p className="text-sm text-gray-600">Bring items to us</p>
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <MapPin className={`h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 ${serviceType === 'dropoff' ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-gray-900 text-sm sm:text-base">Book Drop-off</h4>
+                        <p className="text-xs sm:text-sm text-gray-600">Bring items to us</p>
                       </div>
                     </div>
                   </button>
@@ -247,13 +247,13 @@ const DryCleaningPage = () => {
 
               {/* Address Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   {serviceType === 'pickup' ? 'Pickup Address' : 'Your Address'} *
                 </label>
                 <select
                   value={selectedAddress}
                   onChange={(e) => setSelectedAddress(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
                 >
                   <option value="">Select an address</option>
                   {savedAddresses.map((address) => (
@@ -262,16 +262,16 @@ const DryCleaningPage = () => {
                     </option>
                   ))}
                 </select>
-                <button className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
-                  <Plus className="h-4 w-4 mr-1" />
+                <button className="mt-2 text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium flex items-center touch-manipulation min-h-[44px]">
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Add New Address
                 </button>
               </div>
 
               {/* Date and Time Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     {serviceType === 'pickup' ? 'Pickup Date' : 'Drop-off Date'} *
                   </label>
                   <input
@@ -279,18 +279,18 @@ const DryCleaningPage = () => {
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                     Preferred Time *
                   </label>
                   <select
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
                   >
                     <option value="">Select time slot</option>
                     {timeSlots.map((slot) => (
@@ -304,7 +304,7 @@ const DryCleaningPage = () => {
 
               {/* Special Instructions */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Special Instructions (Optional)
                 </label>
                 <textarea
@@ -312,14 +312,14 @@ const DryCleaningPage = () => {
                   onChange={(e) => setSpecialInstructions(e.target.value)}
                   rows={3}
                   placeholder="Any special handling instructions, stain details, or delivery preferences..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none"
                 />
               </div>
 
               {/* Submit Button */}
               <button
                 onClick={handleSubmitRequest}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                className="w-full bg-blue-600 text-white py-3 sm:py-4 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base touch-manipulation min-h-[48px]"
               >
                 Schedule {serviceType === 'pickup' ? 'Pickup' : 'Drop-off'}
               </button>
@@ -329,46 +329,46 @@ const DryCleaningPage = () => {
           )}
 
           {activeTab === 'tracker' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-5 lg:space-y-6">
               {bookingsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-500">Loading orders...</p>
+                <div className="text-center py-6 sm:py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3 sm:mb-4"></div>
+                  <p className="text-gray-500 text-xs sm:text-sm">Loading orders...</p>
                 </div>
               ) : activeOrders.length === 0 ? (
-                <div className="text-center py-12">
-                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Orders</h3>
-                  <p className="text-gray-600 mb-4">You don't have any orders in progress right now.</p>
+                <div className="text-center py-8 sm:py-12">
+                  <Package className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Active Orders</h3>
+                  <p className="text-gray-600 mb-4 text-xs sm:text-sm">You don't have any orders in progress right now.</p>
                   <button
                     onClick={() => setActiveTab('request')}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    className="bg-blue-600 text-white px-4 py-2 sm:py-3 rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base touch-manipulation min-h-[44px]"
                   >
                     Request Service
                   </button>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-5 lg:space-y-6">
                   {activeOrders.map((order) => (
-                    <div key={order.id} className="bg-gray-50 rounded-lg p-6">
-                      <div className="flex items-center justify-between mb-4">
+                    <div key={order.id} className="bg-gray-50 rounded-lg p-3 sm:p-4 lg:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 space-y-2 sm:space-y-0">
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900">Order #{order.id}</h3>
-                          <p className="text-sm text-gray-600">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Order #{order.id}</h3>
+                          <p className="text-xs sm:text-sm text-gray-600">
                             Picked up: {new Date(order.pickupDate).toLocaleDateString()}
                           </p>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
+                        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getStatusColor(order.status)} self-start sm:self-auto`}>
                           {getStatusText(order.status)}
                         </span>
                       </div>
 
                       {/* Items */}
-                      <div className="mb-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Items:</p>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="mb-3 sm:mb-4">
+                        <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Items:</p>
+                        <div className="flex flex-wrap gap-1 sm:gap-2">
                           {order.items.map((item, index) => (
-                            <span key={index} className="bg-white px-3 py-1 rounded-full text-sm text-gray-700 border">
+                            <span key={index} className="bg-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm text-gray-700 border">
                               {item}
                             </span>
                           ))}
@@ -376,12 +376,12 @@ const DryCleaningPage = () => {
                       </div>
 
                       {/* Progress Tracker */}
-                      <div className="mb-4">
-                        <p className="text-sm font-medium text-gray-700 mb-3">Progress:</p>
-                        <div className="space-y-3">
+                      <div className="mb-3 sm:mb-4">
+                        <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Progress:</p>
+                        <div className="space-y-2 sm:space-y-3">
                           {order.steps.map((step, index) => (
-                            <div key={index} className="flex items-center space-x-3">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                            <div key={index} className="flex items-center space-x-2 sm:space-x-3">
+                              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                                 step.completed 
                                   ? 'bg-green-500 text-white' 
                                   : index === order.currentStep 
@@ -389,13 +389,13 @@ const DryCleaningPage = () => {
                                     : 'bg-gray-200 text-gray-400'
                               }`}>
                                 {step.completed ? (
-                                  <CheckCircle className="w-4 h-4" />
+                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                                 ) : (
                                   <span className="text-xs font-bold">{index + 1}</span>
                                 )}
                               </div>
-                              <div className="flex-1">
-                                <p className={`text-sm font-medium ${
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs sm:text-sm font-medium ${
                                   step.completed ? 'text-green-700' : 'text-gray-700'
                                 }`}>
                                   {step.label}
@@ -410,18 +410,18 @@ const DryCleaningPage = () => {
                       </div>
 
                       {/* Estimated Delivery */}
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                        <div className="flex items-center space-x-2 text-sm text-gray-600">
-                          <Clock className="h-4 w-4" />
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-3 sm:pt-4 border-t border-gray-200 space-y-2 sm:space-y-0">
+                        <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
+                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                           <span>Estimated delivery: {new Date(order.estimatedDelivery).toLocaleDateString()}</span>
                         </div>
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
-                            <Phone className="h-4 w-4 mr-1" />
+                          <button className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium flex items-center touch-manipulation min-h-[44px] px-2">
+                            <Phone className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Call
                           </button>
-                          <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
-                            <MessageSquare className="h-4 w-4 mr-1" />
+                          <button className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium flex items-center touch-manipulation min-h-[44px] px-2">
+                            <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Message
                           </button>
                         </div>

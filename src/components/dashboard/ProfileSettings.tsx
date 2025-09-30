@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   User, 
   Camera, 
@@ -19,7 +20,8 @@ import {
   Star,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  LogOut
 } from "lucide-react";
 import { useSupabaseData, Address as SupabaseAddress } from "../../contexts/SupabaseDataContext";
 import { useRealtimeData } from "../../hooks/useRealtimeData";
@@ -55,8 +57,9 @@ interface Preferences {
 }
 
 const ProfileSettings = () => {
-  const { state, updateUser, createAddress, updateAddress, deleteAddress } = useSupabaseData();
+  const { state, updateUser, createAddress, updateAddress, deleteAddress, signOut } = useSupabaseData();
   const { currentUser } = state;
+  const navigate = useNavigate();
   
   // Use realtime data for addresses
   const { data: allAddresses, loading: addressesLoading, error: addressesError } = useRealtimeData<SupabaseAddress>('addresses');
@@ -206,6 +209,18 @@ const ProfileSettings = () => {
     }
   };
 
+  const handleLogout = async () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      try {
+        await signOut();
+        navigate('/');
+      } catch (error) {
+        console.error('Error logging out:', error);
+        alert('Failed to logout. Please try again.');
+      }
+    }
+  };
+
   const handleSetDefaultAddress = async (addressId: string) => {
     try {
       // First, set all addresses to not default
@@ -335,15 +350,24 @@ const ProfileSettings = () => {
                     {userProfile.firstName} {userProfile.lastName}
                   </h3>
                   <p className="text-gray-600">Member since {new Date(userProfile.joinDate).toLocaleDateString()}</p>
-                  {!isEditing && (
+                  <div className="mt-2 flex flex-col space-y-2">
+                    {!isEditing && (
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1 w-fit"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        <span>Edit Profile</span>
+                      </button>
+                    )}
                     <button
-                      onClick={() => setIsEditing(true)}
-                      className="mt-2 text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1"
+                      onClick={handleLogout}
+                      className="text-red-600 hover:text-red-800 text-sm flex items-center space-x-1 w-fit"
                     >
-                      <Edit3 className="w-4 h-4" />
-                      <span>Edit Profile</span>
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
 

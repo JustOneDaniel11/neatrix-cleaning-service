@@ -16,6 +16,8 @@ import EmailVerificationSuccessPage from "./pages/EmailVerificationSuccessPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import SupportPage from "./pages/SupportPage";
 import BookingPage from "./pages/BookingPage";
 import NotFound from "./pages/NotFound";
 import { SupabaseDataProvider } from "./contexts/SupabaseDataContext";
@@ -44,9 +46,15 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/book-service" element={<BookingPage />} />
+            <Route path="/support" element={<SupportPage />} />
             <Route path="/dashboard/*" element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminDashboard />
               </ProtectedRoute>
             } />
             {/* Catch all route */}

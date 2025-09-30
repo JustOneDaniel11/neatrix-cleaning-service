@@ -1,18 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSupabaseData } from "@/contexts/SupabaseDataContext";
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { state } = useSupabaseData();
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-      setIsMenuOpen(false); // Close mobile menu after navigation
     }
   };
 
@@ -109,104 +106,7 @@ const Header = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2"
-          >
-            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <nav className="md:hidden mt-4 pb-4 border-t border-border pt-4">
-            <div className="flex flex-col space-y-4">
-              <Link 
-                to="/" 
-                className="text-foreground hover:text-primary transition-colors text-left"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Home
-              </Link>
-              <Link 
-                to="/services" 
-                className="text-foreground hover:text-primary transition-colors text-left"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Services
-              </Link>
-              <Link 
-                to="/about" 
-                className="text-foreground hover:text-primary transition-colors text-left"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                About
-              </Link>
-              <Link 
-                to="/gallery" 
-                className="text-foreground hover:text-primary transition-colors text-left"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Gallery
-              </Link>
-              <Link 
-                to="/faq" 
-                className="text-foreground hover:text-primary transition-colors text-left"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                FAQ
-              </Link>
-              <Link 
-                to="/blog" 
-                className="text-foreground hover:text-primary transition-colors text-left"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Blog
-              </Link>
-              <button 
-                onClick={() => scrollToSection('contact')} 
-                className="text-foreground hover:text-primary transition-colors text-left"
-              >
-                Contact
-              </button>
-              <div className="flex flex-col space-y-2 pt-4">
-                {state.isAuthenticated ? (
-                  <Link to="/dashboard" onClick={() => setIsMenuOpen(false)}>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="bg-gradient-primary w-full"
-                    >
-                      Dashboard
-                    </Button>
-                  </Link>
-                ) : (
-                  <>
-                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="w-full"
-                      >
-                        Login
-                      </Button>
-                    </Link>
-                    <Link to="/signup" onClick={() => setIsMenuOpen(false)}>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="bg-gradient-primary w-full"
-                      >
-                        Sign Up
-                      </Button>
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          </nav>
-        )}
       </div>
     </header>
   );
