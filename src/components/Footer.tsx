@@ -110,7 +110,7 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-background">Get In Touch</h3>
             <div className="space-y-3 text-background/80">
               <div>+234 803 123 4567</div>
-              <div>hello@neatrix.com</div>
+              <div>contactneatrix@gmail.com</div>
               <div>Lagos, Abuja, Port Harcourt & Surrounding Areas</div>
               <div>Mon-Fri 7AM-6PM<br />Sat 8AM-4PM</div>
             </div>

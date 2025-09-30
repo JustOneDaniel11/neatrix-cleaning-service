@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, User, Phone, Mail, Calculator, CheckCircle, ArrowRight, Home, Building, Shirt, Zap, Waves, GraduationCap, HardHat, Sofa, Grid3X3 } from 'lucide-react';
+import { useSupabaseData } from '@/contexts/SupabaseDataContext';
 
 interface Service {
   id: string;
@@ -31,8 +32,14 @@ interface BookingData {
   };
 }
 
-const BookingSystem: React.FC = () => {
+interface BookingSystemProps {
+  onBookingSuccess?: () => void;
+}
+
+const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
+  const { state, createBooking, fetchUserBookings } = useSupabaseData();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingData, setBookingData] = useState<BookingData>({
     service: '',
     serviceType: '',
@@ -204,10 +211,81 @@ const BookingSystem: React.FC = () => {
     }
   };
 
-  const handleSubmit = () => {
-    // Here you would typically send the booking data to your backend
-    console.log('Booking submitted:', bookingData);
-    alert('Booking submitted successfully! We will contact you shortly to confirm.');
+  const handleSubmit = async () => {
+    if (!state.currentUser) {
+      alert('Please log in to create a booking.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Get selected service details
+      const selectedService = services.find(s => s.id === bookingData.service);
+      
+      // Create booking data for database
+      const newBookingData = {
+        user_id: state.currentUser.id,
+        service_type: bookingData.service,
+        service_name: selectedService?.name || bookingData.service,
+        date: bookingData.date,
+        service_date: bookingData.date,
+        time: bookingData.time,
+        address: bookingData.customerInfo.address || bookingData.location,
+        phone: bookingData.customerInfo.phone,
+        special_instructions: bookingData.specialRequests,
+        status: 'pending' as const,
+        total_amount: totalPrice,
+        frequency: bookingData.frequency,
+        rooms: bookingData.rooms,
+        area: bookingData.area,
+        duration: bookingData.duration,
+        add_ons: bookingData.addOns.join(', ')
+      };
+
+      await createBooking(newBookingData);
+      
+      // Refresh bookings list and wait for completion
+      await fetchUserBookings();
+
+      // Reset form
+      setBookingData({
+        service: '',
+        serviceType: '',
+        date: '',
+        time: '',
+        duration: 2,
+        location: '',
+        area: 0,
+        rooms: 1,
+        frequency: 'one-time',
+        addOns: [],
+        specialRequests: '',
+        customerInfo: {
+          name: '',
+          phone: '',
+          email: '',
+          address: ''
+        }
+      });
+      
+      setCurrentStep(1);
+      
+      // Call the callback to refresh parent component first
+      if (onBookingSuccess) {
+        onBookingSuccess();
+      }
+      
+      // Show success message after navigation
+      setTimeout(() => {
+        alert('Booking created successfully! You can view it in your My Bookings section.');
+      }, 100);
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Failed to create booking. Please try again.');
+    }
+
+    setIsSubmitting(false);
   };
 
   const renderStepIndicator = () => (

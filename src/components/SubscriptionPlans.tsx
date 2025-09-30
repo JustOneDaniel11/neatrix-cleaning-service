@@ -194,7 +194,7 @@ const SubscriptionPlans = () => {
               onClick={() => {
                 const subject = "Custom Cleaning Plan Request";
                 const body = "Hello,\n\nI'm interested in creating a custom cleaning plan that fits my specific needs. Please contact me to discuss the options and pricing.\n\nThank you!";
-                const mailtoUrl = `mailto:info@neatrix.ng?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                const mailtoUrl = `mailto:contactneatrix@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                 window.location.href = mailtoUrl;
               }}
               className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"

@@ -170,7 +170,7 @@ const EmailVerificationSuccessPage = () => {
                     📞 Call Us
                   </a>
                   <a
-                    href="mailto:support@cleanpro.com"
+                    href="mailto:contactneatrix@gmail.com"
                     className="text-purple-600 hover:text-purple-700 text-sm font-medium"
                   >
                     ✉️ Email

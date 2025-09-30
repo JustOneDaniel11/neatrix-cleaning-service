@@ -1,24 +1,19 @@
-import { ReactNode } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSupabaseData } from '@/contexts/SupabaseDataContext';
+import { FullScreenLoader } from '@/components/ui/loader';
 
 interface ProtectedRouteProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { state } = useSupabaseData();
 
-  // Show loading spinner while checking authentication
   if (state.loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <FullScreenLoader text="Authenticating..." />;
   }
 
-  // Redirect to login page if not authenticated
   if (!state.isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

@@ -1,0 +1,349 @@
+import React, { useState, useEffect } from 'react';
+import { Bell, Check, X, Clock, AlertCircle, CheckCircle, Info, Trash2, Mail, ChevronDown, ChevronUp, MessageSquare, Shirt } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useSupabaseData } from '../../contexts/SupabaseDataContext';
+import { useRealtimeData } from '../../hooks/useRealtimeData';
+import type { Notification } from '../../contexts/SupabaseDataContext';
+
+const NotificationsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [expandedNotification, setExpandedNotification] = useState<string | null>(null);
+  const { state, markNotificationAsRead, updateNotification, deleteNotification: deleteNotificationFromSupabase } = useSupabaseData();
+  
+  // Use real-time data for notifications
+  const { data: allNotifications, loading: notificationsLoading, error: notificationsError } = useRealtimeData<Notification>('notifications');
+  
+  // Filter notifications for current user
+  const notifications = allNotifications.filter(notification => notification.user_id === state.currentUser?.id);
+
+  const [filter, setFilter] = useState<'all' | 'unread' | 'booking' | 'payment' | 'system' | 'support'>('all');
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'booking':
+        return <Clock className="w-5 h-5 text-blue-500" />;
+      case 'payment':
+        return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case 'system':
+        return <Info className="w-5 h-5 text-gray-500" />;
+
+      case 'support':
+        return <MessageSquare className="w-5 h-5 text-purple-500" />;
+      default:
+        return <Bell className="w-5 h-5 text-gray-500" />;
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'border-l-red-500';
+      case 'medium':
+        return 'border-l-yellow-500';
+      case 'low':
+        return 'border-l-green-500';
+      default:
+        return 'border-l-gray-300';
+    }
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    }
+  };
+
+  // Notifications are now loaded via useRealtimeData hook
+
+
+
+  const markAllAsRead = async () => {
+    try {
+      const unreadNotifications = notifications.filter(n => n.status === 'unread');
+      await Promise.all(
+        unreadNotifications.map(notification => 
+          updateNotification(notification.id, { status: 'read' })
+        )
+      );
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    try {
+      await Promise.all(
+        notifications.map(notification => deleteNotificationFromSupabase(notification.id))
+      );
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+    }
+  };
+
+  const handleNotificationClick = (notificationId: string) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    
+    // If it's a support notification, redirect to Support Page
+    if (notification && notification.type === 'support') {
+      navigate('/dashboard/support');
+      return;
+    }
+    
+    // Toggle expanded state
+    setExpandedNotification(expandedNotification === notificationId ? null : notificationId);
+    
+    // Mark as read when expanded
+    if (expandedNotification !== notificationId && notification && notification.status === 'unread') {
+      markAsRead(notificationId);
+    }
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await updateNotification(notificationId, { status: 'read' });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAsUnread = async (notificationId: string) => {
+    try {
+      await updateNotification(notificationId, { status: 'unread' });
+    } catch (error) {
+      console.error('Error marking notification as unread:', error);
+    }
+  };
+
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      await deleteNotificationFromSupabase(notificationId);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+
+  const toggleReadStatus = (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation();
+    const notification = notifications.find(n => n.id === notificationId);
+    if (notification) {
+      if (notification.status === 'read') {
+        markAsUnread(notificationId);
+      } else {
+        markAsRead(notificationId);
+      }
+    }
+  };
+
+  const filteredNotifications = notifications.filter(notification => {
+    if (filter === 'all') return true;
+    if (filter === 'unread') return notification.status === 'unread';
+    return notification.type === filter;
+  });
+
+  const unreadCount = notifications.filter(n => n.status === 'unread').length;
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <Bell className="w-8 h-8 text-blue-600" />
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+            <p className="text-gray-600">
+              {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'All caught up!'}
+            </p>
+          </div>
+        </div>
+        
+        {notifications.length > 0 && (
+          <div className="flex space-x-2">
+            <button
+              onClick={markAllAsRead}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Mark All Read
+            </button>
+            <button
+              onClick={clearAllNotifications}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Clear All
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {[
+          { key: 'all', label: 'All', count: notifications.length },
+          { key: 'unread', label: 'Unread', count: unreadCount },
+          { key: 'booking', label: 'Booking', count: notifications.filter(n => n.type === 'booking').length },
+          { key: 'payment', label: 'Payment', count: notifications.filter(n => n.type === 'payment').length },
+          { key: 'system', label: 'System', count: notifications.filter(n => n.type === 'system').length },
+          { key: 'support', label: 'Support', count: notifications.filter(n => n.type === 'support').length }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setFilter(tab.key as any)}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              filter === tab.key
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {tab.label} ({tab.count})
+          </button>
+        ))}
+      </div>
+
+      {/* Notifications List */}
+      <div className="space-y-3">
+        {notificationsLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading notifications...</p>
+          </div>
+        ) : filteredNotifications.length === 0 ? (
+          <div className="text-center py-12">
+            <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {filter === 'all' ? 'No notifications' : `No ${filter} notifications`}
+            </h3>
+            <p className="text-gray-500">
+              {filter === 'all' 
+                ? "You're all caught up! New notifications will appear here."
+                : `You have no ${filter} notifications at the moment.`
+              }
+            </p>
+          </div>
+        ) : (
+          filteredNotifications.map(notification => (
+            <div
+              key={notification.id}
+              className={`bg-white border-l-4 ${getPriorityColor(notification.priority)} rounded-lg shadow-sm transition-all hover:shadow-md cursor-pointer ${
+                notification.status === 'unread' ? 'bg-blue-50' : ''
+              }`}
+              onClick={() => handleNotificationClick(notification.id)}
+            >
+              <div className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3 flex-1">
+                    <div className="flex-shrink-0 mt-1">
+                      {notification.type === 'support' ? (
+                        <MessageSquare className="w-5 h-5 text-purple-500" />
+                      ) : (
+                        getNotificationIcon(notification.type)
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h3 className={`text-sm font-medium ${notification.status === 'unread' ? 'text-gray-900' : 'text-gray-700'}`}>
+                          {notification.title}
+                        </h3>
+                        {notification.status === 'unread' && (
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        )}
+                        {notification.priority === 'high' && (
+                          <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                            High Priority
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p className="text-sm text-gray-600 mb-2">
+                        {notification.message}
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-400">
+                          {formatTimestamp(notification.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-1 ml-4">
+                    <button
+                      onClick={(e) => toggleReadStatus(e, notification.id)}
+                      className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                      title={notification.status === 'read' ? "Mark as unread" : "Mark as read"}
+                    >
+                      {notification.status === 'read' ? (
+                        <Mail className="w-4 h-4" />
+                      ) : (
+                        <Check className="w-4 h-4" />
+                      )}
+                    </button>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNotification(notification.id);
+                      }}
+                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                      title="Delete notification"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Expanded Content */}
+                {expandedNotification === notification.id && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">Details</span>
+                      <button
+                        onClick={() => setExpandedNotification(null)}
+                        className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Notification Settings */}
+      {notifications.length > 0 && (
+        <div className="mt-8 bg-gray-50 rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h3>
+          <div className="space-y-3">
+            <label className="flex items-center">
+              <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span className="ml-2 text-sm text-gray-700">Email notifications for bookings</span>
+            </label>
+            <label className="flex items-center">
+              <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span className="ml-2 text-sm text-gray-700">SMS notifications for urgent updates</span>
+            </label>
+            <label className="flex items-center">
+              <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span className="ml-2 text-sm text-gray-700">Push notifications for promotions</span>
+            </label>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default NotificationsPage;

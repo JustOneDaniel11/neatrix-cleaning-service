@@ -142,13 +142,13 @@ const FAQ = () => {
     {
       icon: Mail,
       title: "Email Support",
-      description: "info@neatrix.ng",
+      description: "contactneatrix@gmail.com",
       action: "Send Email",
       color: "bg-purple-500",
       onClick: () => {
         const subject = "Question about Neatrix Cleaning Services";
         const body = "Hello,\n\nI have a question about your cleaning services. Please get back to me at your earliest convenience.\n\nThank you!";
-        const mailtoUrl = `mailto:info@neatrix.ng?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const mailtoUrl = `mailto:contactneatrix@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         window.location.href = mailtoUrl;
       }
     }

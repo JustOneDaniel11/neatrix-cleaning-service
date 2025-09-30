@@ -89,7 +89,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <div className="font-semibold text-foreground">Email Us</div>
-                  <div className="text-muted-foreground">hello@neatrix.com</div>
+                  <div className="text-muted-foreground">contactneatrix@gmail.com</div>
                 </div>
               </div>
 

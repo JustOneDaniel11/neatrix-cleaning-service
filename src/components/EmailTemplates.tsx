@@ -184,7 +184,7 @@ export const EmailVerificationTemplate: React.FC<EmailVerificationTemplateProps>
               💬 WhatsApp
             </a>
             <a
-              href="mailto:support@cleanpro.com"
+              href="mailto:contactneatrix@gmail.com"
               style={{
                 color: '#2563eb',
                 textDecoration: 'none',

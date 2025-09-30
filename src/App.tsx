@@ -16,6 +16,7 @@ import EmailVerificationSuccessPage from "./pages/EmailVerificationSuccessPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
+import BookingPage from "./pages/BookingPage";
 import NotFound from "./pages/NotFound";
 import { SupabaseDataProvider } from "./contexts/SupabaseDataContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -42,7 +43,8 @@ const App = () => (
             <Route path="/email-verification-success" element={<EmailVerificationSuccessPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/dashboard" element={
+            <Route path="/book-service" element={<BookingPage />} />
+            <Route path="/dashboard/*" element={
               <ProtectedRoute>
                 <DashboardPage />
               </ProtectedRoute>

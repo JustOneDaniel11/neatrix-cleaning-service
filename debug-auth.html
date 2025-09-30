@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Debug Authentication</h1>
+    
+    <div>
+        <h2>Test Sign Up</h2>
+        <input type="email" id="email" placeholder="Email" value="john.doe@gmail.com">
+        <input type="password" id="password" placeholder="Password" value="testpassword123">
+        <input type="text" id="fullName" placeholder="Full Name" value="John Doe">
+        <button onclick="testSignUp()">Sign Up</button>
+    </div>
+    
+    <div>
+        <h2>Test Sign In</h2>
+        <input type="email" id="loginEmail" placeholder="Email" value="john.doe@gmail.com">
+        <input type="password" id="loginPassword" placeholder="Password" value="testpassword123">
+        <button onclick="testSignIn()">Sign In</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const supabaseUrl = 'https://hrkpbuenwejwspjrfgkd.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhya3BidWVud2Vqd3NwanJmZ2tkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3MDg4OTQsImV4cCI6MjA3NDI4NDg5NH0.SA3o1vA1xUF-HK4aHFOEaCIrchq-_-4oX6uwji2ygHk';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        
+        function log(message) {
+            const results = document.getElementById('results');
+            results.innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+        
+        async function testSignUp() {
+            log('Testing sign up...');
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const fullName = document.getElementById('fullName').value;
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: fullName
+                        }
+                    }
+                });
+                
+                if (error) {
+                    log('❌ Sign up failed: ' + error.message);
+                    log('Error code: ' + error.status);
+                    log('Error details: ' + JSON.stringify(error, null, 2));
+                    return;
+                }
+                
+                log('✅ Sign up successful!');
+                log('User: ' + JSON.stringify(data.user, null, 2));
+            } catch (err) {
+                log('❌ Sign up error: ' + err.message);
+                log('Full error: ' + JSON.stringify(err, null, 2));
+            }
+        }
+        
+        async function testSignIn() {
+            log('Testing sign in...');
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    log('❌ Sign in failed: ' + error.message);
+                    log('Error code: ' + error.status);
+                    log('Error details: ' + JSON.stringify(error, null, 2));
+                    return;
+                }
+                
+                log('✅ Sign in successful!');
+                log('User: ' + JSON.stringify(data.user, null, 2));
+            } catch (err) {
+                log('❌ Sign in error: ' + err.message);
+                log('Full error: ' + JSON.stringify(err, null, 2));
+            }
+        }
+        
+        // Test connection on load
+        window.onload = async function() {
+            log('Testing Supabase connection...');
+            try {
+                const { data, error } = await supabase.from('services').select('count').limit(1);
+                if (error) {
+                    log('❌ Connection failed: ' + error.message);
+                } else {
+                    log('✅ Supabase connection successful');
+                }
+            } catch (err) {
+                log('❌ Connection error: ' + err.message);
+            }
+        };
+    </script>
+</body>
+</html>
