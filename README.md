@@ -127,7 +127,7 @@ npm run dev
 
 #### Build Commands
 - **Main App**: `npm run build` (outputs to `dist/`)
-- **Admin Dashboard**: `npm run build:admin` (outputs to `dist-admin/`)
+- **Admin Dashboard**: `npm run build:admin` (outputs to `neatrixadmin/dist/`)
 - **Development**: 
   - Main: `npm run dev`
   - Admin: `npm run dev:admin`

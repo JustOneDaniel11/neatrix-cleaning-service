@@ -1,9 +1,9 @@
 {
   "name": "neatrixadmindashboard",
   "version": 2,
-  "buildCommand": "cd admin && npm install && npm run build",
-  "outputDirectory": "admin/dist",
-  "devCommand": "cd admin && npm run dev",
+  "buildCommand": "cd neatrixadmin && npm install && npm run build",
+  "outputDirectory": "neatrixadmin/dist",
+  "devCommand": "cd neatrixadmin && npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [

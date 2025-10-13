@@ -17,9 +17,8 @@ import EmailVerificationSuccessPage from "./pages/EmailVerificationSuccessPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminLiveChat from "./pages/AdminLiveChat";
-import AdminDashboardWrapper from "@/admin/pages/AdminDashboardWrapper";
+import AdminDashboard from "./pages/AdminDashboard.tsx";
+import AdminLiveChat from "./pages/AdminLiveChat.tsx";
 import SupportPage from "./pages/SupportPage";
 import BookingPage from "./pages/BookingPage";
 import NotFound from "./pages/NotFound";
@@ -63,14 +62,8 @@ const App = () => (
                 <DashboardPage />
               </ProtectedRoute>
             } />
-            <Route path="/admin/*" element={
-              <ProtectedRoute>
-                <AdminDashboardWrapper />
-              </ProtectedRoute>
-            }>
-              <Route index element={<AdminDashboard />} />
-              <Route path="live-chat" element={<AdminLiveChat />} />
-            </Route>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/live-chat" element={<AdminLiveChat />} />
             {/* Catch all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>

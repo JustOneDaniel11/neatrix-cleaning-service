@@ -1,46 +1,81 @@
 import React, { useState } from 'react';
 import { useSupabaseData } from '@/contexts/SupabaseDataContext';
-import AdminLayout from '@/admin/components/AdminLayout';
-import AdminOverview from '@/admin/components/AdminOverview';
-import AdminBookings from '@/admin/components/AdminBookings';
-import AdminChat from '@/admin/components/AdminChat';
-import AdminNotifications from '@/admin/components/AdminNotifications';
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const [activeSection, setActiveSection] = useState('overview');
   const { state } = useSupabaseData();
+  const navigate = useNavigate();
 
-  // Render the appropriate component based on active section
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'overview':
-        return <AdminOverview />;
-      case 'bookings':
-        return <AdminBookings />;
-      case 'chat':
-        return <AdminChat />;
-      case 'inspections':
-        return <div className="p-6"><h2 className="text-2xl font-bold text-gray-900">Inspections</h2><p className="text-gray-600 mt-2">Inspections management coming soon...</p></div>;
-      case 'users':
-        return <div className="p-6"><h2 className="text-2xl font-bold text-gray-900">Users</h2><p className="text-gray-600 mt-2">User management coming soon...</p></div>;
-      case 'reviews':
-        return <div className="p-6"><h2 className="text-2xl font-bold text-gray-900">Reviews</h2><p className="text-gray-600 mt-2">Review management coming soon...</p></div>;
-      case 'payments':
-        return <div className="p-6"><h2 className="text-2xl font-bold text-gray-900">Payments</h2><p className="text-gray-600 mt-2">Payment management coming soon...</p></div>;
-      case 'notifications':
-        return <AdminNotifications />;
-      default:
-        return <AdminOverview />;
-    }
-  };
+  const NavButton = ({ id, label }: { id: string; label: string }) => (
+    <button
+      onClick={() => setActiveSection(id)}
+      className={`px-4 py-2 rounded-md text-sm font-medium ${
+        activeSection === id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-900'
+      }`}
+    >
+      {label}
+    </button>
+  );
 
   return (
-    <AdminLayout
-      activeSection={activeSection}
-      onSectionChange={setActiveSection}
-    >
-      {renderContent()}
-    </AdminLayout>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          {state.error && (
+            <p className="mt-2 text-sm text-red-600">{state.error}</p>
+          )}
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          <div className="flex gap-2 mb-6">
+            <NavButton id="overview" label="Overview" />
+            <NavButton id="bookings" label="Bookings" />
+            <NavButton id="chat" label="Chat" />
+            <NavButton id="notifications" label="Notifications" />
+          </div>
+
+          <div className="bg-white shadow rounded-lg p-6">
+            {activeSection === 'overview' && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Overview</h2>
+                <p className="text-gray-600 mt-2">Quick stats and recent activity will appear here.</p>
+              </div>
+            )}
+
+            {activeSection === 'bookings' && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Bookings</h2>
+                <p className="text-gray-600 mt-2">Manage bookings (integration coming soon).</p>
+              </div>
+            )}
+
+            {activeSection === 'chat' && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Support Chat</h2>
+                <p className="text-gray-600 mt-2">Open the live chat interface to assist users.</p>
+                <button
+                  className="mt-4 inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                  onClick={() => navigate('/admin/live-chat')}
+                >
+                  Open Live Chat
+                </button>
+              </div>
+            )}
+
+            {activeSection === 'notifications' && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Notifications</h2>
+                <p className="text-gray-600 mt-2">View and manage admin notifications.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
   );
 };
 
