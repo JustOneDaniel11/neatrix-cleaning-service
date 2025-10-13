@@ -116,3 +116,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Global placeholder visibility improvements for light and dark modes */
+@layer base {
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--foreground) / 0.72) !important;
+    opacity: 1; /* ensure placeholders are not too faint */
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: hsl(var(--foreground) / 0.82) !important;
+    opacity: 1;
+  }
+}
