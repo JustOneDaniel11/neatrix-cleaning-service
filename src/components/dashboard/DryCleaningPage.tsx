@@ -261,15 +261,15 @@ const DryCleaningPage = () => {
                     onClick={() => setServiceType('pickup')}
                     className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-colors touch-manipulation min-h-[80px] ${
                       serviceType === 'pickup'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/30 shadow-sm'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-900'
                     }`}
                   >
                     <div className="flex items-center space-x-2 sm:space-x-3">
-                      <Truck className={`h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 ${serviceType === 'pickup' ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <Truck className={`h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 ${serviceType === 'pickup' ? 'text-blue-600 dark:text-blue-500' : 'text-gray-400 dark:text-gray-500'}`} />
                       <div className="min-w-0">
-                        <h4 className="font-medium text-gray-900 text-sm sm:text-base">Request Pickup</h4>
-                        <p className="text-xs sm:text-sm text-gray-600">We'll come to you</p>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">Request Pickup</h4>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">We'll come to you</p>
                       </div>
                     </div>
                   </button>
@@ -278,15 +278,15 @@ const DryCleaningPage = () => {
                     onClick={() => setServiceType('dropoff')}
                     className={`p-3 sm:p-4 border-2 rounded-lg text-left transition-colors touch-manipulation min-h-[80px] ${
                       serviceType === 'dropoff'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/30 shadow-sm'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-900'
                     }`}
                   >
                     <div className="flex items-center space-x-2 sm:space-x-3">
-                      <MapPin className={`h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 ${serviceType === 'dropoff' ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <MapPin className={`h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 ${serviceType === 'dropoff' ? 'text-blue-600 dark:text-blue-500' : 'text-gray-400 dark:text-gray-500'}`} />
                       <div className="min-w-0">
-                        <h4 className="font-medium text-gray-900 text-sm sm:text-base">Book Drop-off</h4>
-                        <p className="text-xs sm:text-sm text-gray-600">Bring items to us</p>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">Book Drop-off</h4>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Bring items to us</p>
                       </div>
                     </div>
                   </button>
@@ -382,7 +382,7 @@ const DryCleaningPage = () => {
                             onChange={(e) => setNewAddress({ ...newAddress, is_default: e.target.checked })}
                             className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                           />
-                          <label htmlFor="isDefault" className="ml-2 text-xs sm:text-sm text-gray-700">Set as default</label>
+                          <label htmlFor="isDefault" className="ml-2 text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">Set as default</label>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
                           <button onClick={closeAddressModal} className="px-3 py-2 text-xs sm:text-sm rounded-md border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
@@ -397,7 +397,7 @@ const DryCleaningPage = () => {
               {/* Date and Time Selection */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">
                     {serviceType === 'pickup' ? 'Pickup Date' : 'Drop-off Date'} *
                   </label>
                   <input
@@ -405,18 +405,18 @@ const DryCleaningPage = () => {
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"
+                    className={`w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 ${selectedDate ? 'text-gray-900 dark:text-gray-200' : 'date-empty text-gray-500 dark:text-gray-400'}`}
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">
                     Preferred Time *
                   </label>
                   <select
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
-                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"
+                    className={`w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 ${selectedTime ? 'text-gray-900 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}
                   >
                     <option value="">Select time slot</option>
                     {timeSlots.map((slot) => (

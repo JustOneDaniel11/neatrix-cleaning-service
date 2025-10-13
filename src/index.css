@@ -133,6 +133,37 @@
   }
 }
 
+/* Improve visibility of empty date inputs (WebKit/Blink and Firefox) */
+@layer base {
+  /* When the input has no value, apply lighter text to date segments */
+  input[type="date"].date-empty::-webkit-datetime-edit,
+  input[type="date"].date-empty::-webkit-datetime-edit-text,
+  input[type="date"].date-empty::-webkit-datetime-edit-month-field,
+  input[type="date"].date-empty::-webkit-datetime-edit-day-field,
+  input[type="date"].date-empty::-webkit-datetime-edit-year-field,
+  input[type="date"].date-empty::-webkit-datetime-edit-fields-wrapper {
+    color: #9ca3af; /* Tailwind gray-400 */
+  }
+
+  /* Dark mode date segment color when empty */
+  .dark input[type="date"].date-empty::-webkit-datetime-edit,
+  .dark input[type="date"].date-empty::-webkit-datetime-edit-text,
+  .dark input[type="date"].date-empty::-webkit-datetime-edit-month-field,
+  .dark input[type="date"].date-empty::-webkit-datetime-edit-day-field,
+  .dark input[type="date"].date-empty::-webkit-datetime-edit-year-field,
+  .dark input[type="date"].date-empty::-webkit-datetime-edit-fields-wrapper {
+    color: #9ca3af; /* gray-400 for better contrast on dark */
+  }
+
+  /* Firefox fallback to lighten text when empty */
+  input[type="date"].date-empty {
+    color: #6b7280; /* Tailwind gray-500 */
+  }
+  .dark input[type="date"].date-empty {
+    color: #9ca3af; /* gray-400 */
+  }
+}
+
 /* PaymentPage dark-mode visibility improvements */
 @layer components {
   /* Headings and muted text */

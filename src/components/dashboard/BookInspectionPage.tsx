@@ -240,13 +240,13 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
             <div className="space-y-3 sm:space-y-4">
               {/* Property Type */}
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">
                   Property Type *
                 </label>
                 <select
                   value={formData.propertyType}
                   onChange={(e) => handleInputChange('propertyType', e.target.value)}
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm text-gray-900 placeholder-gray-500 min-h-[44px]"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 bg-white dark:bg-gray-900 min-h-[44px]"
                 >
                   <option value="">Select property type</option>
                   {propertyTypes.map((type) => (
@@ -259,7 +259,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
 
               {/* Square Footage */}
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-300 mb-1 sm:mb-2">
                   Total Square Footage
                 </label>
                 <input
@@ -267,13 +267,13 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                   value={formData.totalSquareFootage}
                   onChange={(e) => handleInputChange('totalSquareFootage', e.target.value)}
                   placeholder="e.g., 1200"
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm text-gray-900 placeholder-gray-500 min-h-[44px]"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 bg-white dark:bg-gray-900 min-h-[44px]"
                 />
               </div>
 
               {/* Address */}
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">
                   Property Address *
                 </label>
                 <textarea
@@ -281,7 +281,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                   onChange={(e) => handleInputChange('address', e.target.value)}
                   rows={2}
                   placeholder="Enter the complete property address"
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none text-gray-900 placeholder-gray-500 min-h-[44px]"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 bg-white dark:bg-gray-900 min-h-[44px]"
                 />
               </div>
             </div>
@@ -506,24 +506,24 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
               {/* Preferred Date/Time */}
               <div>
-                <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Preferred Date & Time *</h4>
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 text-sm sm:text-base">Preferred Date & Time *</h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-300 mb-1">Date</label>
                     <input
                       type="date"
                       value={formData.preferredDate}
                       onChange={(e) => handleInputChange('preferredDate', e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
+                      className={`w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 ${formData.preferredDate ? 'text-gray-900 dark:text-gray-200' : 'date-empty text-gray-500 dark:text-gray-400'}`}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Time</label>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-300 mb-1">Time</label>
                     <select
                       value={formData.preferredTime}
                       onChange={(e) => handleInputChange('preferredTime', e.target.value)}
-                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
+                      className={`w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 ${formData.preferredTime ? 'text-gray-900 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}
                     >
                       <option value="">Select time slot</option>
                       {timeSlots.map((slot) => (
@@ -547,7 +547,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                       value={formData.alternateDate}
                       onChange={(e) => handleInputChange('alternateDate', e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
+                      className={`w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 ${formData.alternateDate ? 'text-gray-900 dark:text-gray-200' : 'date-empty text-gray-500 dark:text-gray-400'}`}
                     />
                   </div>
                   <div>
@@ -555,7 +555,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                     <select
                       value={formData.alternateTime}
                       onChange={(e) => handleInputChange('alternateTime', e.target.value)}
-                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
+                      className={`w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 ${formData.alternateTime ? 'text-gray-900 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}
                     >
                       <option value="">Select time slot</option>
                       {timeSlots.map((slot) => (
