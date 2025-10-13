@@ -187,8 +187,8 @@ const PaymentPage: React.FC = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
+      <div className="border-b border-gray-200 mb-6 overflow-x-auto">
+        <nav className="-mb-px flex space-x-4 sm:space-x-8 flex-nowrap min-w-max">
           {[
             { id: 'methods', label: 'Payment Methods', icon: CreditCard },
             { id: 'history', label: 'Transaction History', icon: Receipt },
@@ -213,7 +213,7 @@ const PaymentPage: React.FC = () => {
       {/* Payment Methods Tab */}
       {activeTab === 'methods' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap gap-3">
             <h2 className="text-xl font-semibold text-gray-900">Payment Methods</h2>
             <button
               onClick={() => setShowAddPayment(true)}
@@ -366,7 +366,7 @@ const PaymentPage: React.FC = () => {
           
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-[42rem] sm:min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
