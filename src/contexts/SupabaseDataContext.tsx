@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { supabase, testSupabaseConnection } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 // Types (updated to match Supabase schema)
@@ -800,7 +800,7 @@ const SupabaseDataContext = createContext<{
   updateSubscriptionCustomization: (id: string, updates: Partial<SubscriptionCustomization>) => Promise<void>;
   // Support ticket functions
   fetchSupportTickets: (userId?: string) => Promise<void>;
-  createSupportTicket: (ticket: Omit<SupportTicket, 'id' | 'created_at' | 'updated_at' | 'ticket_number'>) => Promise<void>;
+  createSupportTicket: (ticket: Omit<SupportTicket, 'id' | 'created_at' | 'updated_at' | 'ticket_number'>) => Promise<SupportTicket>;
   updateSupportTicket: (id: string, updates: Partial<SupportTicket>) => Promise<void>;
   deleteSupportTicket: (id: string) => Promise<void>;
   fetchSupportMessages: (ticketId?: string) => Promise<void>;
@@ -832,9 +832,6 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       dispatch({ type: 'SET_LOADING', payload: true });
-      
-      // Test Supabase connection first
-      await testSupabaseConnection();
       
       try {
         // Check for existing session
@@ -2149,7 +2146,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const createSupportTicket = async (ticket: Omit<SupportTicket, 'id' | 'created_at' | 'updated_at' | 'ticket_number'>) => {
+  const createSupportTicket = async (ticket: Omit<SupportTicket, 'id' | 'created_at' | 'updated_at' | 'ticket_number'>): Promise<SupportTicket> => {
     if (!state.authUser) throw new Error('User not authenticated');
 
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -2166,6 +2163,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
       dispatch({ type: 'ADD_SUPPORT_TICKET', payload: data });
+      return data as SupportTicket;
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       throw error;

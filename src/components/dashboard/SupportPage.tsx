@@ -19,6 +19,8 @@ import {
   MoreVertical,
   Headphones
 } from "lucide-react";
+import ServiceStatusBanner from "../ServiceStatusBanner";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 interface Review {
   id: string;
@@ -32,13 +34,14 @@ interface Review {
 }
 
 const SupportPage: React.FC = () => {
-  const { state, createSupportMessage } = useSupabaseData();
-  const { currentUser, supportMessages } = state;
+  const { state, createSupportMessage, createSupportTicket } = useSupabaseData();
+  const { currentUser, supportMessages, error } = state as any;
   const { data: realtimeMessages } = useRealtimeData('support_messages', '*', 
     currentUser ? { column: 'sender_id', value: currentUser.id } : undefined
   );
 
   const [activeTab, setActiveTab] = useState<'chat' | 'reviews' | 'faq' | 'contact'>('chat');
+  const [ticketId, setTicketId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,13 +74,71 @@ const SupportPage: React.FC = () => {
     scrollToBottom();
   }, [currentMessages]);
 
+  // Ensure a valid support ticket exists for the user chat session
+  useEffect(() => {
+    const ensureTicket = async () => {
+      if (!currentUser || ticketId) return;
+      try {
+        const ticket = await createSupportTicket({
+          user_id: currentUser.id,
+          subject: 'General Support',
+          description: 'User initiated chat in Support Center',
+          status: 'open',
+          priority: 'normal',
+          category: 'general'
+        });
+        setTicketId(ticket.id);
+
+        // Default welcome response (stored as admin message)
+        const welcomeText = 'Thanks for reaching out! Our support team will respond shortly.';
+        await createSupportMessage({
+          ticket_id: ticket.id,
+          // Use current user id to satisfy RLS; mark as admin type for UI styling
+          sender_id: currentUser.id,
+          sender_type: 'admin',
+          message: welcomeText,
+          message_type: 'text',
+          is_read: false
+        });
+      } catch (err) {
+        console.error('Failed to create support ticket:', err);
+      }
+    };
+    ensureTicket();
+  }, [currentUser, ticketId, createSupportTicket]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !currentUser || isLoading) return;
 
     setIsLoading(true);
     try {
+      // Fallback: if ticket not yet created, create it now
+      let activeTicketId = ticketId;
+      if (!activeTicketId) {
+        const ticket = await createSupportTicket({
+          user_id: currentUser.id,
+          subject: 'General Support',
+          description: 'User initiated chat in Support Center',
+          status: 'open',
+          priority: 'normal',
+          category: 'general'
+        });
+        activeTicketId = ticket.id;
+        setTicketId(activeTicketId);
+
+        // Ensure welcome response exists when ticket is first created
+        const welcomeText = 'Thanks for reaching out! Our support team will respond shortly.';
+        await createSupportMessage({
+          ticket_id: activeTicketId,
+          sender_id: currentUser.id,
+          sender_type: 'admin',
+          message: welcomeText,
+          message_type: 'text',
+          is_read: false
+        });
+      }
       await createSupportMessage({
-        ticket_id: 'general',
+        ticket_id: activeTicketId!,
         sender_id: currentUser.id,
         sender_type: 'user',
         message: newMessage.trim(),
@@ -134,12 +195,29 @@ const SupportPage: React.FC = () => {
 
   const handleSubmitContact = async () => {
     if (!currentUser || !contactForm.subject.trim() || !contactForm.message.trim() || isSubmittingContact) return;
+    if (!isSupabaseConfigured || error) {
+      alert('Service is currently unavailable. Please try again later.');
+      return;
+    }
 
     setIsSubmittingContact(true);
     try {
-      // Create a support message for the contact inquiry
+      // Create or reuse a ticket and attach the contact inquiry
+      let activeTicketId = ticketId;
+      if (!activeTicketId) {
+        const ticket = await createSupportTicket({
+          user_id: currentUser.id,
+          subject: contactForm.subject.trim(),
+          description: 'Contact inquiry from Support Center',
+          status: 'open',
+          priority: 'normal',
+          category: 'general'
+        });
+        activeTicketId = ticket.id;
+        setTicketId(activeTicketId);
+      }
       await createSupportMessage({
-        ticket_id: 'contact-inquiry',
+        ticket_id: activeTicketId!,
         sender_id: currentUser.id,
         sender_type: 'user',
         message: `Subject: ${contactForm.subject.trim()}\n\nMessage: ${contactForm.message.trim()}`,
@@ -243,20 +321,21 @@ const SupportPage: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <ServiceStatusBanner errorMessage={error} />
       {/* Header */}
-      <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 border border-gray-200">
+      <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-800">
         <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
           <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
             <Headphones className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Support Center</h1>
-            <p className="text-xs sm:text-sm text-gray-600">Get help when you need it - we're here to assist you</p>
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Support Center</h1>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Get help when you need it - we're here to assist you</p>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 dark:border-gray-800">
           <nav className="flex space-x-2 sm:space-x-4 lg:space-x-8 overflow-x-auto">
             {[
               { id: 'chat', label: 'Live Chat', icon: MessageCircle },
@@ -270,7 +349,7 @@ const SupportPage: React.FC = () => {
                 className={`py-3 sm:py-4 px-1 sm:px-2 border-b-2 font-medium text-xs sm:text-sm flex items-center space-x-1 sm:space-x-2 transition-colors whitespace-nowrap ${
                   activeTab === id
                     ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-300 dark:hover:text-gray-200 dark:hover:border-gray-700'
                 }`}
               >
                 <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -283,15 +362,15 @@ const SupportPage: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200">
+      <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-800">
         {activeTab === 'chat' && (
           <div className="p-3 sm:p-6">
             <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 max-h-80 sm:max-h-96 overflow-y-auto">
               {currentMessages.length === 0 ? (
                 <div className="text-center py-8 sm:py-12">
                   <MessageCircle className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-1 sm:mb-2">Start a conversation</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 px-4">Send us a message and we'll get back to you as soon as possible.</p>
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-1 sm:mb-2">Start a conversation</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-300 px-4">Send us a message and we'll get back to you as soon as possible.</p>
                 </div>
               ) : (
                 currentMessages.map((message: any) => (
@@ -303,12 +382,12 @@ const SupportPage: React.FC = () => {
                       className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 rounded-lg ${
                         message.sender_type === 'user'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                       }`}
                     >
                       <p className="text-xs sm:text-sm">{message.message}</p>
                       <p className={`text-xs mt-1 ${
-                        message.sender_type === 'user' ? 'text-blue-100' : 'text-gray-500'
+                        message.sender_type === 'user' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
                       }`}>
                         {formatTime(message.created_at)}
                       </p>
@@ -320,7 +399,7 @@ const SupportPage: React.FC = () => {
             </div>
 
             {/* Message Input */}
-            <div className="border-t border-gray-200 pt-3 sm:pt-4">
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-3 sm:pt-4">
               <div className="flex space-x-2 sm:space-x-4">
                 <input
                   type="text"
@@ -328,7 +407,7 @@ const SupportPage: React.FC = () => {
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                   disabled={isLoading}
                 />
                 <button
@@ -551,7 +630,7 @@ const SupportPage: React.FC = () => {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Phone Support</h3>
                     <p className="text-gray-600 mb-2 text-xs sm:text-sm">Call us directly for immediate assistance</p>
-                    <p className="text-blue-600 font-medium text-xs sm:text-sm">+234 (0) 123 456 7890</p>
+                    <p className="text-blue-600 font-medium text-xs sm:text-sm">+234 903 484 2430</p>
                   </div>
                 </div>
 
@@ -578,7 +657,7 @@ const SupportPage: React.FC = () => {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Service Area</h3>
                     <p className="text-gray-600 mb-2 text-xs sm:text-sm">We currently serve</p>
-                    <p className="text-blue-600 font-medium text-xs sm:text-sm">Lagos, Abuja, Port Harcourt & Surrounding Areas</p>
+                    <p className="text-blue-600 font-medium text-xs sm:text-sm">Lagos Only</p>
                   </div>
                 </div>
 

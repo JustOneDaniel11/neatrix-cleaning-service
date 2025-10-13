@@ -3,17 +3,22 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create client even if misconfigured to avoid import-time crash.
+// Downstream calls will surface meaningful errors and we also guard with isSupabaseConfigured.
+export const supabase = createClient(supabaseUrl || 'https://example.supabase.co', supabaseAnonKey || 'example')
 
 // Test connection function
 export async function testSupabaseConnection() {
   console.log('🔍 Testing Supabase connection...');
   console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
   console.log('Supabase Key (partial):', import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 20) + '...');
+  
+  if (!isSupabaseConfigured) {
+    console.warn('⚠️ Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+    return;
+  }
   
   // Test basic URL accessibility
   try {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import Header from "@/components/Header";
@@ -9,6 +9,7 @@ import { useSupabaseData } from "@/contexts/SupabaseDataContext";
 const LoginPage = () => {
   const { state, signIn } = useSupabaseData();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -25,7 +26,8 @@ const LoginPage = () => {
     try {
       await signIn(formData.email, formData.password);
       // Navigate to dashboard after successful login
-      navigate('/dashboard');
+      const redirectTo = (location.state as any)?.redirectTo || '/dashboard';
+      navigate(redirectTo);
     } catch (error: any) {
       setError(error.message || 'Failed to sign in. Please check your credentials.');
     }

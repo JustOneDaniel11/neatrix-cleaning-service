@@ -11,8 +11,10 @@ import {
   Star,
   ArrowRight
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const About = () => {
+  const navigate = useNavigate();
   const values = [
     {
       icon: Shield,
@@ -243,9 +245,7 @@ const About = () => {
               size="lg" 
               className="bg-gradient-primary shadow-medium hover:shadow-strong"
               onClick={() => {
-                const message = "Hello! I'd like to get a free quote for cleaning services. Can you help me with pricing information?";
-                const whatsappUrl = `https://wa.me/2348031234567?text=${encodeURIComponent(message)}`;
-                window.open(whatsappUrl, '_blank');
+                navigate('/login', { state: { redirectTo: '/dashboard/support' } });
               }}
             >
               Get Free Quote
@@ -255,7 +255,7 @@ const About = () => {
               variant="outline" 
               size="lg"
               onClick={() => {
-                window.location.href = "tel:+2348031234567";
+                window.location.href = "tel:+2349034842430";
               }}
               className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
             >

@@ -160,8 +160,8 @@ const NotificationsPage: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Bell className="w-8 h-8 text-blue-600" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h1>
+            <p className="text-gray-600 dark:text-gray-300">
               {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'All caught up!'}
             </p>
           </div>
@@ -201,7 +201,7 @@ const NotificationsPage: React.FC = () => {
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               filter === tab.key
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
             }`}
           >
             {tab.label} ({tab.count})
@@ -214,15 +214,15 @@ const NotificationsPage: React.FC = () => {
         {notificationsLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">Loading notifications...</p>
+            <p className="text-gray-500 dark:text-gray-300">Loading notifications...</p>
           </div>
         ) : filteredNotifications.length === 0 ? (
           <div className="text-center py-12">
             <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
               {filter === 'all' ? 'No notifications' : `No ${filter} notifications`}
             </h3>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               {filter === 'all' 
                 ? "You're all caught up! New notifications will appear here."
                 : `You have no ${filter} notifications at the moment.`
@@ -233,8 +233,8 @@ const NotificationsPage: React.FC = () => {
           filteredNotifications.map(notification => (
             <div
               key={notification.id}
-              className={`bg-white border-l-4 ${getPriorityColor(notification.priority)} rounded-lg shadow-sm transition-all hover:shadow-md cursor-pointer ${
-                notification.status === 'unread' ? 'bg-blue-50' : ''
+              className={`bg-white dark:bg-gray-800 border-l-4 ${getPriorityColor(notification.priority)} rounded-lg shadow-sm transition-all hover:shadow-md cursor-pointer ${
+                notification.status === 'unread' ? 'bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
               onClick={() => handleNotificationClick(notification.id)}
             >
@@ -251,25 +251,25 @@ const NotificationsPage: React.FC = () => {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
-                        <h3 className={`text-sm font-medium ${notification.status === 'unread' ? 'text-gray-900' : 'text-gray-700'}`}>
+                        <h3 className={`text-sm font-medium ${notification.status === 'unread' ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                           {notification.title}
                         </h3>
                         {notification.status === 'unread' && (
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                         )}
                         {notification.priority === 'high' && (
-                          <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                          <span className="px-2 py-1 text-xs bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300 rounded-full">
                             High Priority
                           </span>
                         )}
                       </div>
                       
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                         {notification.message}
                       </p>
                       
                       <div className="flex items-center justify-between">
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
                           {formatTimestamp(notification.created_at)}
                         </p>
                       </div>
@@ -279,7 +279,7 @@ const NotificationsPage: React.FC = () => {
                   <div className="flex items-center space-x-1 ml-4">
                     <button
                       onClick={(e) => toggleReadStatus(e, notification.id)}
-                      className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                      className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 transition-colors"
                       title={notification.status === 'read' ? "Mark as unread" : "Mark as read"}
                     >
                       {notification.status === 'read' ? (
@@ -294,7 +294,7 @@ const NotificationsPage: React.FC = () => {
                         e.stopPropagation();
                         deleteNotification(notification.id);
                       }}
-                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                      className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 transition-colors"
                       title="Delete notification"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -304,15 +304,15 @@ const NotificationsPage: React.FC = () => {
                 
                 {/* Expanded Content */}
                 {expandedNotification === notification.id && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-gray-700">Full Details</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Full Details</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setExpandedNotification(null);
                         }}
-                        className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                         title="Collapse"
                       >
                         <ChevronUp className="w-4 h-4" />
@@ -320,12 +320,12 @@ const NotificationsPage: React.FC = () => {
                     </div>
                     
                     {/* Full notification body/content */}
-                    <div className="bg-gray-50 rounded-lg p-4 mb-3">
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-3">
                       <div className="prose prose-sm max-w-none">
-                        <h4 className="text-base font-semibold text-gray-900 mb-2">
+                        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
                           {notification.title}
                         </h4>
-                        <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        <div className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
                           {notification.message || 'No additional details available.'}
                         </div>
                       </div>
@@ -334,8 +334,8 @@ const NotificationsPage: React.FC = () => {
                     {/* Notification metadata */}
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="font-medium text-gray-600">Type:</span>
-                        <span className="ml-2 capitalize text-gray-900">{notification.type}</span>
+                        <span className="font-medium text-gray-600 dark:text-gray-300">Type:</span>
+                        <span className="ml-2 capitalize text-gray-900 dark:text-white">{notification.type}</span>
                       </div>
                       <div>
                         <span className="font-medium text-gray-600">Priority:</span>
@@ -425,20 +425,20 @@ const NotificationsPage: React.FC = () => {
 
       {/* Notification Settings */}
       {notifications.length > 0 && (
-        <div className="mt-8 bg-gray-50 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h3>
+        <div className="mt-8 bg-gray-50 dark:bg-gray-900 rounded-lg p-6 border border-transparent dark:border-gray-800">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Notification Preferences</h3>
           <div className="space-y-3">
             <label className="flex items-center">
-              <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              <span className="ml-2 text-sm text-gray-700">Email notifications for bookings</span>
+              <input type="checkbox" defaultChecked className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500" />
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Email notifications for bookings</span>
             </label>
             <label className="flex items-center">
-              <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              <span className="ml-2 text-sm text-gray-700">SMS notifications for urgent updates</span>
+              <input type="checkbox" defaultChecked className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500" />
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS notifications for urgent updates</span>
             </label>
             <label className="flex items-center">
-              <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              <span className="ml-2 text-sm text-gray-700">Push notifications for promotions</span>
+              <input type="checkbox" defaultChecked className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500" />
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Push notifications for promotions</span>
             </label>
           </div>
         </div>

@@ -162,7 +162,7 @@ export const EmailVerificationTemplate: React.FC<EmailVerificationTemplateProps>
             flexWrap: 'wrap'
           }}>
             <a
-              href="tel:+2348031234567"
+              href="tel:+2349034842430"
               style={{
                 color: '#2563eb',
                 textDecoration: 'none',
@@ -173,7 +173,7 @@ export const EmailVerificationTemplate: React.FC<EmailVerificationTemplateProps>
               📞 Call Us
             </a>
             <a
-              href="https://wa.me/2348031234567"
+              href="https://wa.me/2349034842430"
               style={{
                 color: '#25d366',
                 textDecoration: 'none',

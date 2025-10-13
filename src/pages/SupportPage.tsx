@@ -40,7 +40,7 @@ interface SupportTicket {
 }
 
 const SupportPage: React.FC = () => {
-  const { state, createSupportMessage } = useSupabaseData();
+  const { state, createSupportMessage, createSupportTicket } = useSupabaseData();
   const { currentUser, supportMessages } = state;
   const { data: realtimeMessages } = useRealtimeData('support_messages', '*', 
     currentUser ? { column: 'sender_id', value: currentUser.id } : undefined
@@ -52,6 +52,9 @@ const SupportPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [reviewFilter, setReviewFilter] = useState<'all' | '1' | '2' | '3' | '4' | '5'>('all');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [contactForm, setContactForm] = useState<{ subject: string; message: string }>({ subject: '', message: '' });
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
 
   // Use realtime messages if available, otherwise fall back to context
   const currentMessages = realtimeMessages || supportMessages || [];
@@ -67,13 +70,46 @@ const SupportPage: React.FC = () => {
     scrollToBottom();
   }, [currentMessages]);
 
+  useEffect(() => {
+    const ensureTicket = async () => {
+      if (!currentUser || ticketId) return;
+      try {
+        const ticket = await createSupportTicket({
+          user_id: currentUser.id,
+          subject: 'General Support',
+          description: 'User initiated chat in Support Center',
+          status: 'open',
+          priority: 'normal',
+          category: 'general'
+        });
+        setTicketId(ticket.id);
+      } catch (err) {
+        console.error('Failed to create support ticket:', err);
+      }
+    };
+    ensureTicket();
+  }, [currentUser, ticketId, createSupportTicket]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !currentUser || isLoading) return;
 
     setIsLoading(true);
     try {
+      let activeTicketId = ticketId;
+      if (!activeTicketId) {
+        const ticket = await createSupportTicket({
+          user_id: currentUser.id,
+          subject: 'General Support',
+          description: 'User initiated chat in Support Center',
+          status: 'open',
+          priority: 'normal',
+          category: 'general'
+        });
+        activeTicketId = ticket.id;
+        setTicketId(activeTicketId);
+      }
       await createSupportMessage({
-        ticket_id: 'general', // For now, use a general ticket ID
+        ticket_id: activeTicketId!,
         sender_id: currentUser.id,
         sender_type: 'user',
         message: newMessage.trim(),
@@ -85,6 +121,44 @@ const SupportPage: React.FC = () => {
       console.error('Error sending message:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSubmitContact = async () => {
+    if (!currentUser || !contactForm.subject.trim() || !contactForm.message.trim() || isSubmittingContact) return;
+
+    setIsSubmittingContact(true);
+    try {
+      let activeTicketId = ticketId;
+      if (!activeTicketId) {
+        const ticket = await createSupportTicket({
+          user_id: currentUser.id,
+          subject: contactForm.subject.trim(),
+          description: 'Contact inquiry from Support Center',
+          status: 'open',
+          priority: 'normal',
+          category: 'general'
+        });
+        activeTicketId = ticket.id;
+        setTicketId(activeTicketId);
+      }
+
+      await createSupportMessage({
+        ticket_id: activeTicketId!,
+        sender_id: currentUser.id,
+        sender_type: 'user',
+        message: `Subject: ${contactForm.subject.trim()}\n\nMessage: ${contactForm.message.trim()}`,
+        message_type: 'text',
+        is_read: false
+      });
+
+      setContactForm({ subject: '', message: '' });
+      alert('Your message has been sent successfully! We will get back to you soon.');
+    } catch (error) {
+      console.error('Error sending contact message:', error);
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setIsSubmittingContact(false);
     }
   };
 
@@ -170,19 +244,19 @@ const SupportPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Support Center</h1>
-            <p className="mt-2 text-gray-600">Get help, leave reviews, and contact our team</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Support Center</h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-300">Get help, leave reviews, and contact our team</p>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8 overflow-x-auto">
             {[
@@ -197,7 +271,7 @@ const SupportPage: React.FC = () => {
                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === id
                     ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-300 dark:hover:text-white dark:hover:border-gray-600'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -211,16 +285,16 @@ const SupportPage: React.FC = () => {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'chat' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-[600px] flex flex-col">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 h-[600px] flex flex-col">
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-blue-100 rounded-full">
                   <MessageCircle className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Live Support Chat</h3>
-                  <p className="text-sm text-gray-500">We typically respond within a few minutes</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Live Support Chat</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-300">We typically respond within a few minutes</p>
                 </div>
               </div>
             </div>
@@ -229,11 +303,11 @@ const SupportPage: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {currentMessages.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="p-3 bg-gray-100 rounded-full w-fit mx-auto mb-4">
-                    <MessageCircle className="h-8 w-8 text-gray-400" />
+                  <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full w-fit mx-auto mb-4">
+                    <MessageCircle className="h-8 w-8 text-gray-400 dark:text-gray-200" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Start a conversation</h3>
-                  <p className="text-gray-500">Send us a message and we'll get back to you shortly.</p>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Start a conversation</h3>
+                  <p className="text-gray-500 dark:text-gray-300">Send us a message and we'll get back to you shortly.</p>
                 </div>
               ) : (
                 currentMessages.map((message) => (
@@ -245,12 +319,12 @@ const SupportPage: React.FC = () => {
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
                         message.sender_type === 'user'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
+                          : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                       }`}
                     >
                       <p className="text-sm">{message.message}</p>
                       <p className={`text-xs mt-1 ${
-                        message.sender_type === 'user' ? 'text-blue-100' : 'text-gray-500'
+                        message.sender_type === 'user' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-300'
                       }`}>
                         {formatDate(message.created_at)}
                       </p>
@@ -262,7 +336,7 @@ const SupportPage: React.FC = () => {
             </div>
 
             {/* Message Input */}
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex space-x-3">
                 <input
                   type="text"
@@ -270,7 +344,7 @@ const SupportPage: React.FC = () => {
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
                   disabled={isLoading}
                 />
                 <button
@@ -289,17 +363,17 @@ const SupportPage: React.FC = () => {
         {activeTab === 'reviews' && (
           <div className="space-y-6">
             {/* Reviews Overview */}
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Average Rating */}
                 <div className="text-center lg:text-left">
                   <div className="flex items-center justify-center lg:justify-start space-x-4 mb-4">
-                    <div className="text-4xl font-bold text-gray-900">
+                    <div className="text-4xl font-bold text-gray-900 dark:text-white">
                       {averageRating.toFixed(1)}
                     </div>
                     <div>
                       {renderStars(Math.round(averageRating), 'lg')}
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
                         Based on {reviews?.length || 0} reviews
                       </p>
                     </div>
@@ -310,16 +384,16 @@ const SupportPage: React.FC = () => {
                 <div className="space-y-2">
                   {ratingDistribution.map(({ rating, count, percentage }) => (
                     <div key={rating} className="flex items-center space-x-3">
-                      <span className="text-sm font-medium text-gray-700 w-8">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200 w-8">
                         {rating}★
                       </span>
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className="bg-yellow-400 h-2 rounded-full"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <span className="text-sm text-gray-500 w-8">{count}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-300 w-8">{count}</span>
                     </div>
                   ))}
                 </div>
@@ -327,24 +401,24 @@ const SupportPage: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl p-4 border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                     <input
                       type="text"
                       placeholder="Search reviews..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
                     />
                   </div>
                 </div>
                 <select
                   value={reviewFilter}
                   onChange={(e) => setReviewFilter(e.target.value as any)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 >
                   <option value="all">All Ratings</option>
                   <option value="5">5 Stars</option>
@@ -359,10 +433,10 @@ const SupportPage: React.FC = () => {
             {/* Reviews List */}
             <div className="space-y-4">
               {filteredReviews.length === 0 ? (
-                <div className="bg-white rounded-xl p-12 text-center border border-gray-200">
-                  <Star className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No reviews found</h3>
-                  <p className="text-gray-500">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
+                  <Star className="h-12 w-12 text-gray-300 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No reviews found</h3>
+                  <p className="text-gray-500 dark:text-gray-300">
                     {searchQuery || reviewFilter !== 'all' 
                       ? 'Try adjusting your search or filter criteria.'
                       : 'Be the first to leave a review after your service!'}
@@ -370,26 +444,26 @@ const SupportPage: React.FC = () => {
                 </div>
               ) : (
                 filteredReviews.map((review) => (
-                  <div key={review.id} className="bg-white rounded-xl p-6 border border-gray-200">
+                  <div key={review.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-gray-100 rounded-full">
+                        <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full">
                           <Star className="h-5 w-5 text-yellow-500" />
                         </div>
                         <div>
                           <div className="flex items-center space-x-2">
                             {renderStars(review.rating)}
-                            <span className="text-sm font-medium text-gray-900">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {review.rating}/5
                             </span>
                           </div>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-gray-300">
                             {review.service_type} • {formatDate(review.created_at)}
                           </p>
                         </div>
                       </div>
                     </div>
-                    <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                    <p className="text-gray-700 dark:text-gray-200 leading-relaxed">{review.comment}</p>
                   </div>
                 ))
               )}
@@ -400,14 +474,14 @@ const SupportPage: React.FC = () => {
         {activeTab === 'faq' && (
           <div className="space-y-4">
             {faqItems.map((item, index) => (
-              <div key={index} className="bg-white rounded-xl border border-gray-200">
+              <div key={index} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                 <details className="group">
                   <summary className="flex items-center justify-between p-6 cursor-pointer">
-                    <h3 className="font-medium text-gray-900">{item.question}</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-white">{item.question}</h3>
                     <Plus className="h-5 w-5 text-gray-400 group-open:rotate-45 transition-transform" />
                   </summary>
                   <div className="px-6 pb-6">
-                    <p className="text-gray-600 leading-relaxed">{item.answer}</p>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{item.answer}</p>
                   </div>
                 </details>
               </div>
@@ -418,17 +492,17 @@ const SupportPage: React.FC = () => {
         {activeTab === 'contact' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Contact Information */}
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Get in Touch</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Get in Touch</h3>
               <div className="space-y-6">
                 <div className="flex items-start space-x-4">
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <Phone className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">Phone</h4>
-                    <p className="text-gray-600">+1 (555) 123-4567</p>
-                    <p className="text-sm text-gray-500">Mon-Sat: 8 AM - 6 PM</p>
+                    <h4 className="font-medium text-gray-900 dark:text-white">Phone</h4>
+                    <p className="text-gray-600 dark:text-gray-300">+234 903 484 2430</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Mon-Sat: 8 AM - 6 PM</p>
                   </div>
                 </div>
 
@@ -437,9 +511,9 @@ const SupportPage: React.FC = () => {
                     <Mail className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">Email</h4>
-                    <p className="text-gray-600">contactneatrix@gmail.com</p>
-                    <p className="text-sm text-gray-500">We respond within 24 hours</p>
+                    <h4 className="font-medium text-gray-900 dark:text-white">Email</h4>
+                    <p className="text-gray-600 dark:text-gray-300">contactneatrix@gmail.com</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">We respond within 24 hours</p>
                   </div>
                 </div>
 
@@ -448,8 +522,8 @@ const SupportPage: React.FC = () => {
                     <MapPin className="h-5 w-5 text-purple-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">Address</h4>
-                    <p className="text-gray-600">
+                    <h4 className="font-medium text-gray-900 dark:text-white">Address</h4>
+                    <p className="text-gray-600 dark:text-gray-300">
                       123 Clean Street<br />
                       Laundry District, LD 12345
                     </p>
@@ -458,26 +532,37 @@ const SupportPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Business Hours */}
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Business Hours</h3>
-              <div className="space-y-3">
-                {[
-                  { day: 'Monday', hours: '8:00 AM - 6:00 PM' },
-                  { day: 'Tuesday', hours: '8:00 AM - 6:00 PM' },
-                  { day: 'Wednesday', hours: '8:00 AM - 6:00 PM' },
-                  { day: 'Thursday', hours: '8:00 AM - 6:00 PM' },
-                  { day: 'Friday', hours: '8:00 AM - 6:00 PM' },
-                  { day: 'Saturday', hours: '9:00 AM - 4:00 PM' },
-                  { day: 'Sunday', hours: 'Closed' }
-                ].map(({ day, hours }) => (
-                  <div key={day} className="flex justify-between items-center py-2">
-                    <span className="font-medium text-gray-900">{day}</span>
-                    <span className={`text-sm ${hours === 'Closed' ? 'text-red-500' : 'text-gray-600'}`}>
-                      {hours}
-                    </span>
-                  </div>
-                ))}
+            {/* Quick Contact Form */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Quick Contact</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Subject</label>
+                  <input
+                    type="text"
+                    value={contactForm.subject}
+                    onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                    placeholder="How can we help?"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Message</label>
+                  <textarea
+                    rows={4}
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 resize-none"
+                    placeholder="Describe your inquiry..."
+                  />
+                </div>
+                <button
+                  onClick={handleSubmitContact}
+                  disabled={!contactForm.subject.trim() || !contactForm.message.trim() || isSubmittingContact}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm min-h-[44px]"
+                >
+                  {isSubmittingContact ? 'Sending...' : 'Send Message'}
+                </button>
               </div>
             </div>
           </div>

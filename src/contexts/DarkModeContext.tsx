@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 interface DarkModeContextType {
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  setDarkMode: (value: boolean) => void;
 }
 
 const DarkModeContext = createContext<DarkModeContextType | undefined>(undefined);
@@ -29,21 +30,18 @@ export const DarkModeProvider: React.FC<DarkModeProviderProps> = ({ children }) 
   useEffect(() => {
     // Save to localStorage whenever dark mode changes
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
-    
-    // Apply dark mode class to document
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   }, [isDarkMode]);
 
   const toggleDarkMode = () => {
     setIsDarkMode(prev => !prev);
   };
 
+  const setDarkMode = (value: boolean) => {
+    setIsDarkMode(value);
+  };
+
   return (
-    <DarkModeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
+    <DarkModeContext.Provider value={{ isDarkMode, toggleDarkMode, setDarkMode }}>
       {children}
     </DarkModeContext.Provider>
   );

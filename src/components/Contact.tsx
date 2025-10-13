@@ -79,7 +79,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <div className="font-semibold text-foreground">Call Us Now</div>
-                  <div className="text-muted-foreground">+234 803 123 4567</div>
+                  <div className="text-muted-foreground">+234 903 484 2430</div>
                 </div>
               </div>
 
@@ -99,7 +99,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <div className="font-semibold text-foreground">Service Areas</div>
-                  <div className="text-muted-foreground">Lagos, Abuja, Port Harcourt & Surrounding Areas</div>
+                  <div className="text-muted-foreground">Lagos Only</div>
                 </div>
               </div>
 
@@ -163,7 +163,7 @@ const Contact = () => {
                   <input
                     type="tel"
                     name="phone"
-                    placeholder="Phone Number (e.g., +234 803 123 4567)"
+                    placeholder="Phone Number (e.g., +234 903 484 2430)"
                     value={formData.phone}
                     onChange={handleInputChange}
                     required

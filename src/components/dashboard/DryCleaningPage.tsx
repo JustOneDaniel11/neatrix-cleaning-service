@@ -9,7 +9,8 @@ import {
   ArrowRight,
   Plus,
   Phone,
-  MessageSquare
+  MessageSquare,
+  X
 } from "lucide-react";
 import { useSupabaseData } from "../../contexts/SupabaseDataContext";
 import { useRealtimeData } from "../../hooks/useRealtimeData";
@@ -22,7 +23,54 @@ const DryCleaningPage = () => {
   const [selectedTime, setSelectedTime] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
 
-  const { state: { currentUser }, createBooking } = useSupabaseData();
+  const { state: { currentUser }, createBooking, createAddress } = useSupabaseData();
+
+  // Address collector modal state
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [newAddress, setNewAddress] = useState({
+    type: 'home' as 'home' | 'work' | 'other',
+    street: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    is_default: false,
+  });
+
+  const openAddressModal = () => setShowAddressModal(true);
+  const closeAddressModal = () => {
+    setShowAddressModal(false);
+    setNewAddress({ type: 'home', street: '', city: '', state: '', zip_code: '', is_default: false });
+  };
+
+  const handleSaveAddress = async () => {
+    if (!currentUser) {
+      alert('Please log in to add an address');
+      return;
+    }
+
+    if (!newAddress.street.trim() || !newAddress.city.trim() || !newAddress.state.trim() || !newAddress.zip_code.trim()) {
+      alert('Please fill in all required address fields');
+      return;
+    }
+
+    try {
+      await createAddress({
+        type: newAddress.type,
+        street: newAddress.street,
+        city: newAddress.city,
+        state: newAddress.state,
+        zip_code: newAddress.zip_code,
+        is_default: newAddress.is_default,
+        // user_id will be filled in by context
+      } as any);
+
+      alert('Address added successfully');
+      closeAddressModal();
+    } catch (error) {
+      console.error('Error adding address:', error);
+      alert('Failed to add address. Please try again.');
+    }
+  };
   
   // Use real-time data for bookings and addresses
   const { data: allBookings, loading: bookingsLoading, error: bookingsError } = useRealtimeData('bookings');
@@ -253,7 +301,7 @@ const DryCleaningPage = () => {
                 <select
                   value={selectedAddress}
                   onChange={(e) => setSelectedAddress(e.target.value)}
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
                 >
                   <option value="">Select an address</option>
                   {savedAddresses.map((address) => (
@@ -262,10 +310,88 @@ const DryCleaningPage = () => {
                     </option>
                   ))}
                 </select>
-                <button className="mt-2 text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium flex items-center touch-manipulation min-h-[44px]">
+                <button onClick={openAddressModal} className="mt-2 text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium flex items-center touch-manipulation min-h-[44px]">
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Add New Address
                 </button>
+                {showAddressModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg w-full max-w-md p-4 sm:p-6 shadow-xl border border-transparent dark:border-gray-800">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm sm:text-base font-semibold text-gray-900">Add Address</h3>
+                        <button onClick={closeAddressModal} className="text-gray-500 hover:text-gray-700">
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+                      <div className="space-y-3 sm:space-y-4">
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type</label>
+                          <select
+                            value={newAddress.type}
+                            onChange={(e) => setNewAddress({ ...newAddress, type: e.target.value as 'home' | 'work' | 'other' })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"
+                          >
+                            <option value="home">Home</option>
+                            <option value="work">Work</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Street *</label>
+                          <input
+                            type="text"
+                            value={newAddress.street}
+                            onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City *</label>
+                            <input
+                              type="text"
+                              value={newAddress.city}
+                              onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">State *</label>
+                            <input
+                              type="text"
+                              value={newAddress.state}
+                              onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">ZIP Code *</label>
+                          <input
+                            type="text"
+                            value={newAddress.zip_code}
+                            onChange={(e) => setNewAddress({ ...newAddress, zip_code: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                          />
+                        </div>
+                        <div className="flex items-center">
+                          <input
+                            id="isDefault"
+                            type="checkbox"
+                            checked={newAddress.is_default}
+                            onChange={(e) => setNewAddress({ ...newAddress, is_default: e.target.checked })}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                          />
+                          <label htmlFor="isDefault" className="ml-2 text-xs sm:text-sm text-gray-700">Set as default</label>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button onClick={closeAddressModal} className="px-3 py-2 text-xs sm:text-sm rounded-md border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Cancel</button>
+                          <button onClick={handleSaveAddress} className="px-3 py-2 text-xs sm:text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700">Save Address</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Date and Time Selection */}
@@ -279,7 +405,7 @@ const DryCleaningPage = () => {
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"
                   />
                 </div>
                 
@@ -290,7 +416,7 @@ const DryCleaningPage = () => {
                   <select
                     value={selectedTime}
                     onChange={(e) => setSelectedTime(e.target.value)}
-                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                    className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"
                   >
                     <option value="">Select time slot</option>
                     {timeSlots.map((slot) => (
@@ -312,7 +438,7 @@ const DryCleaningPage = () => {
                   onChange={(e) => setSpecialInstructions(e.target.value)}
                   rows={3}
                   placeholder="Any special handling instructions, stain details, or delivery preferences..."
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
 

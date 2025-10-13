@@ -9,6 +9,7 @@ import AboutPage from "./pages/AboutPage";
 import GalleryPage from "./pages/GalleryPage";
 import FAQPage from "./pages/FAQPage";
 import BlogPage from "./pages/BlogPage";
+import ContactPage from "./pages/ContactPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
@@ -20,10 +21,16 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SupportPage from "./pages/SupportPage";
 import BookingPage from "./pages/BookingPage";
 import NotFound from "./pages/NotFound";
-import { SupabaseDataProvider } from "./contexts/SupabaseDataContext";
+import { SupabaseDataProvider, useSupabaseData } from "./contexts/SupabaseDataContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ServiceStatusBanner from "./components/ServiceStatusBanner";
 
 const queryClient = new QueryClient();
+
+const StatusBannerHost = () => {
+  const { state } = useSupabaseData();
+  return <ServiceStatusBanner errorMessage={state.error} />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -31,6 +38,7 @@ const App = () => (
       <SupabaseDataProvider>
         <Toaster />
         <Sonner />
+        <StatusBannerHost />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -39,6 +47,7 @@ const App = () => (
             <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/blog" element={<BlogPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/email-verification" element={<EmailVerificationPage />} />

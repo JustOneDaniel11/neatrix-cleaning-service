@@ -98,7 +98,7 @@ const FAQ = () => {
       faqs: [
         {
           question: "Which areas do you serve?",
-          answer: "We proudly serve Lagos, Abuja, Port Harcourt, and surrounding areas. Our service areas include Victoria Island, Lekki, Ikeja, Surulere, Yaba, Wuse, Garki, Maitama, GRA Port Harcourt, and many other locations. Contact us to confirm service availability in your area."
+          answer: "We are currently active in Lagos only. Our service areas within Lagos include Victoria Island, Lekki, Ikeja, Surulere, Yaba, Ikoyi, Ajah, Gbagada, Maryland, and surrounding neighborhoods. Contact us to confirm availability in your Lagos area."
         },
         {
           question: "Do you offer pick-up and delivery services?",
@@ -125,18 +125,18 @@ const FAQ = () => {
       color: "bg-green-500",
       onClick: () => {
         const message = "Hello! I have a question about your cleaning services. Can you help me?";
-        const whatsappUrl = `https://wa.me/2348031234567?text=${encodeURIComponent(message)}`;
+        const whatsappUrl = `https://wa.me/2349034842430?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
       }
     },
     {
       icon: Phone,
       title: "Call Us",
-      description: "+234 803 123 4567",
+      description: "+234 903 484 2430",
       action: "Call Now",
       color: "bg-blue-500",
       onClick: () => {
-        window.location.href = "tel:+2348031234567";
+        window.location.href = "tel:+2349034842430";
       }
     },
     {
@@ -259,14 +259,14 @@ const FAQ = () => {
           </h3>
           <p className="text-muted-foreground mb-6">
             For urgent cleaning needs or emergency services, call us directly at{" "}
-            <span className="font-semibold text-primary">+234 803 123 4567</span>
+            <span className="font-semibold text-primary">+234 903 484 2430</span>
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
               className="bg-gradient-primary shadow-medium hover:shadow-strong"
               onClick={() => {
-                window.location.href = "tel:+2348031234567";
+                window.location.href = "tel:+2349034842430";
               }}
             >
               <Phone className="w-4 h-4 mr-2" />
@@ -278,7 +278,7 @@ const FAQ = () => {
               className="border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
               onClick={() => {
                 const message = "Hello! I need immediate assistance with cleaning services. Can you help me?";
-                const whatsappUrl = `https://wa.me/2348031234567?text=${encodeURIComponent(message)}`;
+                const whatsappUrl = `https://wa.me/2349034842430?text=${encodeURIComponent(message)}`;
                 window.open(whatsappUrl, '_blank');
               }}
             >

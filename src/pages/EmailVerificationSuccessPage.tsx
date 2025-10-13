@@ -158,13 +158,13 @@ const EmailVerificationSuccessPage = () => {
                 </p>
                 <div className="flex justify-center space-x-4">
                   <a
-                    href="https://wa.me/1234567890"
+                    href="https://wa.me/2349034842430"
                     className="text-green-600 hover:text-green-700 text-sm font-medium"
                   >
                     💬 WhatsApp
                   </a>
                   <a
-                    href="tel:+1234567890"
+                    href="tel:+2349034842430"
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                   >
                     📞 Call Us

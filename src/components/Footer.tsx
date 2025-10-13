@@ -109,12 +109,12 @@ const Footer = () => {
               >
                 Blog
               </button>
-              <button 
-                onClick={() => scrollToSection('contact')} 
+              <Link 
+                to="/contact" 
                 className="block text-background/80 hover:text-primary transition-colors text-left"
               >
                 Contact
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -122,9 +122,9 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-background">Get In Touch</h3>
             <div className="space-y-3 text-background/80">
-              <div>+234 803 123 4567</div>
+              <div>+234 903 484 2430</div>
               <div>contactneatrix@gmail.com</div>
-              <div>Lagos, Abuja, Port Harcourt & Surrounding Areas</div>
+              <div>Lagos Only</div>
               <div>Mon-Fri 7AM-6PM<br />Sat 8AM-4PM</div>
             </div>
           </div>

@@ -75,9 +75,9 @@ Update the email subject to:
 ## Deployment Notes
 
 1. Update the contact information in the email template:
-   - Phone number: Replace `+1234567890` with actual number
-   - WhatsApp: Update WhatsApp link with real number
-   - Email: Replace `support@cleanpro.com` with contactneatrix@gmail.com
+   - Phone number: Use `+2349034842430`
+   - WhatsApp: Use `https://wa.me/2349034842430`
+   - Email: Use `contactneatrix@gmail.com`
 
 2. Update domain references:
    - Replace `your-domain.com` with actual domain

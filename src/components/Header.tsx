@@ -64,12 +64,12 @@ const Header = () => {
             >
               Blog
             </Link>
-            <button 
-              onClick={() => scrollToSection('contact')} 
+            <Link 
+              to="/contact" 
               className="text-foreground hover:text-primary transition-colors cursor-pointer"
             >
               Contact
-            </button>
+            </Link>
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">

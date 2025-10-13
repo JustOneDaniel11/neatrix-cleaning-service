@@ -19,11 +19,11 @@ const EmailVerificationPage = () => {
     const message = encodeURIComponent(
       `Hi! I need help with email verification for my account: ${email}`
     );
-    window.open(`https://wa.me/2348031234567?text=${message}`, '_blank');
+    window.open(`https://wa.me/2349034842430?text=${message}`, '_blank');
   };
 
   const handleCallSupport = () => {
-    window.location.href = 'tel:+2348031234567';
+    window.location.href = 'tel:+2349034842430';
   };
 
   return (

@@ -172,7 +172,7 @@ const SubscriptionPlans = () => {
               size="lg"
               onClick={() => {
                 const message = "Hello! I'm interested in a custom cleaning plan. Can you help me create a personalized package?";
-                const whatsappUrl = `https://wa.me/2348031234567?text=${encodeURIComponent(message)}`;
+            const whatsappUrl = `https://wa.me/2349034842430?text=${encodeURIComponent(message)}`;
                 window.open(whatsappUrl, '_blank');
               }}
               className="border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
@@ -182,7 +182,7 @@ const SubscriptionPlans = () => {
             <Button 
               size="lg"
               onClick={() => {
-                window.location.href = "tel:+2348031234567";
+            window.location.href = "tel:+2349034842430";
               }}
               className="bg-gradient-primary shadow-medium hover:shadow-strong"
             >
