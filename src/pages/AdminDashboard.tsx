@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useSupabaseData } from '@/contexts/SupabaseDataContext';
-import AdminLayout from '@/components/admin/AdminLayout';
-import AdminOverview from '@/components/admin/AdminOverview';
-import AdminBookings from '@/components/admin/AdminBookings';
-import AdminChat from '@/components/admin/AdminChat';
-import AdminNotifications from '@/components/admin/AdminNotifications';
+import AdminLayout from '@/admin/components/AdminLayout';
+import AdminOverview from '@/admin/components/AdminOverview';
+import AdminBookings from '@/admin/components/AdminBookings';
+import AdminChat from '@/admin/components/AdminChat';
+import AdminNotifications from '@/admin/components/AdminNotifications';
 
 const AdminDashboard = () => {
   const [activeSection, setActiveSection] = useState('overview');

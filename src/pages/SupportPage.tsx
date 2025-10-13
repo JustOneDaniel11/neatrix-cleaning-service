@@ -42,8 +42,10 @@ interface SupportTicket {
 const SupportPage: React.FC = () => {
   const { state, createSupportMessage, createSupportTicket } = useSupabaseData();
   const { currentUser, supportMessages } = state;
-  const { data: realtimeMessages } = useRealtimeData('support_messages', '*', 
-    currentUser ? { column: 'sender_id', value: currentUser.id } : undefined
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  // Prefer ticket-specific subscription when available; fallback to sender_id
+  const { data: realtimeMessages } = useRealtimeData('support_messages', '*',
+    ticketId ? { column: 'ticket_id', value: ticketId } : (currentUser ? { column: 'sender_id', value: currentUser.id } : undefined)
   );
 
   const [activeTab, setActiveTab] = useState<'chat' | 'reviews' | 'faq' | 'contact'>('chat');
@@ -52,12 +54,13 @@ const SupportPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [reviewFilter, setReviewFilter] = useState<'all' | '1' | '2' | '3' | '4' | '5'>('all');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [ticketId, setTicketId] = useState<string | null>(null);
+  // ticketId declared earlier for realtime filter
   const [contactForm, setContactForm] = useState<{ subject: string; message: string }>({ subject: '', message: '' });
   const [isSubmittingContact, setIsSubmittingContact] = useState(false);
 
   // Use realtime messages if available, otherwise fall back to context
-  const currentMessages = realtimeMessages || supportMessages || [];
+  const currentMessagesAll = realtimeMessages || supportMessages || [];
+  const currentMessages = ticketId ? currentMessagesAll.filter((m: any) => m.ticket_id === ticketId) : currentMessagesAll;
 
   // Mock reviews data for now since reviews aren't in the main context yet
   const reviews: Review[] = [];
@@ -310,27 +313,32 @@ const SupportPage: React.FC = () => {
                   <p className="text-gray-500 dark:text-gray-300">Send us a message and we'll get back to you shortly.</p>
                 </div>
               ) : (
-                currentMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                        message.sender_type === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                      }`}
-                    >
-                      <p className="text-sm">{message.message}</p>
-                      <p className={`text-xs mt-1 ${
-                        message.sender_type === 'user' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-300'
-                      }`}>
-                        {formatDate(message.created_at)}
-                      </p>
+                currentMessages.map((message) => {
+                  const isUser = message.sender_type === 'user';
+                  return (
+                    <div key={message.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-end`}>
+                      {!isUser && (
+                        <div className="mr-2 flex-shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-semibold text-gray-700 dark:text-white">S</div>
+                        </div>
+                      )}
+                      <div className={`relative max-w-[80%] px-4 py-2 rounded-2xl shadow-sm ${isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white rounded-bl-none'}`}>
+                        <p className="text-sm leading-relaxed break-words">{message.message}</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className={`text-[10px] ${isUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-300'}`}>{formatDate(message.created_at)}</span>
+                          {isUser && (
+                            <span className="text-[10px] text-blue-100">✓</span>
+                          )}
+                        </div>
+                      </div>
+                      {isUser && (
+                        <div className="ml-2 flex-shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-semibold text-blue-700">You</div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -405,7 +413,7 @@ const SupportPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Search reviews..."

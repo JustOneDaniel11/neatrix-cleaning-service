@@ -19,6 +19,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLiveChat from "./pages/AdminLiveChat";
+import AdminDashboardWrapper from "@/admin/pages/AdminDashboardWrapper";
 import SupportPage from "./pages/SupportPage";
 import BookingPage from "./pages/BookingPage";
 import NotFound from "./pages/NotFound";
@@ -62,16 +63,14 @@ const App = () => (
                 <DashboardPage />
               </ProtectedRoute>
             } />
-            <Route path="/admin" element={
+            <Route path="/admin/*" element={
               <ProtectedRoute>
-                <AdminDashboard />
+                <AdminDashboardWrapper />
               </ProtectedRoute>
-            } />
-            <Route path="/admin/live-chat" element={
-              <ProtectedRoute>
-                <AdminLiveChat />
-              </ProtectedRoute>
-            } />
+            }>
+              <Route index element={<AdminDashboard />} />
+              <Route path="live-chat" element={<AdminLiveChat />} />
+            </Route>
             {/* Catch all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>

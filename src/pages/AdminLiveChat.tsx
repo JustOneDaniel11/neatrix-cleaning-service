@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useRealtimeData } from '../hooks/useRealtimeData';
 
 interface SupportTicket {
   id: string;
@@ -26,44 +27,31 @@ interface SupportMessage {
 }
 
 export default function AdminLiveChat() {
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [messages, setMessages] = useState<SupportMessage[]>([]);
+  const { data: rtTickets } = useRealtimeData<SupportTicket>('support_tickets', '*');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [input, setInput] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    (async () => {
-      const { data: t } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setTickets(t || []);
-      const { data: m } = await supabase
-        .from('support_messages')
-        .select('*')
-        .order('created_at', { ascending: true });
-      setMessages(m || []);
-    })();
-  }, []);
+  const { data: rtMessages } = useRealtimeData<SupportMessage>('support_messages', '*',
+    selectedTicketId ? { column: 'ticket_id', value: selectedTicketId } : undefined
+  );
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, selectedTicketId]);
+  }, [rtMessages, selectedTicketId]);
 
-  const filteredTickets = tickets.filter(t =>
+  const filteredTickets = (rtTickets || []).filter(t =>
     (t.subject?.toLowerCase().includes(search.toLowerCase()) || t.ticket_number?.toLowerCase().includes(search.toLowerCase()))
   );
-
-  const ticketMessages = messages.filter(m => m.ticket_id === selectedTicketId);
+  const ticketMessages = rtMessages || [];
 
   const sendMessage = async () => {
     if (!isSupabaseConfigured || !selectedTicketId || !input.trim()) return;
     const newMsg = {
       ticket_id: selectedTicketId,
-      sender_id: tickets.find(t => t.id === selectedTicketId)?.user_id || '',
+      // Store the original user id for relational linking; admin indicated by sender_type
+      sender_id: (rtTickets || []).find(t => t.id === selectedTicketId)?.user_id || '',
       sender_type: 'admin' as const,
       message: input.trim(),
       message_type: 'text' as const,
@@ -77,7 +65,7 @@ export default function AdminLiveChat() {
       .select()
       .single();
     if (!error && data) {
-      setMessages(prev => [...prev, data]);
+      // realtime subscription will update UI
       setInput('');
     }
   };
@@ -121,14 +109,32 @@ export default function AdminLiveChat() {
             <h3 className="font-semibold">Conversation</h3>
           </div>
           <div ref={listRef} className="flex-1 p-4 space-y-3 overflow-auto max-h-[520px]">
-            {ticketMessages.map(m => (
-              <div key={m.id} className={`flex ${m.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[70%] p-3 rounded-xl ${m.sender_type === 'admin' ? 'bg-purple-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-900 rounded-bl-none'}`}>
-                  <div className="text-sm">{m.message}</div>
-                  <div className="text-[10px] opacity-70 mt-1">{new Date(m.created_at).toLocaleString()}</div>
+            {ticketMessages.map(m => {
+              const isAdmin = m.sender_type === 'admin';
+              return (
+                <div key={m.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} items-end`}>
+                  {!isAdmin && (
+                    <div className="mr-2 flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-700">U</div>
+                    </div>
+                  )}
+                  <div className={`relative max-w-[75%] px-4 py-2 rounded-2xl shadow-sm ${isAdmin ? 'bg-purple-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-900 rounded-bl-none'}`}>
+                    <div className="text-sm leading-relaxed break-words">{m.message}</div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className={`text-[10px] ${isAdmin ? 'text-purple-100' : 'text-gray-500'}`}>{new Date(m.created_at).toLocaleString()}</span>
+                      {isAdmin && (
+                        <span className="text-[10px] text-purple-100">✓</span>
+                      )}
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <div className="ml-2 flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center text-xs font-semibold text-purple-700">A</div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {!selectedTicketId && (
               <div className="text-center text-gray-500">Select a ticket to view messages</div>
             )}
