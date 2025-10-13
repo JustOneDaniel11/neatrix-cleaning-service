@@ -127,7 +127,36 @@
 
   .dark input::placeholder,
   .dark textarea::placeholder {
-    color: hsl(var(--foreground) / 0.82) !important;
+    /* In dark mode, inputs are typically on white cards; use dark placeholder for contrast */
+    color: hsl(215 25% 27% / 0.82) !important;
     opacity: 1;
   }
+}
+
+/* PaymentPage dark-mode visibility improvements */
+@layer components {
+  /* Headings and muted text */
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark .text-gray-900 { color: #f3f4f6 !important; }
+  .dark .text-gray-600 { color: #d1d5db !important; }
+  .dark .text-gray-500 { color: #9ca3af !important; }
+
+  /* Cards, tables, borders */
+  .dark .bg-white { background-color: #1f2937 !important; }
+  .dark .bg-gray-50 { background-color: #0b1220 !important; }
+  .dark .border-gray-200 { border-color: #374151 !important; }
+  .dark .divide-gray-200 { border-color: #374151 !important; }
+
+  /* Icons and status chips */
+  .dark .text-gray-600 { color: #d1d5db !important; }
+  .dark .text-blue-600 { color: #60a5fa !important; }
+  .dark .bg-blue-100 { background-color: #1e3a8a !important; }
+  .dark .text-blue-800 { color: #bfdbfe !important; }
+
+  /* Status badges backgrounds */
+  .dark .bg-green-50 { background-color: rgba(6, 95, 70, 0.3) !important; }
+  .dark .bg-yellow-50 { background-color: rgba(146, 64, 14, 0.3) !important; }
+  .dark .bg-red-50 { background-color: rgba(153, 27, 27, 0.3) !important; }
 }

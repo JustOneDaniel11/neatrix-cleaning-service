@@ -266,7 +266,7 @@ const PaymentPage: React.FC = () => {
                     <select
                       value={newPaymentType}
                       onChange={(e) => setNewPaymentType(e.target.value as any)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 min-h-[44px]"
                     >
                       <option value="card">Credit/Debit Card</option>
                       <option value="bank">Bank Account</option>
@@ -281,7 +281,7 @@ const PaymentPage: React.FC = () => {
                         <input
                           type="text"
                           placeholder="1234 5678 9012 3456"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 min-h-[44px]"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -290,7 +290,7 @@ const PaymentPage: React.FC = () => {
                           <input
                             type="text"
                             placeholder="MM/YY"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 min-h-[44px]"
                           />
                         </div>
                         <div>
@@ -298,7 +298,7 @@ const PaymentPage: React.FC = () => {
                           <input
                             type="text"
                             placeholder="123"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 min-h-[44px]"
                           />
                         </div>
                       </div>
@@ -311,7 +311,7 @@ const PaymentPage: React.FC = () => {
                       <input
                         type="email"
                         placeholder="your@email.com"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 min-h-[44px]"
                       />
                     </div>
                   )}
@@ -323,7 +323,7 @@ const PaymentPage: React.FC = () => {
                         <input
                           type="text"
                           placeholder="Your Bank Name"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 min-h-[44px]"
                         />
                       </div>
                       <div>
@@ -331,7 +331,7 @@ const PaymentPage: React.FC = () => {
                         <input
                           type="text"
                           placeholder="Account Number"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 min-h-[44px]"
                         />
                       </div>
                     </>

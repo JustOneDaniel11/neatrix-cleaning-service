@@ -246,7 +246,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                 <select
                   value={formData.propertyType}
                   onChange={(e) => handleInputChange('propertyType', e.target.value)}
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm text-gray-900 placeholder-gray-500 min-h-[44px]"
                 >
                   <option value="">Select property type</option>
                   {propertyTypes.map((type) => (
@@ -267,7 +267,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                   value={formData.totalSquareFootage}
                   onChange={(e) => handleInputChange('totalSquareFootage', e.target.value)}
                   placeholder="e.g., 1200"
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm text-gray-900 placeholder-gray-500 min-h-[44px]"
                 />
               </div>
 
@@ -281,7 +281,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                   onChange={(e) => handleInputChange('address', e.target.value)}
                   rows={2}
                   placeholder="Enter the complete property address"
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none text-gray-900 placeholder-gray-500 min-h-[44px]"
                 />
               </div>
             </div>
@@ -289,161 +289,161 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
 
           {/* Room Details */}
           <div>
-            <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Room Details</h3>
+            <h3 className="text-sm sm:text-base lg:text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Room Details</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {/* Bedrooms */}
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Bedrooms
                 </label>
                 <div className="flex items-center space-x-3">
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('bedrooms', false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Minus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
-                  <span className="text-base sm:text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
+                  <span className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 min-w-[2rem] text-center">
                     {formData.bedrooms}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('bedrooms', true)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
                 </div>
               </div>
 
               {/* Bathrooms */}
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Bathrooms
                 </label>
                 <div className="flex items-center space-x-3">
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('bathrooms', false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Minus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
-                  <span className="text-base sm:text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
+                  <span className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 min-w-[2rem] text-center">
                     {formData.bathrooms}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('bathrooms', true)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
                 </div>
               </div>
 
               {/* Living Rooms */}
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Living Rooms
                 </label>
                 <div className="flex items-center space-x-3">
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('livingRooms', false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Minus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
-                  <span className="text-base sm:text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
+                  <span className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 min-w-[2rem] text-center">
                     {formData.livingRooms}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('livingRooms', true)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
                 </div>
               </div>
 
               {/* Kitchens */}
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Kitchens
                 </label>
                 <div className="flex items-center space-x-3">
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('kitchens', false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Minus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
-                  <span className="text-base sm:text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
+                  <span className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 min-w-[2rem] text-center">
                     {formData.kitchens}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('kitchens', true)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
                 </div>
               </div>
 
               {/* Dining Rooms */}
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Dining Rooms
                 </label>
                 <div className="flex items-center space-x-3">
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('diningRooms', false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Minus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
-                  <span className="text-base sm:text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
+                  <span className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 min-w-[2rem] text-center">
                     {formData.diningRooms}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('diningRooms', true)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
                 </div>
               </div>
 
               {/* Offices */}
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Offices
                 </label>
                 <div className="flex items-center space-x-3">
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('offices', false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Minus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
-                  <span className="text-base sm:text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
+                  <span className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 min-w-[2rem] text-center">
                     {formData.offices}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange('offices', true)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50 touch-manipulation active:scale-[0.98]"
                   >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-900" />
                   </button>
                 </div>
               </div>
@@ -464,7 +464,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                   value={formData.contactName}
                   onChange={(e) => handleInputChange('contactName', e.target.value)}
                   placeholder="Your full name"
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
                 />
               </div>
 
@@ -477,7 +477,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                   value={formData.contactPhone}
                   onChange={(e) => handleInputChange('contactPhone', e.target.value)}
                   placeholder="(555) 123-4567"
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
                 />
               </div>
 
@@ -490,7 +490,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                   value={formData.contactEmail}
                   onChange={(e) => handleInputChange('contactEmail', e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
                 />
               </div>
             </div>
@@ -515,7 +515,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                       value={formData.preferredDate}
                       onChange={(e) => handleInputChange('preferredDate', e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
                     />
                   </div>
                   <div>
@@ -523,7 +523,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                     <select
                       value={formData.preferredTime}
                       onChange={(e) => handleInputChange('preferredTime', e.target.value)}
-                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
                     >
                       <option value="">Select time slot</option>
                       {timeSlots.map((slot) => (
@@ -547,7 +547,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                       value={formData.alternateDate}
                       onChange={(e) => handleInputChange('alternateDate', e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
                     />
                   </div>
                   <div>
@@ -555,7 +555,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                     <select
                       value={formData.alternateTime}
                       onChange={(e) => handleInputChange('alternateTime', e.target.value)}
-                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px]"
+                      className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] text-gray-900 placeholder-gray-500"
                     >
                       <option value="">Select time slot</option>
                       {timeSlots.map((slot) => (
@@ -609,7 +609,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                   onChange={(e) => handleInputChange('specialRequests', e.target.value)}
                   rows={3}
                   placeholder="Any specific areas you'd like us to focus on, concerns, or special requirements..."
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none text-gray-900 placeholder-gray-500 min-h-[44px]"
                 />
               </div>
 
@@ -622,7 +622,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
                   onChange={(e) => handleInputChange('accessInstructions', e.target.value)}
                   rows={2}
                   placeholder="How should our team access the property? (key location, gate codes, contact person, etc.)"
-                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none"
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base resize-none text-gray-900 placeholder-gray-500 min-h-[44px]"
                 />
               </div>
             </div>
