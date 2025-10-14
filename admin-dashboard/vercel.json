@@ -3,7 +3,7 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
+  "installCommand": "cd ../shared && npm install && cd ../admin-dashboard && npm install",
   "framework": "vite",
   "rewrites": [
     {

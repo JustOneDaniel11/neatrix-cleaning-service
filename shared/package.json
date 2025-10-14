@@ -1,0 +1,13 @@
+{
+  "name": "@neatrix/shared",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "lib/supabaseClient.ts",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
