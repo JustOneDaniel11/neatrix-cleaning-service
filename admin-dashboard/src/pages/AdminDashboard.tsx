@@ -369,15 +369,15 @@ export default function AdminDashboard() {
           color="bg-green-500"
         />
         <StatCard
-          title="Active Users"
-          value={state.stats.activeUsers}
-          icon={Users}
-          trend={5}
-          color="bg-purple-500"
+          title="Active Subscriptions"
+          value={state.subscriptions.filter(sub => sub.status === 'active').length}
+          icon={Repeat}
+          trend={22}
+          color="bg-cyan-500"
         />
       </div>
 
-      {/* Secondary Stats Grid - New Features */}
+      {/* Secondary Stats Grid - Additional Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Payments"
@@ -387,11 +387,11 @@ export default function AdminDashboard() {
           color="bg-emerald-500"
         />
         <StatCard
-          title="Active Subscriptions"
-          value={state.subscriptions.filter(sub => sub.status === 'active').length}
-          icon={Repeat}
-          trend={22}
-          color="bg-cyan-500"
+          title="Active Users"
+          value={state.stats.activeUsers}
+          icon={Users}
+          trend={5}
+          color="bg-purple-500"
         />
         <StatCard
           title="Laundry Orders"
