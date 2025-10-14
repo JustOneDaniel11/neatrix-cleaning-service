@@ -112,7 +112,16 @@ const SupportPage: React.FC = () => {
         activeTicketId = ticket.id;
         setTicketId(activeTicketId);
       }
-      await createSupportMessage({
+      console.log('User sending message:', {
+        ticket_id: activeTicketId,
+        sender_id: currentUser.id,
+        sender_type: 'user',
+        message: newMessage.trim(),
+        message_type: 'text',
+        is_read: false
+      });
+      
+      const result = await createSupportMessage({
         ticket_id: activeTicketId!,
         sender_id: currentUser.id,
         sender_type: 'user',
@@ -120,6 +129,8 @@ const SupportPage: React.FC = () => {
         message_type: 'text',
         is_read: false
       });
+      
+      console.log('Message sent successfully:', result);
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);

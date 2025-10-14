@@ -1056,13 +1056,59 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    // Subscribe to support messages changes for live chat
+    const supportMessagesSubscription = supabase
+      .channel('support_messages_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'support_messages' },
+        (payload) => {
+          console.log('Support messages change received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            dispatch({ type: 'ADD_SUPPORT_MESSAGE', payload: payload.new as SupportMessage });
+          } else if (payload.eventType === 'UPDATE') {
+            dispatch({
+              type: 'UPDATE_SUPPORT_MESSAGE',
+              payload: { id: payload.new.id, updates: payload.new as Partial<SupportMessage> }
+            });
+          } else if (payload.eventType === 'DELETE') {
+            dispatch({ type: 'DELETE_SUPPORT_MESSAGE', payload: payload.old.id });
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to support tickets changes for live chat
+    const supportTicketsSubscription = supabase
+      .channel('support_tickets_changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'support_tickets' },
+        (payload) => {
+          console.log('Support tickets change received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            dispatch({ type: 'ADD_SUPPORT_TICKET', payload: payload.new as SupportTicket });
+          } else if (payload.eventType === 'UPDATE') {
+            dispatch({
+              type: 'UPDATE_SUPPORT_TICKET',
+              payload: { id: payload.new.id, updates: payload.new as Partial<SupportTicket> }
+            });
+          } else if (payload.eventType === 'DELETE') {
+            dispatch({ type: 'DELETE_SUPPORT_TICKET', payload: payload.old.id });
+          }
+        }
+      )
+      .subscribe();
+
     subscriptions.push(
       bookingsSubscription,
       contactSubscription,
       usersSubscription,
       pickupDeliverySubscription,
       complaintsSubscription,
-      notificationsSubscription
+      notificationsSubscription,
+      supportMessagesSubscription,
+      supportTicketsSubscription
     );
 
     // Cleanup subscriptions on unmount

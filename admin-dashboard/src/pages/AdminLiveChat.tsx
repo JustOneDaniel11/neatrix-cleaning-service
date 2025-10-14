@@ -61,13 +61,23 @@ export default function AdminLiveChat() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("admin-live-chat")
+      .channel("support_messages_changes")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "support_messages" },
+        { event: "*", schema: "public", table: "support_messages" },
         (payload: any) => {
-          const msg = payload.new as SupportMessage;
-          setMessages((prev) => [...prev, msg]);
+          console.log('Admin received support message change:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const msg = payload.new as SupportMessage;
+            setMessages((prev) => [...prev, msg]);
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMsg = payload.new as SupportMessage;
+            setMessages((prev) => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            setMessages((prev) => prev.filter(m => m.id !== deletedId));
+          }
         }
       )
       .subscribe();
