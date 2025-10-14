@@ -35,7 +35,15 @@ const formatTime = (iso: string) => {
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
-  return d.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
+  const now = new Date();
+  const diffTime = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
 };
 
 const getLastActivity = (chat: ChatItem) => {
@@ -207,33 +215,37 @@ const SupportChatMock: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[70vh] bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-800 relative">
-      <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+    <div className="w-full max-w-none bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+      <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between min-w-0">
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
           {view === "detail" && (
-            <button onClick={() => { if (activeChat && (activeChat.messages || []).length === 0) { setChats(prev => prev.filter(c => c.id !== activeChat.id)); } setView("list"); setActiveChatId(null); }} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-              <ArrowLeft className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+            <button onClick={() => { if (activeChat && (activeChat.messages || []).length === 0) { setChats(prev => prev.filter(c => c.id !== activeChat.id)); } setView("list"); setActiveChatId(null); }} className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden flex-shrink-0">
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300" />
             </button>
           )}
-          <div className="p-1.5 bg-blue-100 rounded-lg">
-            <MessageCircle className="h-5 w-5 text-blue-600" />
+          <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg flex-shrink-0">
+            <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-600" />
           </div>
-          <div>
-            <h2 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">Support Chat</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Modern, minimal chat experience</p>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white truncate">Support Chat</h2>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:block truncate">Modern, minimal chat experience</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {view === "detail" && activeChat && (
             <button
               onClick={() => closeChat(activeChat.id)}
-              className="px-3 py-1.5 text-xs sm:text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-200"
+              className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
             >
-              Mark as Closed
+              <span className="hidden sm:inline">Mark as Closed</span>
+              <span className="sm:hidden">Close</span>
             </button>
           )}
           {view === "list" && (
-            <button onClick={startNewChat} className="px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Start New Chat</button>
+            <button onClick={startNewChat} className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">
+              <span className="hidden sm:inline">Start New Chat</span>
+              <span className="sm:hidden">New</span>
+            </button>
           )}
         </div>
       </div>
@@ -245,30 +257,53 @@ const SupportChatMock: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="p-3 sm:p-6"
+            className="p-3 sm:p-4 md:p-6"
           >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">Your Conversations</h3>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="h-3 w-3 absolute left-2 top-2.5 text-gray-400" />
-                  <input value={searchQuery} onChange={(e)=>setSearchQuery(e.target.value)} placeholder="Search subject" className="pl-7 pr-2 py-1.5 text-xs border rounded-md bg-white dark:bg-gray-900" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-3">
+              <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white truncate">Your Conversations</h3>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 min-w-0">
+                <div className="relative flex-shrink-0">
+                  <Search className="h-3 w-3 sm:h-4 sm:w-4 absolute left-2 sm:left-3 top-2 sm:top-2.5 text-gray-400" />
+                  <input 
+                    value={searchQuery} 
+                    onChange={(e)=>setSearchQuery(e.target.value)} 
+                    placeholder="Search subject" 
+                    className="pl-7 sm:pl-9 pr-2 sm:pr-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 w-full sm:w-auto min-w-0" 
+                  />
                 </div>
-                <select value={dateFilter} onChange={(e)=>setDateFilter(e.target.value as any)} className="text-xs border rounded-md py-1.5 px-2 bg-white dark:bg-gray-900">
+                <select 
+                  value={dateFilter} 
+                  onChange={(e)=>setDateFilter(e.target.value as any)} 
+                  className="text-xs sm:text-sm border border-gray-300 dark:border-gray-700 rounded-md py-1.5 sm:py-2 px-2 sm:px-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex-shrink-0"
+                >
                   <option value="all">All dates</option>
                   <option value="7">Last 7 days</option>
                   <option value="30">Last 30 days</option>
                 </select>
               </div>
             </div>
-            <div className="flex items-center gap-2 mb-3">
-              <button onClick={()=>setTab("open")} className={`px-3 py-1.5 text-xs rounded-md ${tab==='open'?'bg-blue-600 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}>Open</button>
-              <button onClick={()=>setTab("closed")} className={`px-3 py-1.5 text-xs rounded-md ${tab==='closed'?'bg-blue-600 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}>Closed</button>
+            <div className="flex items-center gap-1 sm:gap-2 mb-3 sm:mb-4">
+              <button 
+                onClick={()=>setTab("open")} 
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-colors ${tab==='open'?'bg-blue-600 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+              >
+                Open
+              </button>
+              <button 
+                onClick={()=>setTab("closed")} 
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-colors ${tab==='closed'?'bg-blue-600 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+              >
+                Closed
+              </button>
             </div>
             {(tab === 'closed' ? closedChats : openChats).length === 0 ? (
-              <div className="text-center py-10 text-gray-500 dark:text-gray-300">{tab === 'closed' ? 'No closed conversations yet.' : 'No open conversations yet.'}</div>
+              <div className="text-center py-12 text-gray-500 dark:text-gray-300">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-base font-medium mb-2">{tab === 'closed' ? 'No closed conversations yet.' : 'No open conversations yet.'}</p>
+                <p className="text-sm">Start a new conversation to get help from our support team.</p>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4">
                 {(tab==='closed'?closedChats:openChats).map((c) => {
                   const last = c.messages[c.messages.length - 1];
                   const unread = computeUnread(c);
@@ -276,24 +311,36 @@ const SupportChatMock: React.FC = () => {
                     <button
                       key={c.id}
                       onClick={() => { setActiveChatId(c.id); setView("detail"); }}
-                      className="text-left border border-gray-200 dark:border-gray-800 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px]">{unread>0? 'S':'U'}</div>
-                          <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">{c.subject}</span>
+                      className="text-left border border-gray-200 dark:border-gray-800 rounded-lg p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full"
+                     >
+                       <div className="flex items-center justify-between mb-2 min-w-0 gap-1 sm:gap-2">
+                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                           <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs sm:text-sm font-medium flex-shrink-0">
+                             {unread>0? 'S':'U'}
+                           </div>
+                           <span className="text-xs sm:text-sm md:text-base font-medium text-gray-900 dark:text-gray-100 truncate min-w-0">{c.subject}</span>
+                         </div>
+                         <span className="flex items-center space-x-1 text-xs text-gray-500 flex-shrink-0 ml-1 sm:ml-2 min-w-0">
+                           <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
+                           <span className="truncate text-xs">{formatDate(getLastActivity(c))}</span>
+                         </span>
+                       </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2 min-w-0 flex-1">
+                          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 flex-shrink-0">
+                            {c.status === 'closed' ? 'Closed' : 'Open'}
+                          </span>
+                          <CheckCircle className="h-3 w-3 text-gray-400 flex-shrink-0" />
                         </div>
-                        <span className="flex items-center space-x-1 text-[10px] sm:text-xs text-gray-500">
-                          <Clock className="h-3 w-3" />
-                          <span>{formatDate(getLastActivity(c))}</span>
-                        </span>
+                        {unread>0 && (
+                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full flex-shrink-0 ml-2">
+                            {unread}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">{c.status === 'closed' ? 'Closed' : 'Open'}</span>
-                        <CheckCircle className="h-3 w-3 text-gray-400" />
-                        {unread>0 && (<span className="ml-auto text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full">{unread} unread</span>)}
-                      </div>
-                      <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 truncate">{last ? last.content : "No messages"}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 truncate mt-2 overflow-hidden">
+                        {last ? last.content : "No messages"}
+                      </p>
                     </button>
                   );
                 })}
@@ -308,59 +355,76 @@ const SupportChatMock: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col h-[60vh] sm:h-[70vh]"
+            className="flex flex-col h-[calc(100vh-16rem)] sm:h-[70vh] max-h-[600px]"
           >
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {activeChat.messages.map(m => (
-                <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 rounded-lg ${
-                    m.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  }`}>
-                    <p className="text-xs sm:text-sm">{m.content}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className={`text-[10px] ${m.sender === "user" ? "text-blue-100" : "text-gray-500 dark:text-gray-400"}`}>{formatTime(m.createdAt)}</p>
-                      {m.sender === "user" && (
-                        <span className="text-[10px] text-blue-100">{m.status === 'sending' ? 'Sending…' : m.status === 'delivered' ? 'Delivered' : 'Read'}</span>
-                      )}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+              {activeChat.messages.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Start the conversation</h3>
+                  <p className="text-gray-500 dark:text-gray-300">Send your first message to get help from our support team.</p>
+                </div>
+              ) : (
+                activeChat.messages.map(m => (
+                  <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} px-1`}>
+                    <div className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-3 py-2 rounded-lg break-words ${
+                      m.sender === "user" 
+                        ? "bg-blue-600 text-white rounded-br-sm" 
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm"
+                    }`}>
+                      <p className="text-sm leading-relaxed break-words overflow-wrap-anywhere">{m.content}</p>
+                      <div className="flex items-center justify-between mt-1.5 gap-2 min-w-0">
+                        <p className={`text-xs flex-shrink-0 ${m.sender === "user" ? "text-blue-100" : "text-gray-500 dark:text-gray-400"}`}>
+                          {formatTime(m.createdAt)}
+                        </p>
+                        {m.sender === "user" && (
+                          <span className="text-xs text-blue-100 truncate">
+                            {m.status === 'sending' ? 'Sending…' : m.status === 'delivered' ? 'Delivered' : 'Read'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
               <div ref={messagesEndRef} />
             </div>
 
             {activeChat.status === "open" ? (
-              <div className="border-t border-gray-200 dark:border-gray-800 p-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-                <div className="flex space-x-2">
+              <div className="border-t border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
+                <div className="flex space-x-3">
                   <input
                     value={newMessage}
                     onChange={(e)=>setNewMessage(e.target.value)}
                     onKeyDown={(e)=>{ if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                     placeholder="Type your message..."
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                    className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-none"
                   />
-                  <button onClick={sendMessage} className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 flex items-center space-x-2">
+                  <button 
+                    onClick={sendMessage} 
+                    disabled={!newMessage.trim()}
+                    className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors"
+                  >
                     <Send className="h-4 w-4" />
-                    <span className="text-xs sm:text-sm">Send</span>
+                    <span className="hidden sm:inline text-sm">Send</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="border-t border-gray-200 dark:border-gray-800 p-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] text-center">
+              <div className="border-t border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900 text-center">
+                <p className="text-gray-500 dark:text-gray-300 mb-4">This conversation has been closed.</p>
                 <button
                   onClick={startNewChat}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-blue-600 text-white text-sm hover:bg-blue-700"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors"
                 >
                   <MessageCircle className="h-4 w-4" />
-                  New Chat
+                  Start New Chat
                 </button>
               </div>
             )}
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Removed floating button to avoid duplication; header + bottom button remain */}
     </div>
   );
 };

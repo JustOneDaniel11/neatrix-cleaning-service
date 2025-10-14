@@ -211,7 +211,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
             </div>
           </div>
           
-          <main className="flex-1 pb-24 lg:pb-8">
+          <main className="flex-1 pb-28 lg:pb-8">
             <div className="py-4 lg:py-6">
               <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 text-foreground">
                 {children}
@@ -222,7 +222,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-secondary border-t border-gray-200 dark:border-secondary px-2 py-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-lg">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-secondary/95 backdrop-blur-md border-t border-gray-200 dark:border-secondary px-2 py-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-lg z-50">
         <div className="flex justify-around items-center max-w-md mx-auto">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
