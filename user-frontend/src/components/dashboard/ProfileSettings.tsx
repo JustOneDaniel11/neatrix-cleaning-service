@@ -275,54 +275,55 @@ const ProfileSettings = () => {
   };
 
   return (
-    <div className="px-3 sm:px-6 pb-24 space-y-6">
+    <div className="px-3 sm:px-6 pb-32 space-y-4 sm:space-y-6">
       {/* Success Message */}
       {showSuccessMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
-          <CheckCircle className="h-5 w-5 text-green-600" />
-          <span className="text-green-800">Settings saved successfully!</span>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 flex items-center space-x-3">
+          <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+          <span className="text-green-800 text-sm sm:text-base">Settings saved successfully!</span>
         </div>
       )}
 
       {/* Header */}
       <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile & Settings</h1>
-        <p className="text-gray-600">Manage your account information and preferences</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Profile & Settings</h1>
+        <p className="text-gray-600 text-sm sm:text-base">Manage your account information and preferences</p>
       </div>
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="border-b border-gray-200 overflow-x-auto">
-          <nav className="flex space-x-4 sm:space-x-8 px-4 sm:px-6 flex-nowrap min-w-max">
+          <nav className="flex space-x-2 sm:space-x-4 px-3 sm:px-6 flex-nowrap min-w-max">
             {[
-              { id: 'profile', label: 'Profile Information', icon: User },
+              { id: 'profile', label: 'Profile', icon: User },
               { id: 'addresses', label: `Addresses (${addresses.length})`, icon: MapPin },
               { id: 'preferences', label: 'Preferences', icon: Settings }
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setActiveTab(id as any)}
-                className={`py-3 sm:py-4 px-2 min-h-[44px] border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                className={`py-3 sm:py-4 px-3 sm:px-4 min-h-[48px] border-b-2 font-medium text-xs sm:text-sm flex items-center space-x-2 whitespace-nowrap ${
                   activeTab === id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span>{label}</span>
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{id === 'profile' ? 'Profile' : id === 'addresses' ? 'Address' : 'Settings'}</span>
               </button>
             ))}
           </nav>
         </div>
 
-        <div className="p-4 sm:p-6">
+        <div className="p-3 sm:p-6">
           {/* Profile Information Tab */}
           {activeTab === 'profile' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Profile Photo Section */}
-              <div className="flex items-center space-x-6">
-                <div className="relative">
-                  <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+                <div className="relative flex-shrink-0">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                     {(editedProfile.profilePhoto || userProfile.profilePhoto) ? (
                       <img
                         src={editedProfile.profilePhoto || userProfile.profilePhoto}
@@ -330,12 +331,12 @@ const ProfileSettings = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <User className="w-12 h-12 text-gray-400" />
+                      <User className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400" />
                     )}
                   </div>
                   {isEditing && (
-                    <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
-                      <Camera className="w-4 h-4" />
+                    <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
+                      <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
                       <input
                         type="file"
                         accept="image/*"
@@ -345,16 +346,16 @@ const ProfileSettings = () => {
                     </label>
                   )}
                 </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">
+                <div className="text-center sm:text-left flex-1">
+                  <h3 className="text-lg sm:text-xl font-medium text-gray-900">
                     {userProfile.firstName} {userProfile.lastName}
                   </h3>
-                  <p className="text-gray-600">Member since {new Date(userProfile.joinDate).toLocaleDateString()}</p>
-                  <div className="mt-2 flex flex-col space-y-2">
+                  <p className="text-gray-600 text-sm sm:text-base">Member since {new Date(userProfile.joinDate).toLocaleDateString()}</p>
+                  <div className="mt-3 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                     {!isEditing && (
                       <button
                         onClick={() => setIsEditing(true)}
-                        className="text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1 w-fit"
+                        className="text-blue-600 hover:text-blue-800 text-sm flex items-center justify-center sm:justify-start space-x-1 py-2 sm:py-0"
                       >
                         <Edit3 className="w-4 h-4" />
                         <span>Edit Profile</span>
@@ -362,7 +363,7 @@ const ProfileSettings = () => {
                     )}
                     <button
                       onClick={handleLogout}
-                      className="text-red-600 hover:text-red-800 text-sm flex items-center space-x-1 w-fit"
+                      className="text-red-600 hover:text-red-800 text-sm flex items-center justify-center sm:justify-start space-x-1 py-2 sm:py-0"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Logout</span>
@@ -372,72 +373,76 @@ const ProfileSettings = () => {
               </div>
 
               {/* Profile Form */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    value={isEditing ? editedProfile.firstName : userProfile.firstName}
-                    onChange={(e) => isEditing && setEditedProfile(prev => ({ ...prev, firstName: e.target.value }))}
-                    disabled={!isEditing}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    value={isEditing ? editedProfile.lastName : userProfile.lastName}
-                    onChange={(e) => isEditing && setEditedProfile(prev => ({ ...prev, lastName: e.target.value }))}
-                    disabled={!isEditing}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Name
+                    </label>
                     <input
-                      type="email"
-                      value={isEditing ? editedProfile.email : userProfile.email}
-                      onChange={(e) => isEditing && setEditedProfile(prev => ({ ...prev, email: e.target.value }))}
+                      type="text"
+                      value={isEditing ? editedProfile.firstName : userProfile.firstName}
+                      onChange={(e) => isEditing && setEditedProfile(prev => ({ ...prev, firstName: e.target.value }))}
                       disabled={!isEditing}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                      className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 text-base sm:text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={isEditing ? editedProfile.lastName : userProfile.lastName}
+                      onChange={(e) => isEditing && setEditedProfile(prev => ({ ...prev, lastName: e.target.value }))}
+                      disabled={!isEditing}
+                      className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 text-base sm:text-sm"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <input
-                      type="tel"
-                      value={isEditing ? editedProfile.phone : userProfile.phone}
-                      onChange={(e) => isEditing && setEditedProfile(prev => ({ ...prev, phone: e.target.value }))}
-                      disabled={!isEditing}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-                    />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <input
+                        type="email"
+                        value={isEditing ? editedProfile.email : userProfile.email}
+                        onChange={(e) => isEditing && setEditedProfile(prev => ({ ...prev, email: e.target.value }))}
+                        disabled={!isEditing}
+                        className="w-full pl-10 pr-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 text-base sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone Number
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <input
+                        type="tel"
+                        value={isEditing ? editedProfile.phone : userProfile.phone}
+                        onChange={(e) => isEditing && setEditedProfile(prev => ({ ...prev, phone: e.target.value }))}
+                        disabled={!isEditing}
+                        className="w-full pl-10 pr-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 text-base sm:text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
               {isEditing && (
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 pt-4 border-t border-gray-200">
                   <button
                     onClick={handleProfileSave}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                    className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 sm:py-2 rounded-md hover:bg-blue-700 flex items-center justify-center space-x-2 font-medium"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Changes</span>
@@ -447,9 +452,10 @@ const ProfileSettings = () => {
                       setIsEditing(false);
                       setEditedProfile(userProfile);
                     }}
-                    className="border border-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-50 transition-colors"
+                    className="w-full sm:w-auto bg-gray-200 text-gray-700 px-6 py-3 sm:py-2 rounded-md hover:bg-gray-300 flex items-center justify-center space-x-2 font-medium"
                   >
-                    Cancel
+                    <X className="w-4 h-4" />
+                    <span>Cancel</span>
                   </button>
                 </div>
               )}
@@ -544,8 +550,8 @@ const ProfileSettings = () => {
 
               {/* Add/Edit Address Form Modal */}
               {showAddressForm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                     <div className="flex justify-between items-center mb-6">
                       <h4 className="text-lg font-medium text-gray-900">
                         {editingAddress ? 'Edit Address' : 'Add New Address'}
@@ -563,7 +569,7 @@ const ProfileSettings = () => {
                             is_default: false
                           });
                         }}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-gray-400 hover:text-gray-600 p-1"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -577,7 +583,7 @@ const ProfileSettings = () => {
                         <select
                           value={newAddress.type}
                           onChange={(e) => setNewAddress(prev => ({ ...prev, type: e.target.value as any }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-sm"
                         >
                           {addressTypes.map((type) => (
                             <option key={type.value} value={type.value}>
@@ -596,11 +602,11 @@ const ProfileSettings = () => {
                           value={newAddress.street}
                           onChange={(e) => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
                           placeholder="123 Main St, Apt 4B"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-sm"
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             City *
@@ -610,7 +616,7 @@ const ProfileSettings = () => {
                             value={newAddress.city}
                             onChange={(e) => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
                             placeholder="New York"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-sm"
                           />
                         </div>
 
@@ -623,7 +629,7 @@ const ProfileSettings = () => {
                             value={newAddress.state}
                             onChange={(e) => setNewAddress(prev => ({ ...prev, state: e.target.value }))}
                             placeholder="NY"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-sm"
                           />
                         </div>
                       </div>
@@ -637,7 +643,7 @@ const ProfileSettings = () => {
                           value={newAddress.zip_code}
                           onChange={(e) => setNewAddress(prev => ({ ...prev, zip_code: e.target.value }))}
                           placeholder="10001"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-sm"
                         />
                       </div>
 
@@ -654,7 +660,7 @@ const ProfileSettings = () => {
                         </label>
                       </div>
 
-                      <div className="flex space-x-3">
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
                         <button
                           onClick={() => {
                             setShowAddressForm(false);
@@ -668,13 +674,13 @@ const ProfileSettings = () => {
                               is_default: false
                             });
                           }}
-                          className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-md hover:bg-gray-50 transition-colors"
+                          className="w-full sm:flex-1 border border-gray-300 text-gray-700 py-3 rounded-md hover:bg-gray-50 transition-colors font-medium"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={handleAddressSubmit}
-                          className="flex-1 bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors"
+                          className="w-full sm:flex-1 bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
                         >
                           {editingAddress ? 'Update Address' : 'Add Address'}
                         </button>

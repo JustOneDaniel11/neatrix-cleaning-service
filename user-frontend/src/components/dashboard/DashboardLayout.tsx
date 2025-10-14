@@ -71,7 +71,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
       {/* Mobile Header */}
       <div className="lg:hidden bg-white dark:bg-secondary border-b border-gray-200 dark:border-secondary px-4 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="flex items-center space-x-3">
-          <img src={logoSrc} alt="Neatrix Logo" className="w-12 h-12 sm:w-[4.5rem] sm:h-[4.5rem] rounded object-cover" />
+          <img src={logoSrc} alt="Neatrix Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded object-cover" />
           <span className="sr-only">Neatrix</span>
         </div>
         <div className="flex items-center space-x-2">
@@ -158,7 +158,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
           <div className="hidden lg:block bg-white dark:bg-secondary border-b border-gray-200 dark:border-secondary px-6 py-4 sticky top-0 z-30">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <img src={logoSrc} alt="Neatrix Logo" className="w-40 h-40 rounded object-cover" />
+                <img src={logoSrc} alt="Neatrix Logo" className="w-12 h-12 rounded object-cover" />
                 <h2 className="sr-only">
                   {activeTab === 'dry-cleaning' ? 'Dry Cleaning' : 
                    activeTab === 'inspection' ? 'Book Inspection' : 

@@ -325,7 +325,7 @@ const SupportPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 pb-32">
       <ServiceStatusBanner errorMessage={error} />
       {/* Header */}
       <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-800">
