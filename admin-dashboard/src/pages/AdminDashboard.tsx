@@ -62,6 +62,8 @@ if (typeof document !== 'undefined') {
 }
 
 export default function AdminDashboard() {
+  console.log('AdminDashboard component rendering...');
+  
   const { 
     state, 
     signOut,
@@ -87,6 +89,15 @@ export default function AdminDashboard() {
     fetchSubscriptions,
     fetchReviews
   } = useSupabaseData();
+  
+  console.log('AdminDashboard state:', { 
+    loading: state.loading, 
+    error: state.error, 
+    isAuthenticated: state.isAuthenticated, 
+    authUser: state.authUser,
+    stats: state.stats 
+  });
+  
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
@@ -114,11 +125,11 @@ export default function AdminDashboard() {
   const [settingsMessage, setSettingsMessage] = useState({ type: '', text: '' });
 
   // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!state.isAuthenticated) {
-      navigate('/login');
-    }
-  }, [state.isAuthenticated, navigate]);
+  // useEffect(() => {
+  //   if (!state.isAuthenticated) {
+  //     navigate('/login');
+  //   }
+  // }, [state.isAuthenticated, navigate]);
 
   const handleLogout = async () => {
     try {
