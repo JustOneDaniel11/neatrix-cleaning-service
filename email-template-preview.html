@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neatrix Email Templates Preview</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: #334155;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .header h1 {
+            color: #6a1b9a;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .header p {
+            color: #64748b;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .templates-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+        }
+        .template-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .template-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .template-description {
+            color: #64748b;
+            margin-bottom: 24px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .template-iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: white;
+        }
+        .implementation-info {
+            background: #fefbff;
+            border: 1px solid #e9d5ff;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 40px;
+        }
+        .implementation-info h3 {
+            color: #6a1b9a;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .implementation-info ul {
+            color: #475569;
+            line-height: 1.7;
+        }
+        .implementation-info li {
+            margin-bottom: 8px;
+        }
+        .design-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .feature-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .feature-card h4 {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .feature-card p {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+            .header, .template-section {
+                padding: 20px;
+            }
+            .template-iframe {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Neatrix Email Templates</h1>
+            <p>Beautiful, responsive email templates designed for the Neatrix cleaning service platform. These templates replace Supabase's default emails with branded, professional designs.</p>
+        </div>
+
+        <div class="templates-grid">
+            <!-- Admin Password Reset Template -->
+            <div class="template-section">
+                <h2 class="template-title">🔐 Admin Password Reset Email</h2>
+                <p class="template-description">
+                    Professional password reset template for admin dashboard with security-focused messaging and clean design.
+                </p>
+                <iframe 
+                    src="src/email-templates/neatrix-admin-password-reset.html" 
+                    class="template-iframe"
+                    title="Admin Password Reset Email Template">
+                </iframe>
+            </div>
+
+            <!-- Main App Sign-up Confirmation Template -->
+            <div class="template-section">
+                <h2 class="template-title">📧 Main App Sign-up Confirmation Email</h2>
+                <p class="template-description">
+                    Welcoming email template for new user registrations with a friendly tone, feature highlights, and next steps.
+                </p>
+                <iframe 
+                    src="src/email-templates/neatrix-signup-confirmation.html" 
+                    class="template-iframe"
+                    title="Main App Sign-up Confirmation Email Template">
+                </iframe>
+            </div>
+
+            <!-- Main App Password Reset Template -->
+            <div class="template-section">
+                <h2 class="template-title">🔑 Main App Password Reset Email</h2>
+                <p class="template-description">
+                    User-friendly password reset template with security features, clear instructions, and helpful guidance.
+                </p>
+                <iframe 
+                    src="src/email-templates/neatrix-main-password-reset.html" 
+                    class="template-iframe"
+                    title="Main App Password Reset Email Template">
+                </iframe>
+            </div>
+        </div>
+
+        <div class="implementation-info">
+            <h3>📋 Implementation Instructions</h3>
+            <ul>
+                <li><strong>Upload Templates:</strong> Upload the HTML files to your Supabase project's email template settings</li>
+                <li><strong>Configure Variables:</strong> Ensure {{ .ConfirmationURL }} variables are properly mapped in Supabase</li>
+                <li><strong>Admin vs Main App:</strong> Use the admin template for dashboard password resets, main app templates for user-facing emails</li>
+                <li><strong>Test Emails:</strong> Send test emails to verify template rendering across different email clients</li>
+                <li><strong>Responsive Design:</strong> Templates are optimized for desktop, tablet, and mobile viewing</li>
+                <li><strong>Brand Consistency:</strong> Purple gradient theme matches the Neatrix brand identity</li>
+            </ul>
+
+            <div class="design-features">
+                <div class="feature-card">
+                    <h4>🎨 Modern Design</h4>
+                    <p>Clean, professional layout with purple gradients and smooth animations</p>
+                </div>
+                <div class="feature-card">
+                    <h4>📱 Responsive</h4>
+                    <p>Optimized for all screen sizes and email clients</p>
+                </div>
+                <div class="feature-card">
+                    <h4>♿ Accessible</h4>
+                    <p>High contrast, readable fonts, and semantic HTML structure</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔒 Secure</h4>
+                    <p>Inline CSS for maximum compatibility and security</p>
+                </div>
+                <div class="feature-card">
+                    <h4>👥 Dual Audience</h4>
+                    <p>Separate templates for admin and user-facing communications</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🎯 Purpose-Built</h4>
+                    <p>Tailored messaging for sign-up confirmation and password reset flows</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

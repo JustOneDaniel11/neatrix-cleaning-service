@@ -1,0 +1,12 @@
+{
+  "projects": [
+    {
+      "name": "neatrix-user-frontend",
+      "rootDirectory": "user-frontend"
+    },
+    {
+      "name": "neatrix-admin-dashboard", 
+      "rootDirectory": "admin-dashboard"
+    }
+  ]
+}
