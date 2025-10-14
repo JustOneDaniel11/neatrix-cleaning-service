@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile viewport and sticky positioning fixes */
+@supports (padding: max(0px)) {
+  .safe-area-inset-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Ensure proper mobile viewport handling */
+html {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  height: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Fix for mobile sticky positioning */
+@media (max-width: 1024px) {
+  .mobile-sticky-footer {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 50 !important;
+  }
+}
+
 /* Neatrix Cleaning Service Design System - Fresh, Professional, Trustworthy */
 
 @layer base {

@@ -67,9 +67,9 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Mobile Header */}
-      <div className="lg:hidden bg-white dark:bg-secondary border-b border-gray-200 dark:border-secondary px-4 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+      <div className="lg:hidden bg-white dark:bg-secondary border-b border-gray-200 dark:border-secondary px-4 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm flex-shrink-0">
         <div className="flex items-center space-x-3">
           <img src={logoSrc} alt="Neatrix Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded object-cover" />
           <span className="sr-only">Neatrix</span>
@@ -119,7 +119,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white dark:bg-secondary border-r border-gray-200 dark:border-secondary">
           <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
@@ -150,10 +150,8 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
           </div>
         </div>
 
-
-
         {/* Main Content */}
-        <div className="lg:pl-64 flex flex-col flex-1">
+        <div className="lg:pl-64 flex flex-col flex-1 min-h-0">
           {/* Desktop Header */}
           <div className="hidden lg:block bg-white dark:bg-secondary border-b border-gray-200 dark:border-secondary px-6 py-4 sticky top-0 z-30">
             <div className="flex items-center justify-between">
@@ -211,7 +209,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
             </div>
           </div>
           
-          <main className="flex-1 pb-28 lg:pb-8">
+          <main className="flex-1 overflow-y-auto pb-20 lg:pb-8">
             <div className="py-4 lg:py-6">
               <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 text-foreground">
                 {children}
@@ -222,8 +220,8 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-secondary/95 backdrop-blur-md border-t border-gray-200 dark:border-secondary px-2 py-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-lg z-50">
-        <div className="flex justify-around items-center max-w-md mx-auto">
+      <div className="lg:hidden mobile-sticky-footer bg-white/95 dark:bg-secondary/95 backdrop-blur-md border-t border-gray-200 dark:border-secondary px-2 py-2 shadow-lg safe-area-inset-bottom">
+        <div className="flex justify-around items-center max-w-md mx-auto py-1">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -231,13 +229,13 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
               <button
                 key={item.id}
                 onClick={() => handleTabChange(item.id)}
-                className={`flex flex-col items-center py-3 px-3 rounded-xl transition-all duration-200 touch-manipulation min-w-0 ${
+                className={`flex flex-col items-center py-2 px-2 rounded-lg transition-all duration-200 touch-manipulation min-w-0 flex-1 max-w-[80px] ${
                   isActive
                     ? 'text-blue-600 bg-blue-50 scale-105 dark:text-blue-300 dark:bg-blue-900/30'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-secondary'
                 }`}
               >
-                <Icon className={`h-6 w-6 mb-1 transition-colors ${
+                <Icon className={`h-5 w-5 mb-1 transition-colors ${
                   isActive ? 'text-blue-600 dark:text-blue-300' : 'text-gray-500 dark:text-gray-300'
                 }`} />
                 <span className={`text-xs font-medium truncate ${
