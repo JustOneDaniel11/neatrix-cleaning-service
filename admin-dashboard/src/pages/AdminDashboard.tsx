@@ -310,24 +310,24 @@ export default function AdminDashboard() {
   };
 
   const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-3 sm:p-4 lg:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{title}</p>
-          <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-1 sm:mt-2">{value}</p>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 p-3 sm:p-4 lg:p-5 hover:shadow-xl transition-all duration-300">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 sm:mb-2 leading-relaxed">{title}</p>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3 break-words leading-tight">{value}</p>
           {trend && (
-            <div className={`flex items-center mt-2 sm:mt-3 px-2 py-1 rounded-full text-xs font-medium ${
+            <div className={`flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-full text-xs sm:text-sm font-medium ${
               trend > 0 
                 ? 'bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-200' 
                 : 'bg-red-50 dark:bg-red-900 text-red-700 dark:text-red-200'
             }`}>
-              <TrendingUp className={`w-3 h-3 mr-1 ${trend < 0 ? 'rotate-180' : ''}`} />
+              <TrendingUp className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5 ${trend < 0 ? 'rotate-180' : ''}`} />
               <span className="hidden sm:inline">{trend > 0 ? '+' : ''}{trend}% from last month</span>
               <span className="sm:hidden">{trend > 0 ? '+' : ''}{trend}%</span>
             </div>
           )}
         </div>
-        <div className={`p-2 sm:p-3 lg:p-4 rounded-lg sm:rounded-xl ${color} shadow-lg`}>
+        <div className={`p-2 sm:p-3 lg:p-3.5 rounded-lg ${color} shadow-lg flex-shrink-0 ml-2 sm:ml-3`}>
           <Icon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
         </div>
       </div>
@@ -337,7 +337,7 @@ export default function AdminDashboard() {
   const renderOverview = () => (
     <div className="space-y-6">
       {/* Real-time Connection Status */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className={`p-2 rounded-xl shadow-lg ${state.realTimeConnected ? 'bg-green-500' : 'bg-red-500'}`}>
@@ -348,15 +348,15 @@ export default function AdminDashboard() {
               )}
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Real-time Status</h3>
-              <p className={`text-sm ${state.realTimeConnected ? 'text-green-600' : 'text-red-600'}`}>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Real-time Status</h3>
+              <p className={`text-sm ${state.realTimeConnected ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {state.realTimeConnected ? 'Connected - Live updates active' : 'Disconnected - Data may be outdated'}
               </p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded-full ${state.realTimeConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               {state.realTimeConnected ? 'Live' : 'Offline'}
             </span>
           </div>
@@ -364,7 +364,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Primary Stats Grid - Core Business Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
         <StatCard
           title="Total Bookings"
           value={state.stats.totalBookings}
@@ -389,7 +389,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Secondary Stats Grid - Additional Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
         <StatCard
           title="Total Payments"
           value={state.payments.length}
@@ -414,25 +414,25 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Activities */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50">
-        <div className="p-6 border-b border-gray-200/50">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg">
               <Clock className="w-5 h-5 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900">Recent Activities</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Recent Activities</h3>
           </div>
         </div>
         <div className="p-6">
           <div className="space-y-4">
             {recentActivities.map((activity, index) => (
-              <div key={activity.id} className="flex items-center space-x-4 p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors">
+              <div key={activity.id} className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                 <div className={`w-3 h-3 rounded-full shadow-lg ${
                   activity.type === 'booking' ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-green-500 to-green-600'
                 }`} />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">{activity.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">{formatDate(activity.time)}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.message}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatDate(activity.time)}</p>
                 </div>
                 <span className={`px-3 py-1 text-xs font-medium rounded-full shadow-sm ${
                   activity.status === 'completed'
@@ -460,19 +460,19 @@ export default function AdminDashboard() {
         <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:space-x-4">
             <div className="relative flex-1 sm:flex-none sm:w-64">
-              <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search bookings..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 sm:py-2.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px]"
               />
             </div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full sm:w-auto px-3 sm:px-4 py-2.5 sm:py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px]"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -508,7 +508,7 @@ export default function AdminDashboard() {
               a.click();
               window.URL.revokeObjectURL(url);
             }}
-            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-3 sm:py-2.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[44px]"
           >
             <Download className="w-4 h-4" />
             <span>Export</span>
@@ -520,12 +520,12 @@ export default function AdminDashboard() {
       <div className="block sm:hidden space-y-3">
         {filteredBookings.map((booking) => (
           <div key={booking.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4">
-            <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-4">
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate leading-tight">
                   {booking.userName}
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">
                   {booking.userEmail}
                 </p>
               </div>
@@ -552,22 +552,22 @@ export default function AdminDashboard() {
               </select>
             </div>
             
-            <div className="space-y-2 mb-3">
+            <div className="space-y-3 mb-4">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Service:</span>
-                <span className="text-xs text-gray-900 dark:text-white">{booking.service}</span>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Service:</span>
+                <span className="text-sm text-gray-900 dark:text-white font-medium">{booking.service}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Date:</span>
-                <span className="text-xs text-gray-900 dark:text-white">{formatDate(booking.date)}</span>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Date:</span>
+                <span className="text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Time:</span>
-                <span className="text-xs text-gray-900 dark:text-white">{booking.time}</span>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Time:</span>
+                <span className="text-sm text-gray-900 dark:text-white">{booking.time}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Amount:</span>
-                <span className="text-xs font-semibold text-gray-900 dark:text-white">{formatCurrency(booking.amount)}</span>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Amount:</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(booking.amount)}</span>
               </div>
               {booking.address && (
                 <div className="flex justify-between items-start">
@@ -577,18 +577,18 @@ export default function AdminDashboard() {
               )}
             </div>
             
-            <div className="flex items-center justify-end space-x-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-              <button className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                <Eye className="w-4 h-4" />
+            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <button className="p-3 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                <Eye className="w-5 h-5" />
               </button>
-              <button className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                <Edit className="w-4 h-4" />
+              <button className="p-3 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                <Edit className="w-5 h-5" />
               </button>
               <button 
                 onClick={() => handleDeleteBooking(booking.id)}
-                className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                className="p-3 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -2283,12 +2283,12 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors flex flex-col">
       {/* Header */}
-      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50 flex-shrink-0">
+      <header className="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 sm:h-18">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg sm:rounded-xl shadow-lg">
-                <Home className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="p-2 sm:p-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
+                <Home className="w-6 h-6 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
@@ -2298,103 +2298,95 @@ export default function AdminDashboard() {
                 <h1 className="text-lg font-bold text-gray-900 dark:text-white">Admin</h1>
               </div>
             </div>
-            <div className="flex items-center space-x-1 sm:space-x-2">
-              <button className="p-1.5 sm:p-2 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <button className="p-2.5 sm:p-2 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                <Bell className="w-5 h-5 sm:w-5 sm:h-5" />
               </button>
               <button 
                 onClick={() => setActiveTab('settings')}
-                className="p-1.5 sm:p-2 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="p-2.5 sm:p-2 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
-                <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Settings className="w-5 h-5 sm:w-5 sm:h-5" />
               </button>
               <button 
                 onClick={handleLogout}
-                className="p-1.5 sm:p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                className="p-2.5 sm:p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
-                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                <LogOut className="w-5 h-5 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1">
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-6 flex-1">
+        <div className="flex flex-col lg:flex-row gap-2 sm:gap-4 lg:gap-6">
           {/* Sidebar */}
           <div className="lg:w-72">
-            <nav className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-gray-200/50 p-4 sm:p-6 lg:sticky lg:top-24">
-              <div className="mb-4 sm:mb-6">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Navigation</h2>
+            <nav className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-2 sm:p-4 lg:p-6 lg:sticky lg:top-24">
+              <div className="mb-3 sm:mb-4 lg:mb-6">
+                <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">Navigation</h2>
                 <div className="h-1 w-8 sm:w-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
               </div>
               
-              {/* Mobile: Horizontal scrollable navigation */}
+              {/* Mobile: Simple grid navigation */}
               <div className="lg:hidden">
-                {/* Primary navigation items */}
-                <div className="mb-4">
-                  <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-2">
-                    {[
-                      { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
-                      { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
-                      { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
-                      { id: 'contacts', label: 'Messages', icon: MessageSquare, color: 'from-orange-500 to-orange-600' },
-                      { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
-                      { id: 'subscriptions', label: 'Subscriptions', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
-                      { id: 'laundry', label: 'Laundry', icon: Shirt, color: 'from-teal-500 to-teal-600' },
-                      { id: 'delivery', label: 'Delivery', icon: Truck, color: 'from-indigo-500 to-indigo-600' },
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
-                        className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-center transition-all duration-200 flex-shrink-0 min-w-[70px] ${
-                          activeTab === item.id
-                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-lg border border-blue-200/50'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className={`p-1.5 rounded-md ${
-                          activeTab === item.id 
-                            ? `bg-gradient-to-r ${item.color} shadow-lg` 
-                            : 'bg-gray-100'
-                        } transition-all duration-200`}>
-                          <item.icon className={`w-4 h-4 ${
-                            activeTab === item.id ? 'text-white' : 'text-gray-600'
-                          }`} />
-                        </div>
-                        <span className="text-xs font-medium leading-tight text-center">{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {[
+                    { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
+                    { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
+                    { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
+                    { id: 'contacts', label: 'Messages', icon: MessageSquare, color: 'from-orange-500 to-orange-600' },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`flex flex-col items-center space-y-1 p-2 rounded-lg text-center transition-all duration-200 ${
+                        activeTab === item.id
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <div className={`p-1.5 rounded-md ${
+                        activeTab === item.id 
+                          ? `bg-gradient-to-r ${item.color}` 
+                          : 'bg-gray-100 dark:bg-gray-700'
+                      }`}>
+                        <item.icon className={`w-4 h-4 ${
+                          activeTab === item.id ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+                        }`} />
+                      </div>
+                      <span className="text-xs font-medium">{item.label}</span>
+                    </button>
+                  ))}
                 </div>
                 
-                {/* Secondary navigation items */}
-                <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-2">
+                <div className="grid grid-cols-4 gap-2">
                   {[
-                    { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-pink-500 to-pink-600' },
-                    { id: 'reviews', label: 'Reviews', icon: Star, color: 'from-yellow-500 to-yellow-600' },
-                    { id: 'complaints', label: 'Complaints', icon: AlertTriangle, color: 'from-red-500 to-red-600' },
+                    { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
+                    { id: 'subscriptions', label: 'Subs', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
+                    { id: 'laundry', label: 'Laundry', icon: Shirt, color: 'from-teal-500 to-teal-600' },
                     { id: 'settings', label: 'Settings', icon: Settings, color: 'from-gray-500 to-gray-600' },
                   ].map((item) => (
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-center transition-all duration-200 flex-shrink-0 min-w-[70px] ${
+                      className={`flex flex-col items-center space-y-1 p-2 rounded-lg text-center transition-all duration-200 ${
                         activeTab === item.id
-                          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-lg border border-blue-200/50'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       <div className={`p-1.5 rounded-md ${
                         activeTab === item.id 
-                          ? `bg-gradient-to-r ${item.color} shadow-lg` 
-                          : 'bg-gray-100'
-                      } transition-all duration-200`}>
+                          ? `bg-gradient-to-r ${item.color}` 
+                          : 'bg-gray-100 dark:bg-gray-700'
+                      }`}>
                         <item.icon className={`w-4 h-4 ${
-                          activeTab === item.id ? 'text-white' : 'text-gray-600'
+                          activeTab === item.id ? 'text-white' : 'text-gray-600 dark:text-gray-400'
                         }`} />
                       </div>
-                      <span className="text-xs font-medium leading-tight text-center">{item.label}</span>
+                      <span className="text-xs font-medium">{item.label}</span>
                     </button>
                   ))}
                 </div>
@@ -2444,7 +2436,7 @@ export default function AdminDashboard() {
 
           {/* Main Content */}
           <div className="flex-1">
-            <div className="bg-white/50 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-gray-200/50 p-4 sm:p-6 lg:p-8 min-h-[400px] sm:min-h-[600px]">
+            <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-6 lg:p-8 min-h-[500px] sm:min-h-[600px]">
               {activeTab === 'overview' && renderOverview()}
         {activeTab === 'bookings' && renderBookings()}
         {activeTab === 'users' && renderUsers()}
