@@ -352,7 +352,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Primary Stats Grid */}
+      {/* Primary Stats Grid - Core Business Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Bookings"
