@@ -1,23 +1,76 @@
-# Deployment Guide
+# Simple Vercel Deployment Guide
 
-This guide will walk you through deploying your CleanPro website to GitHub and Vercel.
+This guide will help you deploy both the main app and admin dashboard to Vercel with clean URLs.
 
-## Prerequisites
+## 🎯 Target URLs
+- **Main App**: `neatrix.vercel.app`
+- **Admin Dashboard**: `neatrixadmin.vercel.app`
 
-- Git repository with all changes committed
+## 📋 Prerequisites
 - GitHub account
-- Vercel account (can sign up with GitHub)
+- Vercel account (free)
+- Environment variables ready
 
-## Step 1: Create GitHub Repository
+## 🚀 Deployment Steps
 
-### Option A: Using GitHub Website
-1. Go to [GitHub.com](https://github.com) and sign in
-2. Click the "+" icon in the top right corner
-3. Select "New repository"
-4. Fill in the repository details:
-   - **Repository name**: `cleaning-service-website` (or your preferred name)
-   - **Description**: "Professional cleaning service website built with React and Supabase"
-   - **Visibility**: Public or Private (your choice)
+### Step 1: Push to GitHub
+```bash
+# Make sure all changes are committed
+git add .
+git commit -m "Ready for Vercel deployment"
+git push origin main
+```
+
+### Step 2: Deploy Main App (neatrix.vercel.app)
+
+1. Go to [vercel.com](https://vercel.com) and sign in
+2. Click **"New Project"**
+3. Import your GitHub repository
+4. **Project Settings:**
+   - **Project Name**: `neatrix`
+   - **Root Directory**: `user-frontend`
+   - **Framework Preset**: Vite
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+
+5. **Environment Variables** (Add these in Vercel dashboard):
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_PAYSTACK_PUBLIC_KEY=your_paystack_key (optional)
+   ```
+
+6. Click **"Deploy"**
+
+### Step 3: Deploy Admin Dashboard (neatrixadmin.vercel.app)
+
+1. In Vercel dashboard, click **"New Project"** again
+2. Import the **same GitHub repository**
+3. **Project Settings:**
+   - **Project Name**: `neatrixadmin`
+   - **Root Directory**: `admin-dashboard`
+   - **Framework Preset**: Vite
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+
+4. **Environment Variables** (Add the same ones):
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_PAYSTACK_PUBLIC_KEY=your_paystack_key (optional)
+   ```
+
+5. Click **"Deploy"**
+
+## ✅ Final Result
+
+After deployment, you'll have:
+- **Main App**: `https://neatrix.vercel.app`
+- **Admin Dashboard**: `https://neatrixadmin.vercel.app`
+
+## 🔄 Auto-Deployment
+
+Both apps will automatically redeploy when you push changes to your GitHub repository!
    - **DO NOT** initialize with README, .gitignore, or license (we already have these)
 5. Click "Create repository"
 

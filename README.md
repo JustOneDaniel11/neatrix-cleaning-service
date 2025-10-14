@@ -1,57 +1,45 @@
-# CleanPro - Professional Cleaning Service Website
+# Neatrix Cleaning Service Platform
 
-A modern, responsive website for a professional cleaning service built with React, TypeScript, and Supabase.
-
-## Features
-
-### 🎨 Modern UI/UX
-- Clean, professional design with responsive layout
-- Smooth animations and transitions
-- Mobile-first approach
-- Accessible components with proper ARIA labels
-
-### 🔐 Authentication System
-- User registration and login with Supabase
-- Custom email verification templates
-- Password reset functionality
-- Protected routes and user sessions
-
-### 📧 Email Verification
-- **Custom Email Template**: Professional HTML email template with CleanPro branding
-- **Success Page**: Dedicated success page after email verification with user guidance
-- **Enhanced UX**: Clear instructions and next steps for new users
-
-### 🏠 Service Management
-- Service catalog with detailed descriptions
-- Booking system for cleaning appointments
-- Subscription plans for regular cleaning
-- Contact forms and customer support
-
-### 📱 Responsive Design
-- Works seamlessly on desktop, tablet, and mobile
-- Touch-friendly interface
-- Optimized performance
-
-## Tech Stack
-
-- **Frontend**: React 18, TypeScript, Vite
-- **Styling**: Tailwind CSS, Lucide React Icons
-- **Backend**: Supabase (Authentication, Database, Real-time)
-- **Routing**: React Router DOM
-- **State Management**: React Context API
-- **Deployment**: Vercel
+A comprehensive cleaning service platform with separate user-facing and admin applications.
 
 ## Project Structure
 
 ```
-src/
-├── components/          # Reusable UI components
-├── contexts/           # React Context providers
-├── pages/              # Page components
-├── email-templates/    # Custom email templates
-├── types/              # TypeScript type definitions
-└── utils/              # Utility functions
+├── user-frontend/          # Main customer-facing application
+├── admin-dashboard/        # Admin dashboard for managing services
+├── shared/                 # Shared utilities and configurations
+├── supabase/              # Database schema and configurations
+└── README.md              # This file
 ```
+
+## Applications
+
+### 1. User Frontend (Main App)
+- **Location**: `user-frontend/`
+- **Description**: Customer-facing application for booking cleaning services
+- **Port**: 5173 (development)
+- **Build Command**: `npm run build`
+- **Start Command**: `npm run dev`
+
+### 2. Admin Dashboard
+- **Location**: `admin-dashboard/`
+- **Description**: Administrative interface for managing bookings, users, and services
+- **Port**: 8081 (development)
+- **Build Command**: `npm run build`
+- **Start Command**: `npm run dev`
+
+### 3. Shared Library
+- **Location**: `shared/`
+- **Description**: Common utilities, types, and configurations used by both applications
+- **Includes**: Supabase client, TypeScript types, utility functions
+
+## Technology Stack
+
+- **Frontend**: React + TypeScript + Vite
+- **Styling**: Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Deployment**: Vercel
 
 ## Recent Updates
 
