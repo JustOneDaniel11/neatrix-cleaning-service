@@ -92,6 +92,26 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  
+  // Settings state management
+  const [settings, setSettings] = useState({
+    businessName: 'CleanPro Services',
+    contactEmail: 'admin@cleanpro.com',
+    phoneNumber: '+1 (555) 123-4567',
+    emailNotifications: true,
+    smsNotifications: true,
+    pushNotifications: false,
+    defaultServiceDuration: 2,
+    bookingLeadTime: 24,
+    autoConfirmBookings: false,
+    currency: 'USD',
+    timeZone: 'America/New_York',
+    maintenanceMode: false
+  });
+  
+  const [originalSettings, setOriginalSettings] = useState({ ...settings });
+  const [isSettingsLoading, setIsSettingsLoading] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState({ type: '', text: '' });
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -148,6 +168,78 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
+  };
+
+  // Settings handlers
+  const handleSettingsChange = (field: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Clear any existing messages when user makes changes
+    if (settingsMessage.text) {
+      setSettingsMessage({ type: '', text: '' });
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setIsSettingsLoading(true);
+    setSettingsMessage({ type: '', text: '' });
+    
+    try {
+      // Simulate API call to save settings
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Update original settings to reflect saved state
+      setOriginalSettings({ ...settings });
+      
+      setSettingsMessage({ 
+        type: 'success', 
+        text: 'Settings saved successfully!' 
+      });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSettingsMessage({ type: '', text: '' });
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      setSettingsMessage({ 
+        type: 'error', 
+        text: 'Failed to save settings. Please try again.' 
+      });
+    } finally {
+      setIsSettingsLoading(false);
+    }
+  };
+
+  const handleResetSettings = () => {
+    const defaultSettings = {
+      businessName: 'CleanPro Services',
+      contactEmail: 'admin@cleanpro.com',
+      phoneNumber: '+1 (555) 123-4567',
+      emailNotifications: true,
+      smsNotifications: true,
+      pushNotifications: false,
+      defaultServiceDuration: 2,
+      bookingLeadTime: 24,
+      autoConfirmBookings: false,
+      currency: 'USD',
+      timeZone: 'America/New_York',
+      maintenanceMode: false
+    };
+    
+    setSettings(defaultSettings);
+    setSettingsMessage({ 
+      type: 'info', 
+      text: 'Settings reset to default values. Click "Save Changes" to apply.' 
+    });
+    
+    // Clear info message after 4 seconds
+    setTimeout(() => {
+      setSettingsMessage({ type: '', text: '' });
+    }, 4000);
   };
 
   const handleDeleteNotification = async (notificationId: string) => {
@@ -351,25 +443,25 @@ export default function AdminDashboard() {
   );
 
   const renderBookings = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Search and Filter */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6">
+        <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:space-x-4">
+            <div className="relative flex-1 sm:flex-none sm:w-64">
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search bookings..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full sm:w-auto px-3 sm:px-4 py-2.5 sm:py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -405,7 +497,7 @@ export default function AdminDashboard() {
               a.click();
               window.URL.revokeObjectURL(url);
             }}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             <Download className="w-4 h-4" />
             <span>Export</span>
@@ -413,93 +505,188 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Bookings Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 overflow-hidden">
+      {/* Mobile Card View */}
+      <div className="block sm:hidden space-y-3">
+        {filteredBookings.map((booking) => (
+          <div key={booking.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {booking.userName}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {booking.userEmail}
+                </p>
+              </div>
+              <select
+                value={booking.status}
+                onChange={(e) => updateBookingStatus(booking.id, e.target.value)}
+                className={`ml-2 px-2 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${
+                  booking.status === 'completed'
+                    ? 'bg-green-100 text-green-800'
+                    : booking.status === 'pending'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : booking.status === 'in_progress'
+                    ? 'bg-blue-100 text-blue-800'
+                    : booking.status === 'confirmed'
+                    ? 'bg-purple-100 text-purple-800'
+                    : 'bg-red-100 text-red-800'
+                }`}
+              >
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            
+            <div className="space-y-2 mb-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Service:</span>
+                <span className="text-xs text-gray-900 dark:text-white">{booking.service}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Date:</span>
+                <span className="text-xs text-gray-900 dark:text-white">{formatDate(booking.date)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Time:</span>
+                <span className="text-xs text-gray-900 dark:text-white">{booking.time}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Amount:</span>
+                <span className="text-xs font-semibold text-gray-900 dark:text-white">{formatCurrency(booking.amount)}</span>
+              </div>
+              {booking.address && (
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Address:</span>
+                  <span className="text-xs text-gray-900 dark:text-white text-right ml-2">{booking.address}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+              <button className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <Eye className="w-4 h-4" />
+              </button>
+              <button className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                <Edit className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => handleDeleteBooking(booking.id)}
+                className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+        
+        {filteredBookings.length === 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-8 text-center">
+            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-500 dark:text-gray-400">No bookings found</p>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider hidden md:table-cell">
                   Service
                 </th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Date & Time
                 </th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Amount
                 </th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredBookings.map((booking) => (
-                <tr key={booking.id} className="hover:bg-gray-50">
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">{booking.userName}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{booking.userEmail}</div>
-                    </div>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                    <div className="text-sm text-gray-900 dark:text-white">{booking.service}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{booking.address}</div>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{booking.time}</div>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(booking.amount)}
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={booking.status}
-                      onChange={(e) => updateBookingStatus(booking.id, e.target.value)}
-                      className={`px-2 sm:px-3 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${
-                        booking.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : booking.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : booking.status === 'in_progress'
-                          ? 'bg-blue-100 text-blue-800'
-                          : booking.status === 'confirmed'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-1 sm:space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="text-green-600 hover:text-green-900">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => deleteBooking(booking.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+              {filteredBookings.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400">No bookings found</p>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredBookings.map((booking) => (
+                  <tr key={booking.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{booking.userName}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{booking.userEmail}</div>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                      <div className="text-sm text-gray-900 dark:text-white">{booking.service}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{booking.address}</div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{booking.time}</div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {formatCurrency(booking.amount)}
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={booking.status}
+                        onChange={(e) => updateBookingStatus(booking.id, e.target.value)}
+                        className={`px-3 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${
+                          booking.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : booking.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : booking.status === 'in_progress'
+                            ? 'bg-blue-100 text-blue-800'
+                            : booking.status === 'confirmed'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteBooking(booking.id)}
+                          className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -1176,6 +1363,24 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Settings Message */}
+      {settingsMessage.text && (
+        <div className={`p-4 rounded-lg border ${
+          settingsMessage.type === 'success' 
+            ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
+            : settingsMessage.type === 'error'
+            ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+            : 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300'
+        }`}>
+          <div className="flex items-center">
+            {settingsMessage.type === 'success' && <CheckCircle className="w-5 h-5 mr-2" />}
+            {settingsMessage.type === 'error' && <XCircle className="w-5 h-5 mr-2" />}
+            {settingsMessage.type === 'info' && <AlertTriangle className="w-5 h-5 mr-2" />}
+            <span className="text-sm font-medium">{settingsMessage.text}</span>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* General Settings */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
@@ -1187,7 +1392,8 @@ export default function AdminDashboard() {
               </label>
               <input
                 type="text"
-                defaultValue="CleanPro Services"
+                value={settings.businessName}
+                onChange={(e) => handleSettingsChange('businessName', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -1197,7 +1403,8 @@ export default function AdminDashboard() {
               </label>
               <input
                 type="email"
-                defaultValue="admin@cleanpro.com"
+                value={settings.contactEmail}
+                onChange={(e) => handleSettingsChange('contactEmail', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -1207,7 +1414,8 @@ export default function AdminDashboard() {
               </label>
               <input
                 type="tel"
-                defaultValue="+1 (555) 123-4567"
+                value={settings.phoneNumber}
+                onChange={(e) => handleSettingsChange('phoneNumber', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -1223,21 +1431,36 @@ export default function AdminDashboard() {
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Notifications</label>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Receive email alerts for new bookings</p>
               </div>
-              <input type="checkbox" defaultChecked className="rounded" />
+              <input 
+                type="checkbox" 
+                checked={settings.emailNotifications}
+                onChange={(e) => handleSettingsChange('emailNotifications', e.target.checked)}
+                className="rounded focus:ring-2 focus:ring-blue-500" 
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">SMS Notifications</label>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Receive SMS alerts for urgent matters</p>
               </div>
-              <input type="checkbox" defaultChecked className="rounded" />
+              <input 
+                type="checkbox" 
+                checked={settings.smsNotifications}
+                onChange={(e) => handleSettingsChange('smsNotifications', e.target.checked)}
+                className="rounded focus:ring-2 focus:ring-blue-500" 
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Push Notifications</label>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Browser push notifications</p>
               </div>
-              <input type="checkbox" className="rounded" />
+              <input 
+                type="checkbox" 
+                checked={settings.pushNotifications}
+                onChange={(e) => handleSettingsChange('pushNotifications', e.target.checked)}
+                className="rounded focus:ring-2 focus:ring-blue-500" 
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
@@ -1261,51 +1484,62 @@ export default function AdminDashboard() {
         </div>
 
         {/* Service Settings */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Service Settings</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Service Settings</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Default Service Duration (hours)
               </label>
               <input
                 type="number"
-                defaultValue="2"
+                value={settings.defaultServiceDuration}
+                onChange={(e) => handleSettingsChange('defaultServiceDuration', parseInt(e.target.value))}
                 min="1"
                 max="8"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Booking Lead Time (hours)
               </label>
               <input
                 type="number"
-                defaultValue="24"
+                value={settings.bookingLeadTime}
+                onChange={(e) => handleSettingsChange('bookingLeadTime', parseInt(e.target.value))}
                 min="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-sm font-medium text-gray-700">Auto-confirm bookings</label>
-                <p className="text-xs text-gray-500">Automatically confirm new bookings</p>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-confirm bookings</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Automatically confirm new bookings</p>
               </div>
-              <input type="checkbox" className="rounded" />
+              <input 
+                type="checkbox" 
+                checked={settings.autoConfirmBookings}
+                onChange={(e) => handleSettingsChange('autoConfirmBookings', e.target.checked)}
+                className="rounded focus:ring-2 focus:ring-blue-500" 
+              />
             </div>
           </div>
         </div>
 
         {/* System Settings */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">System Settings</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">System Settings</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Currency
               </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select 
+                value={settings.currency}
+                onChange={(e) => handleSettingsChange('currency', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
                  <option value="USD">USD ($)</option>
                  <option value="EUR">EUR (€)</option>
                  <option value="GBP">GBP (£)</option>
@@ -1313,10 +1547,14 @@ export default function AdminDashboard() {
                </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Time Zone
               </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select 
+                value={settings.timeZone}
+                onChange={(e) => handleSettingsChange('timeZone', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
                 <option value="America/New_York">Eastern Time</option>
                 <option value="America/Chicago">Central Time</option>
                 <option value="America/Denver">Mountain Time</option>
@@ -1325,22 +1563,42 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-sm font-medium text-gray-700">Maintenance Mode</label>
-                <p className="text-xs text-gray-500">Temporarily disable booking system</p>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Maintenance Mode</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Temporarily disable booking system</p>
               </div>
-              <input type="checkbox" className="rounded" />
+              <input 
+                type="checkbox" 
+                checked={settings.maintenanceMode}
+                onChange={(e) => handleSettingsChange('maintenanceMode', e.target.checked)}
+                className="rounded focus:ring-2 focus:ring-blue-500" 
+              />
             </div>
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-end space-x-3">
-        <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+      <div className="flex flex-col sm:flex-row justify-end gap-3">
+        <button 
+          onClick={handleResetSettings}
+          disabled={isSettingsLoading}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+        >
           Reset to Defaults
         </button>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          Save Changes
+        <button 
+          onClick={handleSaveSettings}
+          disabled={isSettingsLoading}
+          className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          {isSettingsLoading ? (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Changes'
+          )}
         </button>
       </div>
     </div>
@@ -2012,9 +2270,9 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors flex flex-col">
       {/* Header */}
-      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50">
+      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3 sm:space-x-4">
@@ -2050,7 +2308,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1 overflow-hidden pb-20 lg:pb-8">
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
           {/* Sidebar */}
           <div className="lg:w-72">
@@ -2060,8 +2318,8 @@ export default function AdminDashboard() {
                 <div className="h-1 w-8 sm:w-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
               </div>
               
-              {/* Mobile: Horizontal scrollable navigation */}
-              <div className="lg:hidden">
+              {/* Mobile: Horizontal scrollable navigation - Hidden since we have bottom nav */}
+              <div className="hidden">
                 {/* Primary navigation items */}
                 <div className="mb-4">
                   <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-2">
@@ -2190,6 +2448,34 @@ export default function AdminDashboard() {
         {activeTab === 'settings' && renderSettings()}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="mobile-sticky-footer lg:hidden bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-700/50 safe-area-inset-bottom">
+        <div className="flex items-center justify-around px-2 py-2">
+          {[
+            { id: 'overview', label: 'Overview', icon: BarChart3 },
+            { id: 'bookings', label: 'Bookings', icon: Calendar },
+            { id: 'users', label: 'Users', icon: Users },
+            { id: 'contacts', label: 'Messages', icon: MessageSquare },
+            { id: 'settings', label: 'Settings', icon: Settings },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center justify-center px-2 py-2 rounded-lg transition-all duration-200 flex-1 max-w-[80px] ${
+                activeTab === item.id
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              <item.icon className={`w-5 h-5 mb-1 ${
+                activeTab === item.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+              }`} />
+              <span className="text-xs font-medium">{item.label}</span>
+            </button>
+          ))}
         </div>
       </div>
     </div>
