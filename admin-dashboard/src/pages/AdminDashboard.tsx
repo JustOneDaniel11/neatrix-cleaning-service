@@ -2308,7 +2308,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1 overflow-hidden pb-20 lg:pb-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1">
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
           {/* Sidebar */}
           <div className="lg:w-72">
@@ -2318,8 +2318,8 @@ export default function AdminDashboard() {
                 <div className="h-1 w-8 sm:w-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
               </div>
               
-              {/* Mobile: Horizontal scrollable navigation - Hidden since we have bottom nav */}
-              <div className="hidden">
+              {/* Mobile: Horizontal scrollable navigation */}
+              <div className="lg:hidden">
                 {/* Primary navigation items */}
                 <div className="mb-4">
                   <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-2">
@@ -2451,33 +2451,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="mobile-sticky-footer lg:hidden bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-700/50 safe-area-inset-bottom">
-        <div className="flex items-center justify-around px-2 py-2">
-          {[
-            { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'bookings', label: 'Bookings', icon: Calendar },
-            { id: 'users', label: 'Users', icon: Users },
-            { id: 'contacts', label: 'Messages', icon: MessageSquare },
-            { id: 'settings', label: 'Settings', icon: Settings },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center px-2 py-2 rounded-lg transition-all duration-200 flex-1 max-w-[80px] ${
-                activeTab === item.id
-                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <item.icon className={`w-5 h-5 mb-1 ${
-                activeTab === item.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
-              }`} />
-              <span className="text-xs font-medium">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+
     </div>
   );
 }
