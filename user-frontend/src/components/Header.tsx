@@ -1,16 +1,26 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSupabaseData } from "@/contexts/SupabaseDataContext";
+import { useState } from "react";
 
 const Header = () => {
   const { state } = useSupabaseData();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -71,6 +81,7 @@ const Header = () => {
             </Link>
           </nav>
 
+          {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             {state.isAuthenticated ? (
               <Link to="/dashboard">
@@ -105,7 +116,115 @@ const Header = () => {
             )}
           </div>
 
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleMobileMenu}
+              className="p-2"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border shadow-lg">
+            <nav className="container mx-auto px-4 py-4 space-y-4">
+              <Link 
+                to="/" 
+                className="block text-foreground hover:text-primary transition-colors py-2"
+                onClick={closeMobileMenu}
+              >
+                Home
+              </Link>
+              <Link 
+                to="/services" 
+                className="block text-foreground hover:text-primary transition-colors py-2"
+                onClick={closeMobileMenu}
+              >
+                Services
+              </Link>
+              <Link 
+                to="/about" 
+                className="block text-foreground hover:text-primary transition-colors py-2"
+                onClick={closeMobileMenu}
+              >
+                About
+              </Link>
+              <Link 
+                to="/gallery" 
+                className="block text-foreground hover:text-primary transition-colors py-2"
+                onClick={closeMobileMenu}
+              >
+                Gallery
+              </Link>
+              <Link 
+                to="/faq" 
+                className="block text-foreground hover:text-primary transition-colors py-2"
+                onClick={closeMobileMenu}
+              >
+                FAQ
+              </Link>
+              <Link 
+                to="/blog" 
+                className="block text-foreground hover:text-primary transition-colors py-2"
+                onClick={closeMobileMenu}
+              >
+                Blog
+              </Link>
+              <Link 
+                to="/contact" 
+                className="block text-foreground hover:text-primary transition-colors py-2"
+                onClick={closeMobileMenu}
+              >
+                Contact
+              </Link>
+              
+              {/* Mobile Auth Buttons */}
+              <div className="pt-4 space-y-3 border-t border-border">
+                {state.isAuthenticated ? (
+                  <Link to="/dashboard" onClick={closeMobileMenu}>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="w-full bg-gradient-primary"
+                    >
+                      Dashboard
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={closeMobileMenu}>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full"
+                      >
+                        Login
+                      </Button>
+                    </Link>
+                    <Link to="/signup" onClick={closeMobileMenu}>
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="w-full bg-gradient-primary"
+                      >
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );

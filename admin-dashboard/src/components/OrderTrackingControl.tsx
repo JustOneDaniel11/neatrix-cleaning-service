@@ -76,6 +76,37 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
     }
   }, [selectedOrderId, dryCleaningOrders]);
 
+  // Initialize missing pickup_option fields for existing orders
+  useEffect(() => {
+    const initializeMissingPickupOptions = async () => {
+      const ordersWithoutPickupOption = dryCleaningOrders.filter(order => !order.pickup_option);
+      
+      if (ordersWithoutPickupOption.length > 0) {
+        console.log('🔧 Initializing pickup_option for', ordersWithoutPickupOption.length, 'orders');
+        
+        for (const order of ordersWithoutPickupOption) {
+          try {
+            await supabase
+              .from('bookings')
+              .update({ pickup_option: 'pickup' })
+              .eq('id', order.id);
+            
+            console.log('✅ Initialized pickup_option for order:', order.id.slice(-6));
+          } catch (error) {
+            console.error('❌ Failed to initialize pickup_option for order:', order.id.slice(-6), error);
+          }
+        }
+        
+        // Refresh data after initialization
+        await onRefreshBookings();
+      }
+    };
+
+    if (dryCleaningOrders.length > 0) {
+      initializeMissingPickupOptions();
+    }
+  }, [dryCleaningOrders.length, supabase, onRefreshBookings]);
+
   // Get order state with defaults
   const getOrderState = useCallback((orderId: string): OrderState => {
     return orderStates[orderId] || {
@@ -170,12 +201,22 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
     const standardStages = ['sorting', 'stain_removing', 'washing', 'ironing', 'packing'];
     
     // Define final stages based on pickup option
-    const finalStages = pickupOption === 'pickup' 
-      ? ['ready_for_pickup', 'picked_up']
-      : ['ready_for_delivery', 'out_for_delivery', 'delivered'];
+    const finalStages = pickupOption === 'delivery' 
+      ? ['ready_for_delivery', 'out_for_delivery', 'delivered']
+      : ['ready_for_pickup', 'picked_up'];
     
     const allStages = [...standardStages, ...finalStages];
     const currentIndex = allStages.indexOf(currentStage);
+    
+    console.log('🔍 getNextStage debug:', {
+      currentStage,
+      pickupOption,
+      standardStages,
+      finalStages,
+      allStages,
+      currentIndex,
+      nextStage: currentIndex < allStages.length - 1 ? allStages[currentIndex + 1] : null
+    });
     
     return currentIndex < allStages.length - 1 ? allStages[currentIndex + 1] : null;
   };
@@ -262,13 +303,39 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
   // Progress tracking functions (RIGHT PANEL)
   const updateTrackingStage = async (orderId: string) => {
     const order = dryCleaningOrders.find(o => o.id === orderId);
-    if (!order) return;
+    if (!order) {
+      console.error('❌ Order not found:', orderId);
+      showToast('error', '❌ Order not found');
+      return;
+    }
 
-    const pickupOption = order.pickup_option || 'pickup';
+    // Ensure pickup_option is set - default to 'pickup' if missing
+    let pickupOption = order.pickup_option;
+    if (!pickupOption) {
+      pickupOption = 'pickup';
+      console.warn('⚠️ pickup_option missing, defaulting to "pickup"');
+    }
+
     const currentStage = order.tracking_stage || 'sorting';
     const nextStage = getNextStage(currentStage, pickupOption);
     
+    console.log('🔍 Stage progression debug:', {
+      orderId: orderId.slice(-6),
+      orderData: {
+        pickup_option: order.pickup_option,
+        tracking_stage: order.tracking_stage,
+        service_name: order.service_name,
+        customer_name: order.customer_name
+      },
+      computed: {
+        pickupOption,
+        currentStage,
+        nextStage
+      }
+    });
+    
     if (!nextStage) {
+      console.warn('⚠️ No next stage available - order may be completed');
       showToast('error', '❌ Order is already at the final stage');
       return;
     }
@@ -283,21 +350,30 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
         [nextStage]: now
       };
 
-      console.log('Updating order stage:', {
-        orderId,
+      console.log('📝 Updating order stage:', {
+        orderId: orderId.slice(-6),
         currentStage,
         nextStage,
         pickupOption,
         updatedTimestamps
       });
 
+      // Prepare update object
+      const updateData: any = {
+        tracking_stage: nextStage,
+        stage_timestamps: updatedTimestamps,
+        updated_at: now
+      };
+
+      // If pickup_option was missing, set it in the database
+      if (!order.pickup_option) {
+        updateData.pickup_option = pickupOption;
+        console.log('📝 Also setting pickup_option to:', pickupOption);
+      }
+
       const { data, error } = await supabase
         .from('bookings')
-        .update({
-          tracking_stage: nextStage,
-          stage_timestamps: updatedTimestamps,
-          updated_at: now
-        })
+        .update(updateData)
         .eq('id', orderId)
         .select();
 

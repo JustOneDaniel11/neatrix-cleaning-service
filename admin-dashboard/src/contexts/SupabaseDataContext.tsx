@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 interface SupabaseUser { id: string; email?: string | null }
 interface User { id: string; email: string; full_name?: string | null }
-interface Booking { id: string; user_id: string; service_name?: string; phone?: string; address?: string; status: string; amount?: number; created_at: string }
+interface Booking { id: string; user_id: string; service_name?: string; phone?: string; address?: string; status: string; amount?: number; created_at: string; tracking_stage?: string; pickup_option?: string; customer_name?: string; customer_email?: string; total_amount?: number; updated_at?: string; stage_timestamps?: { [key: string]: string } }
 interface ContactMessage { id: string; name: string; email: string; subject: string; message: string; status: string; created_at: string }
 interface PickupDelivery { id: string; user_id: string; status: string; created_at: string }
 interface Complaint { id: string; user_id: string; subject: string; status: string; created_at: string }

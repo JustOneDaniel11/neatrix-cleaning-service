@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSupabaseData, formatCurrency, formatDate } from '../contexts/SupabaseDataContext';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { supabase } from '../lib/supabase';
-import OrderTrackingControl from '../components/OrderTrackingControl';
+import MessengerOrderTracking from '../components/MessengerOrderTracking';
 import { 
   Users, 
   Calendar, 
@@ -1472,13 +1472,7 @@ export default function AdminDashboard() {
   );
 
   const renderOrderTracking = () => (
-    <OrderTrackingControl
-      bookings={state.bookings || []}
-      supabase={supabase}
-      formatCurrency={formatCurrency}
-      formatDate={formatDate}
-      onRefreshBookings={fetchAllBookings}
-    />
+    <MessengerOrderTracking />
   );
 
   const renderSettings = () => (
@@ -2442,51 +2436,29 @@ export default function AdminDashboard() {
                 <div className="h-1 w-8 sm:w-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
               </div>
               
-              {/* Mobile: Simple grid navigation */}
+              {/* Mobile: Comprehensive grid navigation */}
               <div className="lg:hidden">
-                <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto scrollbar-hide">
                   {[
                     { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
                     { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
                     { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
                     { id: 'contacts', label: 'Messages', icon: MessageSquare, color: 'from-orange-500 to-orange-600' },
-                  ].map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`flex flex-col items-center space-y-1 p-2 rounded-lg text-center transition-all duration-200 ${
-                        activeTab === item.id
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <div className={`p-1.5 rounded-md ${
-                        activeTab === item.id 
-                          ? `bg-gradient-to-r ${item.color}` 
-                          : 'bg-gray-100 dark:bg-gray-700'
-                      }`}>
-                        <item.icon className={`w-4 h-4 ${
-                          activeTab === item.id ? 'text-white' : 'text-gray-600 dark:text-gray-400'
-                        }`} />
-                      </div>
-                      <span className="text-xs font-medium">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-                
-                <div className="grid grid-cols-4 gap-2">
-                  {[
                     { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
                     { id: 'subscriptions', label: 'Subs', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
                     { id: 'laundry', label: 'Laundry', icon: Shirt, color: 'from-teal-500 to-teal-600' },
                     { id: 'tracking', label: 'Tracking', icon: Package, color: 'from-indigo-500 to-indigo-600' },
+                    { id: 'delivery', label: 'Delivery', icon: Truck, color: 'from-indigo-500 to-indigo-600' },
+                    { id: 'notifications', label: 'Alerts', icon: Bell, color: 'from-pink-500 to-pink-600' },
+                    { id: 'reviews', label: 'Reviews', icon: Star, color: 'from-yellow-500 to-yellow-600' },
+                    { id: 'complaints', label: 'Issues', icon: AlertTriangle, color: 'from-red-500 to-red-600' },
                   ].map((item) => (
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`flex flex-col items-center space-y-1 p-2 rounded-lg text-center transition-all duration-200 ${
+                      className={`flex flex-col items-center space-y-1 p-2 rounded-lg text-center transition-all duration-200 min-h-[70px] ${
                         activeTab === item.id
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 scale-95'
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -2499,7 +2471,7 @@ export default function AdminDashboard() {
                           activeTab === item.id ? 'text-white' : 'text-gray-600 dark:text-gray-400'
                         }`} />
                       </div>
-                      <span className="text-xs font-medium">{item.label}</span>
+                      <span className="text-xs font-medium leading-tight">{item.label}</span>
                     </button>
                   ))}
                 </div>
