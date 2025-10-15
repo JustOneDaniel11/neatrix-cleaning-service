@@ -357,21 +357,21 @@ const PickupDelivery: React.FC = () => {
 
       {/* Tracking Input */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <input
               type="text"
               value={trackingId}
               onChange={(e) => setTrackingId(e.target.value)}
               placeholder="Enter tracking ID (e.g., NTX001)"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[44px] touch-manipulation"
             />
           </div>
           <button
             onClick={handleTrackOrder}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors duration-300 flex items-center justify-center font-medium text-base min-h-[44px] touch-manipulation whitespace-nowrap"
           >
-            <Search className="w-4 h-4 mr-2" />
+            <Search className="w-5 h-5 mr-2" />
             Track
           </button>
         </div>
@@ -381,26 +381,26 @@ const PickupDelivery: React.FC = () => {
       <div className="space-y-4">
         <h4 className="font-semibold text-gray-800 mb-4">Recent Orders</h4>
         {sampleOrders.map((order) => (
-          <div key={order.id} className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <h5 className="font-semibold text-gray-800">Order #{order.id}</h5>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(order.status)}`}>
+          <div key={order.id} className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                  <h5 className="font-semibold text-gray-800 text-base">Order #{order.id}</h5>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${getStatusColor(order.status)}`}>
                     {getStatusIcon(order.status)}
                     {order.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </span>
                 </div>
-                <p className="text-gray-600">{order.customerName}</p>
+                <p className="text-gray-600 text-sm sm:text-base">{order.customerName}</p>
                 <p className="text-sm text-gray-500">{order.serviceType}</p>
               </div>
-              <div className="text-right">
-                <p className="font-semibold text-gray-800">₦{order.estimatedPrice.toLocaleString()}</p>
+              <div className="text-left sm:text-right">
+                <p className="font-semibold text-gray-800 text-base">₦{order.estimatedPrice.toLocaleString()}</p>
                 <p className="text-sm text-gray-500">{order.phone}</p>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-1">Pickup</p>
                 <p className="text-sm text-gray-600">{order.pickupDate} at {order.pickupTime}</p>
@@ -413,35 +413,35 @@ const PickupDelivery: React.FC = () => {
 
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700 mb-1">Items</p>
-              <p className="text-sm text-gray-600">{order.items.join(', ')}</p>
+              <p className="text-sm text-gray-600 break-words">{order.items.join(', ')}</p>
             </div>
 
             <div className="mb-4">
               <p className="text-sm font-medium text-gray-700 mb-1">Address</p>
-              <p className="text-sm text-gray-600">{order.address}</p>
+              <p className="text-sm text-gray-600 break-words">{order.address}</p>
             </div>
 
             {order.specialInstructions && (
               <div className="mb-4">
                 <p className="text-sm font-medium text-gray-700 mb-1">Special Instructions</p>
-                <p className="text-sm text-gray-600">{order.specialInstructions}</p>
+                <p className="text-sm text-gray-600 break-words">{order.specialInstructions}</p>
               </div>
             )}
 
             {/* Status Timeline */}
             <div className="border-t pt-4">
               <p className="text-sm font-medium text-gray-700 mb-3">Order Progress</p>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between overflow-x-auto pb-2">
                 {['scheduled', 'picked-up', 'in-progress', 'ready', 'delivered'].map((status, index) => (
-                  <div key={status} className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${
+                  <div key={status} className="flex flex-col items-center min-w-0 flex-shrink-0 px-1">
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs ${
                       ['scheduled', 'picked-up', 'in-progress', 'ready'].indexOf(order.status) >= index
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-600'
                     }`}>
                       {getStatusIcon(status)}
                     </div>
-                    <span className="text-xs text-gray-600 mt-1 text-center">
+                    <span className="text-xs text-gray-600 mt-1 text-center max-w-[60px] break-words leading-tight">
                       {status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </span>
                   </div>

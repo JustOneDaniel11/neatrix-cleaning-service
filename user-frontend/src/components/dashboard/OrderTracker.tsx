@@ -41,30 +41,26 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
       setLoading(true);
       setError(null);
       
-      const { data, error } = await supabase
-        .rpc('get_tracking_progress', { booking_id: booking.id });
+      // Get fresh booking data from database
+      const { data: bookingData, error } = await supabase
+        .from('bookings')
+        .select('tracking_stage, stage_timestamps, tracking_history, pickup_option')
+        .eq('id', booking.id)
+        .single();
       
       if (error) {
-        console.error('Error fetching tracking progress:', error);
-        
-        // If the function doesn't exist, create basic tracking from booking data
-        if (error.code === 'PGRST202') {
-          console.log('Database function not found, using fallback tracking');
-          const fallbackStages = createFallbackTrackingStages();
-          setTrackingStages(fallbackStages);
-          return;
-        }
-        
+        console.error('Error fetching booking data:', error);
         setError('Failed to load tracking information');
         return;
       }
       
-      // Convert the JSON response to tracking stages array
-      if (data) {
-        const stages = createTrackingStagesFromData(data);
+      // Create tracking stages from booking data
+      if (bookingData) {
+        const stages = createTrackingStagesFromData(bookingData);
         setTrackingStages(stages);
       } else {
-        setTrackingStages([]);
+        const fallbackStages = createFallbackTrackingStages();
+        setTrackingStages(fallbackStages);
       }
     } catch (err) {
       console.error('Error:', err);
@@ -298,12 +294,12 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
         {/* Horizontal Progress Tracker */}
          <div className="relative px-2 sm:px-0">
            {/* Progress Line Background */}
-           <div className="absolute top-6 left-6 right-6 h-0.5 bg-gray-200 rounded-full hidden sm:block"></div>
-           <div className="absolute top-6 left-4 right-4 h-0.5 bg-gray-200 rounded-full sm:hidden"></div>
+           <div className="absolute top-8 left-6 right-6 h-0.5 bg-gray-200 rounded-full hidden sm:block"></div>
+           <div className="absolute top-8 left-4 right-4 h-0.5 bg-gray-200 rounded-full sm:hidden"></div>
            
            {/* Animated Progress Line */}
            <div 
-             className="absolute top-6 h-0.5 bg-gradient-to-r from-green-400 to-purple-500 rounded-full transition-all duration-1000 ease-out hidden sm:block"
+             className="absolute top-8 h-0.5 bg-gradient-to-r from-green-400 to-purple-500 rounded-full transition-all duration-1000 ease-out hidden sm:block"
              style={{ 
                left: '1.5rem',
                width: `calc(${Math.max(0, (progressPercentage / 100) * 100)}% - 3rem)`,
@@ -311,7 +307,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
              }}
            ></div>
            <div 
-             className="absolute top-6 h-0.5 bg-gradient-to-r from-green-400 to-purple-500 rounded-full transition-all duration-1000 ease-out sm:hidden"
+             className="absolute top-8 h-0.5 bg-gradient-to-r from-green-400 to-purple-500 rounded-full transition-all duration-1000 ease-out sm:hidden"
              style={{ 
                left: '1rem',
                width: `calc(${Math.max(0, (progressPercentage / 100) * 100)}% - 2rem)`,
@@ -320,7 +316,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
            ></div>
 
            {/* Stage Nodes */}
-           <div className="flex justify-between items-center relative overflow-x-auto">
+           <div className="flex justify-between items-center relative overflow-x-auto pb-4 scrollbar-hide">
              {trackingStages.map((stage, index) => {
                const isCompleted = stage.completed;
                const isCurrent = index === currentStageIndex;
@@ -328,10 +324,10 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
                const timestamp = formatTimestamp(stage.timestamp);
 
                return (
-                 <div key={stage.stage_name} className="flex flex-col items-center group relative min-w-0 flex-shrink-0">
-                   {/* Stage Node */}
+                 <div key={stage.stage_name} className="flex flex-col items-center group relative min-w-0 flex-shrink-0 px-1">
+                   {/* Stage Node - Larger touch targets for mobile */}
                    <div className={`
-                     relative w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center transition-all duration-300 transform hover:scale-110
+                     relative w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 transform hover:scale-110 cursor-pointer
                      ${isCompleted 
                        ? 'bg-green-500 border-green-500 text-white shadow-lg' 
                        : isCurrent 
@@ -340,11 +336,11 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
                      }
                    `}>
                      {isCompleted ? (
-                       <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+                       <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7" />
                      ) : isCurrent ? (
-                       <div className="w-2 h-2 sm:w-3 sm:h-3 bg-white rounded-full animate-ping"></div>
+                       <div className="w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full animate-ping"></div>
                      ) : (
-                       <div className="w-3 h-3 sm:w-4 sm:h-4">
+                       <div className="w-5 h-5 sm:w-6 sm:h-6">
                          {getStageIcon(stage, index)}
                        </div>
                      )}
@@ -355,9 +351,9 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
                      )}
                    </div>
 
-                   {/* Stage Label */}
-                   <div className="mt-2 sm:mt-3 text-center max-w-16 sm:max-w-20">
-                     <p className={`text-xs font-medium transition-colors duration-300 leading-tight ${
+                   {/* Stage Label - Better mobile text sizing */}
+                   <div className="mt-3 sm:mt-4 text-center max-w-20 sm:max-w-24">
+                     <p className={`text-xs sm:text-sm font-medium transition-colors duration-300 leading-tight ${
                        isCompleted 
                          ? 'text-green-700' 
                          : isCurrent 
@@ -367,23 +363,30 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
                        {stage.stage_label}
                      </p>
                      
-                     {/* Timestamp - Hidden on mobile, shown on hover/desktop */}
+                     {/* Timestamp - Better mobile visibility */}
                      {timestamp && (
                        <p className="text-xs text-gray-400 mt-1 hidden sm:block">
                          {timestamp.time}
                        </p>
                      )}
+                     
+                     {/* Mobile timestamp - show on current/completed stages */}
+                     {timestamp && (isCompleted || isCurrent) && (
+                       <p className="text-xs text-gray-400 mt-1 sm:hidden">
+                         {timestamp.time}
+                       </p>
+                     )}
                    </div>
 
-                   {/* Hover Tooltip - Enhanced for mobile */}
+                   {/* Enhanced Mobile-Friendly Tooltip */}
                    {timestamp && (
-                     <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 shadow-lg">
+                     <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 shadow-lg">
                        <div className="text-center">
                          <div className="font-medium">{stage.stage_label}</div>
                          <div className="text-gray-300">{timestamp.date}</div>
                          <div className="text-gray-300">{timestamp.time}</div>
                          {stage.notes && (
-                           <div className="text-gray-300 text-xs mt-1 max-w-32">{stage.notes}</div>
+                           <div className="text-gray-300 text-xs mt-1 max-w-32 break-words">{stage.notes}</div>
                          )}
                        </div>
                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
@@ -427,13 +430,13 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t border-gray-200">
-          <button className="flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors">
-            <Phone className="w-4 h-4 mr-2" />
+        <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-gray-200">
+          <button className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors min-h-[44px] touch-manipulation">
+            <Phone className="w-5 h-5 mr-2" />
             Call Support
           </button>
-          <button className="flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors">
-            <MessageSquare className="w-4 h-4 mr-2" />
+          <button className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors min-h-[44px] touch-manipulation">
+            <MessageSquare className="w-5 h-5 mr-2" />
             Send Message
           </button>
         </div>

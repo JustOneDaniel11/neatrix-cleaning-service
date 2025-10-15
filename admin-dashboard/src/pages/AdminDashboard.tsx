@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseData, formatCurrency, formatDate } from '../contexts/SupabaseDataContext';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import { supabase } from '../lib/supabase';
 import OrderTrackingControl from '../components/OrderTrackingControl';
 import { 
   Users, 
@@ -1473,7 +1474,7 @@ export default function AdminDashboard() {
   const renderOrderTracking = () => (
     <OrderTrackingControl
       bookings={state.bookings || []}
-      supabase={state.supabase}
+      supabase={supabase}
       formatCurrency={formatCurrency}
       formatDate={formatDate}
       onRefreshBookings={fetchAllBookings}

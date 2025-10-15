@@ -5,7 +5,10 @@ import {
   XCircle, 
   ArrowRight, 
   Eye, 
-  RefreshCw 
+  RefreshCw,
+  Edit3,
+  Save,
+  X
 } from 'lucide-react';
 
 interface OrderTrackingControlProps {
@@ -25,6 +28,9 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
 }) => {
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [trackingMessage, setTrackingMessage] = useState({ type: '', text: '' });
+  const [editingPrice, setEditingPrice] = useState<string | null>(null);
+  const [tempPrice, setTempPrice] = useState<string>('');
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   // Get dry cleaning orders from bookings
   const dryCleaningOrders = bookings?.filter(booking => 
@@ -34,16 +40,48 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
   const updateTrackingStage = async (bookingId: string, newStage: string, notes = '') => {
     setTrackingLoading(true);
     try {
+      // Get current booking data
+      const { data: currentBooking, error: fetchError } = await supabase
+        .from('bookings')
+        .select('stage_timestamps, tracking_history, total_amount')
+        .eq('id', bookingId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Prepare updated timestamps
+      const currentTimestamps = currentBooking?.stage_timestamps || {};
+      const updatedTimestamps = {
+        ...currentTimestamps,
+        [newStage]: new Date().toISOString()
+      };
+
+      // Prepare updated history
+      const currentHistory = currentBooking?.tracking_history || [];
+      const newHistoryEntry = {
+        stage: newStage,
+        timestamp: new Date().toISOString(),
+        notes: notes || ''
+      };
+      const updatedHistory = [...currentHistory, newHistoryEntry];
+
+      // Update the booking
       const { data, error } = await supabase
-        .rpc('update_tracking_stage', {
-          booking_id: bookingId,
-          new_stage: newStage,
-          admin_notes: notes
-        });
+        .from('bookings')
+        .update({
+          tracking_stage: newStage,
+          stage_timestamps: updatedTimestamps,
+          tracking_history: updatedHistory,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId);
 
       if (error) throw error;
 
       setTrackingMessage({ type: 'success', text: 'Order tracking updated successfully!' });
+      
+      // Add a small delay to ensure database commit
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Refresh bookings data
       await onRefreshBookings();
@@ -56,6 +94,65 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
     } finally {
       setTrackingLoading(false);
     }
+  };
+
+  const updateTotalAmount = async (bookingId: string, newAmount: number) => {
+    setTrackingLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .update({ 
+          total_amount: newAmount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId);
+
+      if (error) throw error;
+
+      setTrackingMessage({ type: 'success', text: 'Total amount updated successfully!' });
+      
+      // Add a small delay to ensure database commit
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh bookings data
+      await onRefreshBookings();
+      
+      // Reset editing state
+      setEditingPrice(null);
+      setTempPrice('');
+      
+      setTimeout(() => setTrackingMessage({ type: '', text: '' }), 3000);
+    } catch (error) {
+      console.error('Error updating total amount:', error);
+      setTrackingMessage({ type: 'error', text: 'Failed to update total amount' });
+      setTimeout(() => setTrackingMessage({ type: '', text: '' }), 3000);
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
+
+  const handlePriceEdit = (orderId: string, currentAmount: number) => {
+    setEditingPrice(orderId);
+    setTempPrice(currentAmount.toString());
+  };
+
+  const handlePriceSave = async (orderId: string) => {
+    const newAmount = parseFloat(tempPrice);
+    if (isNaN(newAmount) || newAmount < 0) {
+      setTrackingMessage({ type: 'error', text: 'Please enter a valid amount' });
+      setTimeout(() => setTrackingMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+    await updateTotalAmount(orderId, newAmount);
+  };
+
+  const handlePriceCancel = () => {
+    setEditingPrice(null);
+    setTempPrice('');
+  };
+
+  const toggleOrderDetails = (orderId: string) => {
+    setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
   const getStageColor = (stage: string) => {
@@ -124,7 +221,31 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
             const nextStage = getNextStage(currentStage);
             
             return (
-              <div key={order.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
+              <div 
+                key={order.id} 
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700"
+                onKeyDown={(e) => {
+                  // Only allow specific keys for the price input
+                  if (e.target instanceof HTMLInputElement && e.target.type === 'number') {
+                    return; // Allow normal input behavior
+                  }
+                  // For all other elements, prevent Enter from bubbling
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                  }
+                }}
+                onKeyPress={(e) => {
+                  // Only allow specific keys for the price input
+                  if (e.target instanceof HTMLInputElement && e.target.type === 'number') {
+                    return; // Allow normal input behavior
+                  }
+                  // For all other elements, prevent Enter from bubbling
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+              >
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -148,9 +269,103 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
                     <span className="text-gray-600 dark:text-gray-400">Items:</span>
                     <span className="text-gray-900 dark:text-white">{order.item_count || 1} items</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Total:</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{formatCurrency(order.total_amount)}</span>
+                    {editingPrice === order.id ? (
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handlePriceSave(order.id);
+                          return false;
+                        }}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="flex items-center space-x-2"
+                      >
+                        <input
+                          type="number"
+                          value={tempPrice}
+                          onChange={(e) => setTempPrice(e.target.value)}
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handlePriceSave(order.id);
+                              return false;
+                            }
+                            if (e.key === 'Escape') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handlePriceCancel();
+                              return false;
+                            }
+                          }}
+                          onKeyPress={(e) => {
+                            e.stopPropagation();
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              return false;
+                            }
+                          }}
+                          onKeyUp={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          step="0.01"
+                          min="0"
+                          autoFocus
+                        />
+                        <button
+                          type="submit"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handlePriceSave(order.id);
+                            return false;
+                          }}
+                          disabled={trackingLoading}
+                          className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+                          title="Save"
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handlePriceCancel();
+                            return false;
+                          }}
+                          disabled={trackingLoading}
+                          className="p-1 text-red-600 hover:text-red-700 disabled:opacity-50"
+                          title="Cancel"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-gray-900 dark:text-white font-medium">{formatCurrency(order.total_amount)}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handlePriceEdit(order.id, order.total_amount);
+                          }}
+                          disabled={trackingLoading}
+                          className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+                          title="Edit total amount"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -169,10 +384,36 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex space-x-2">
+                <div 
+                  className="flex space-x-2"
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onKeyPress={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onKeyUp={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
                   {nextStage && (
                     <button
-                      onClick={() => updateTrackingStage(order.id, nextStage)}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        updateTrackingStage(order.id, nextStage);
+                        return false;
+                      }}
+                      onKeyDown={(e) => {
+                        e.stopPropagation();
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          updateTrackingStage(order.id, nextStage);
+                          return false;
+                        }
+                      }}
                       disabled={trackingLoading}
                       className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
                     >
@@ -187,14 +428,89 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
                     </button>
                   )}
                   <button
-                    onClick={() => {
-                      console.log('View order details:', order.id);
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleOrderDetails(order.id);
+                      return false;
                     }}
-                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                    className={`px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 ${
+                      expandedOrder === order.id ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600' : ''
+                    }`}
+                    title={expandedOrder === order.id ? 'Hide details' : 'View details'}
                   >
                     <Eye className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* Expanded Order Details */}
+                {expandedOrder === order.id && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Order Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Order ID:</span>
+                          <span className="text-gray-900 dark:text-white font-mono">#{order.id.slice(-8).toUpperCase()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Customer:</span>
+                          <span className="text-gray-900 dark:text-white">{order.customer_name || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Phone:</span>
+                          <span className="text-gray-900 dark:text-white">{order.phone || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Email:</span>
+                          <span className="text-gray-900 dark:text-white">{order.email || 'N/A'}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Address:</span>
+                          <span className="text-gray-900 dark:text-white text-right">{order.address || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Pickup Option:</span>
+                          <span className="text-gray-900 dark:text-white">{order.pickup_option || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Created:</span>
+                          <span className="text-gray-900 dark:text-white">{formatDate(order.created_at)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Updated:</span>
+                          <span className="text-gray-900 dark:text-white">{formatDate(order.updated_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {order.item_details && (
+                      <div className="mt-4">
+                        <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Item Details</h5>
+                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                          <pre className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                            {typeof order.item_details === 'string' ? order.item_details : JSON.stringify(order.item_details, null, 2)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+
+                    {order.tracking_notes && (
+                      <div className="mt-4">
+                        <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Tracking Notes</h5>
+                        <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
+                          <p className="text-sm text-blue-800 dark:text-blue-300">{order.tracking_notes}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })
