@@ -13,6 +13,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { useSupabaseData } from "../../contexts/SupabaseDataContext";
+import { convertTo24Hour } from "../../lib/timeUtils";
 
 const BookInspectionPage = () => {
   const { state, createBooking } = useSupabaseData();
@@ -126,8 +127,7 @@ ${formData.accessInstructions ? `Access Instructions: ${formData.accessInstructi
         service_type: 'inspection',
         service_name: 'Property Inspection',
         date: formData.preferredDate,
-        service_date: formData.preferredDate,
-        time: formData.preferredTime,
+        time: convertTo24Hour(formData.preferredTime), // Convert time range to 24-hour format
         address: formData.address,
         phone: formData.contactPhone,
         special_instructions: propertyDetails,

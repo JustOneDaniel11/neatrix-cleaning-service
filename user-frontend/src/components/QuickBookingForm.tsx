@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Clock, MapPin, Plus } from "lucide-react";
 import { useSupabaseData } from "@/contexts/SupabaseDataContext";
+import { convertTo24Hour } from "@/lib/timeUtils";
 
 const QuickBookingForm = () => {
   const { state, createBooking } = useSupabaseData();
@@ -42,7 +43,7 @@ const QuickBookingForm = () => {
         service_type: 'cleaning',
         service_name: formData.service,
         date: formData.date,
-        time: formData.time,
+        time: convertTo24Hour(formData.time), // Convert to 24-hour format for database
         address: formData.address,
         phone: state.currentUser.phone || '',
         special_instructions: formData.notes,

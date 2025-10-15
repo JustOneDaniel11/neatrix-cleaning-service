@@ -26,7 +26,7 @@ export interface Booking {
   service_type: string;
   service_name: string;
   date: string;
-  service_date: string;
+  service_date?: string;
   time: string;
   address: string;
   phone: string;

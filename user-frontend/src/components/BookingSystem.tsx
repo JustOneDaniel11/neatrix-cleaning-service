@@ -229,18 +229,12 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
         service_type: bookingData.service,
         service_name: selectedService?.name || bookingData.service,
         date: bookingData.date,
-        service_date: bookingData.date,
         time: bookingData.time,
         address: bookingData.customerInfo.address || bookingData.location,
         phone: bookingData.customerInfo.phone,
         special_instructions: bookingData.specialRequests,
         status: 'pending' as const,
-        total_amount: totalPrice,
-        frequency: bookingData.frequency,
-        rooms: bookingData.rooms,
-        area: bookingData.area,
-        duration: bookingData.duration,
-        add_ons: bookingData.addOns.join(', ')
+        total_amount: totalPrice
       };
 
       await createBooking(newBookingData);

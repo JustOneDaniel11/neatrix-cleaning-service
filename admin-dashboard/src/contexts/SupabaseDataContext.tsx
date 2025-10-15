@@ -12,6 +12,8 @@ interface Subscription { id: string; user_id: string; plan_name?: string; amount
 interface LaundryOrder { id: string; user_id: string; items?: number; amount?: number; status: string; created_at: string }
 interface AdminNotification { id: string; title: string; message: string; status: string; created_at: string }
 interface Review { id: string; user_id: string; rating: number; comment?: string; created_at: string }
+interface SupportTicket { id: string; user_id: string; ticket_number: string; subject: string; description: string; status: "open" | "in_progress" | "resolved" | "closed"; priority: "low" | "normal" | "high" | "urgent"; created_at: string; updated_at: string }
+interface SupportMessage { id: string; ticket_id: string; sender_id: string; sender_type: "user" | "admin"; message: string; message_type: "text" | "image" | "file"; is_read: boolean; created_at: string }
 
 type AppState = {
   users: User[];
@@ -24,6 +26,8 @@ type AppState = {
   laundryOrders: LaundryOrder[];
   adminNotifications: AdminNotification[];
   reviews: Review[];
+  supportTickets: SupportTicket[];
+  supportMessages: SupportMessage[];
   authUser: SupabaseUser | null;
   currentUser: User | null;
   isAuthenticated: boolean;
@@ -56,6 +60,8 @@ type Action =
   | { type: 'SET_LAUNDRY_ORDERS'; payload: LaundryOrder[] }
   | { type: 'SET_ADMIN_NOTIFICATIONS'; payload: AdminNotification[] }
   | { type: 'SET_REVIEWS'; payload: Review[] }
+  | { type: 'SET_SUPPORT_TICKETS'; payload: SupportTicket[] }
+  | { type: 'SET_SUPPORT_MESSAGES'; payload: SupportMessage[] }
   | { type: 'SET_AUTH_USER'; payload: SupabaseUser | null }
   | { type: 'SET_CURRENT_USER'; payload: User | null }
   | { type: 'SET_LOADING'; payload: boolean }
@@ -73,6 +79,8 @@ const initialState: AppState = {
   laundryOrders: [],
   adminNotifications: [],
   reviews: [],
+  supportTickets: [],
+  supportMessages: [],
   authUser: null,
   currentUser: null,
   isAuthenticated: false,
@@ -106,6 +114,8 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_LAUNDRY_ORDERS': return { ...state, laundryOrders: action.payload };
     case 'SET_ADMIN_NOTIFICATIONS': return { ...state, adminNotifications: action.payload };
     case 'SET_REVIEWS': return { ...state, reviews: action.payload };
+    case 'SET_SUPPORT_TICKETS': return { ...state, supportTickets: action.payload };
+    case 'SET_SUPPORT_MESSAGES': return { ...state, supportMessages: action.payload };
     case 'SET_AUTH_USER': return { ...state, authUser: action.payload, isAuthenticated: !!action.payload };
     case 'SET_CURRENT_USER': return { ...state, currentUser: action.payload };
     case 'SET_LOADING': return { ...state, loading: action.payload };
@@ -145,6 +155,12 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       const channel = supabase
         .channel('admin-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {})
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => {
+          if (mounted) fetchSupportTickets();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'support_messages' }, () => {
+          if (mounted) fetchSupportMessages();
+        })
         .subscribe((status) => {
           if (!mounted) return;
           if (status === 'SUBSCRIBED') {
@@ -215,6 +231,14 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
     if (!error) dispatch({ type: 'SET_REVIEWS', payload: data || [] });
   };
+  const fetchSupportTickets = async () => {
+    const { data, error } = await supabase.from('support_tickets').select('*').order('created_at', { ascending: false });
+    if (!error) dispatch({ type: 'SET_SUPPORT_TICKETS', payload: data || [] });
+  };
+  const fetchSupportMessages = async () => {
+    const { data, error } = await supabase.from('support_messages').select('*').order('created_at', { ascending: false });
+    if (!error) dispatch({ type: 'SET_SUPPORT_MESSAGES', payload: data || [] });
+  };
 
   // Admin mutations
   const signOut = async () => {
@@ -273,6 +297,20 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     if (!error) await fetchAdminNotifications();
   };
 
+  // Support ticket management
+  const updateSupportTicket = async (id: string, updates: any) => {
+    const { error } = await supabase.from('support_tickets').update(updates).eq('id', id);
+    if (!error) await fetchSupportTickets();
+  };
+  const sendSupportMessage = async (payload: any) => {
+    const { error } = await supabase.from('support_messages').insert(payload);
+    if (!error) await fetchSupportMessages();
+  };
+  const markMessageAsRead = async (id: string) => {
+    const { error } = await supabase.from('support_messages').update({ is_read: true }).eq('id', id);
+    if (!error) await fetchSupportMessages();
+  };
+
   const value = {
     state,
     dispatch,
@@ -286,6 +324,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     fetchLaundryOrders,
     fetchAdminNotifications,
     fetchReviews,
+    fetchSupportTickets,
+    fetchSupportMessages,
     signOut,
     updateBooking,
     deleteBooking,
@@ -298,6 +338,9 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     updateUserComplaint,
     updateAdminNotification,
     markNotificationAsRead,
+    updateSupportTicket,
+    sendSupportMessage,
+    markMessageAsRead,
   };
 
   return (

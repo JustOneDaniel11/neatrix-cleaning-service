@@ -88,7 +88,12 @@ export default function AdminDashboard() {
     fetchLaundryOrders,
     fetchPayments,
     fetchSubscriptions,
-    fetchReviews
+    fetchReviews,
+    fetchSupportTickets,
+    fetchSupportMessages,
+    updateSupportTicket,
+    sendSupportMessage,
+    markMessageAsRead
   } = useSupabaseData();
   
   console.log('AdminDashboard state:', { 
@@ -160,6 +165,8 @@ export default function AdminDashboard() {
         await fetchUserComplaints();
         await fetchAdminNotifications();
         await fetchReviews();
+        await fetchSupportTickets();
+        await fetchSupportMessages();
       } catch (error) {
         console.error('Error fetching admin data:', error);
       }
@@ -175,7 +182,9 @@ export default function AdminDashboard() {
     fetchPayments,
     fetchSubscriptions,
     fetchLaundryOrders,
-    fetchReviews
+    fetchReviews,
+    fetchSupportTickets,
+    fetchSupportMessages
   ]);
 
   // Handle notification actions
@@ -846,104 +855,177 @@ export default function AdminDashboard() {
     );
   };
 
-  const renderContactMessages = () => (
-    <div className="w-full overflow-hidden space-y-4 sm:space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-3 sm:p-4 lg:p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Contact Messages</h3>
-      </div>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Contact Info
-                </th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Message
-                </th>
-                <th className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {state.contactMessages.map((message) => (
-              <tr key={message.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{message.name}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{message.email}</div>
-                    {message.phone && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{message.phone}</div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-3 sm:px-6 py-4">
-                  <div className="text-sm text-gray-900 dark:text-white max-w-xs sm:max-w-sm truncate">
-                    {message.message}
-                  </div>
-                </td>
-                <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {formatDate(message.created_at)}
-                </td>
-                <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    message.status === 'new'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                      : message.status === 'read'
-                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                      : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                  }`}>
-                    {message.status}
-                  </span>
-                </td>
-                <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex items-center space-x-1 sm:space-x-2">
-                    {message.status === 'new' && (
-                      <button 
-                        onClick={() => updateContactMessage(message.id, { status: 'read' })}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
-                        title="Mark as read"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => updateContactMessage(message.id, { status: 'responded' })}
-                      className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1"
-                      title="Mark as responded"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                    </button>
-                    <a 
-                      href={`mailto:${message.email}?subject=Re: Your inquiry&body=Hi ${message.name},%0D%0A%0D%0AThank you for contacting us.%0D%0A%0D%0ARegarding your message: "${message.message}"%0D%0A%0D%0A`}
-                      className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 p-1"
-                      title="Reply via email"
-                    >
-                      <Mail className="w-4 h-4" />
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          </table>
-        </div>
-        {state.contactMessages.length === 0 && (
-          <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-            No contact messages yet.
+  const renderLiveMessages = () => {
+    // Get user info for tickets
+    const getTicketUser = (userId: string) => {
+      return state.users.find(user => user.id === userId);
+    };
+
+    // Get unread message count for a ticket
+    const getUnreadCount = (ticketId: string) => {
+      return state.supportMessages.filter(msg => 
+        msg.ticket_id === ticketId && 
+        !msg.is_read && 
+        msg.sender_type === 'user'
+      ).length;
+    };
+
+    // Get latest message for a ticket
+    const getLatestMessage = (ticketId: string) => {
+      const messages = state.supportMessages
+        .filter(msg => msg.ticket_id === ticketId)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return messages[0];
+    };
+
+    return (
+      <div className="w-full overflow-hidden space-y-4 sm:space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-3 sm:p-4 lg:p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Live Support Messages</h3>
+            <div className="flex items-center space-x-2">
+              <div className={`w-3 h-3 rounded-full ${state.realTimeConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {state.realTimeConnected ? 'Live' : 'Offline'}
+              </span>
+            </div>
           </div>
-        )}
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Ticket Info
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Latest Message
+                  </th>
+                  <th className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Priority
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {state.supportTickets.map((ticket) => {
+                const user = getTicketUser(ticket.user_id);
+                const unreadCount = getUnreadCount(ticket.id);
+                const latestMessage = getLatestMessage(ticket.id);
+                
+                return (
+                  <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            #{ticket.ticket_number}
+                          </div>
+                          {unreadCount > 0 && (
+                            <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-900 dark:text-white font-medium truncate">{ticket.subject}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                          {user ? user.full_name || user.email : 'Unknown User'}
+                        </div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500">
+                          {formatDate(ticket.created_at)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-6 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white max-w-xs sm:max-w-sm">
+                        {latestMessage ? (
+                          <div>
+                            <div className="truncate">{latestMessage.message}</div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {latestMessage.sender_type === 'user' ? 'Customer' : 'Admin'} • {formatDate(latestMessage.created_at)}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">No messages yet</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        ticket.priority === 'urgent'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          : ticket.priority === 'high'
+                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                          : ticket.priority === 'normal'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                      }`}>
+                        {ticket.priority}
+                      </span>
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        ticket.status === 'open'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : ticket.status === 'in_progress'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                          : ticket.status === 'resolved'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                      }`}>
+                        {ticket.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-1 sm:space-x-2">
+                        <button 
+                          onClick={() => navigate('/admin-live-chat')}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
+                          title="Open chat"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </button>
+                        {ticket.status === 'open' && (
+                          <button 
+                            onClick={() => updateSupportTicket(ticket.id, { status: 'in_progress' })}
+                            className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 p-1"
+                            title="Mark in progress"
+                          >
+                            <Clock className="w-4 h-4" />
+                          </button>
+                        )}
+                        {(ticket.status === 'open' || ticket.status === 'in_progress') && (
+                          <button 
+                            onClick={() => updateSupportTicket(ticket.id, { status: 'resolved' })}
+                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1"
+                            title="Mark resolved"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            </table>
+          </div>
+          {state.supportTickets.length === 0 && (
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+              No support tickets yet.
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPayments = () => (
     <div className="w-full overflow-hidden space-y-4 sm:space-y-6">
@@ -2469,7 +2551,7 @@ export default function AdminDashboard() {
               {activeTab === 'overview' && renderOverview()}
         {activeTab === 'bookings' && renderBookings()}
         {activeTab === 'users' && renderUsers()}
-        {activeTab === 'contacts' && renderContactMessages()}
+        {activeTab === 'contacts' && renderLiveMessages()}
         {activeTab === 'payments' && renderPayments()}
         {activeTab === 'subscriptions' && renderSubscriptions()}
         {activeTab === 'laundry' && renderLaundryOrders()}

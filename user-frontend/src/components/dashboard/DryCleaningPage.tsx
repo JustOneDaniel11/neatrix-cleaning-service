@@ -16,6 +16,8 @@ import { useSupabaseData } from "../../contexts/SupabaseDataContext";
 import { useRealtimeData } from "../../hooks/useRealtimeData";
 import OrderTracker from "./OrderTracker";
 import type { Booking, Address } from "../../contexts/SupabaseDataContext";
+import { convertTo24Hour } from "../../lib/timeUtils";
+import { generateTrackingCode, formatTrackingCodeDisplay } from "../../lib/trackingUtils";
 
 const DryCleaningPage = () => {
   const [activeTab, setActiveTab] = useState<'request' | 'tracker'>('request');
@@ -24,6 +26,8 @@ const DryCleaningPage = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [generatedTrackingCode, setGeneratedTrackingCode] = useState('');
 
   const { state: { currentUser }, createBooking, createAddress } = useSupabaseData();
 
@@ -105,8 +109,14 @@ const DryCleaningPage = () => {
   ];
 
   const handleSubmitRequest = async () => {
-    if (!selectedAddress || !selectedDate || !selectedTime) {
+    // For drop-off service, we don't need address validation
+    if (serviceType === 'pickup' && (!selectedAddress || !selectedDate || !selectedTime)) {
       alert('Please fill in all required fields');
+      return;
+    }
+    
+    if (serviceType === 'dropoff' && (!selectedDate || !selectedTime)) {
+      alert('Please select date and time for drop-off');
       return;
     }
 
@@ -116,25 +126,34 @@ const DryCleaningPage = () => {
     }
     
     try {
+      // Generate tracking code
+      const trackingCode = generateTrackingCode();
+      
       const selectedAddressData = addresses.find(addr => addr.id === selectedAddress);
+      
+      // For drop-off, we use our business address instead of customer address
+      const bookingAddress = serviceType === 'dropoff' 
+        ? 'Neatrix Cleaning Services, 123 Business Ave, City, State 12345' 
+        : (selectedAddressData ? 
+           `${selectedAddressData.street}, ${selectedAddressData.city}, ${selectedAddressData.state} ${selectedAddressData.zip_code}` :
+           selectedAddress);
       
       await createBooking({
          user_id: currentUser.id,
          service_type: 'dry_cleaning',
          service_name: `Dry Cleaning - ${serviceType === 'pickup' ? 'Pickup' : 'Drop-off'}`,
          date: selectedDate,
-         service_date: selectedDate,
-         time: selectedTime,
-         address: selectedAddressData ? 
-           `${selectedAddressData.street}, ${selectedAddressData.city}, ${selectedAddressData.state} ${selectedAddressData.zip_code}` :
-           selectedAddress,
+         time: convertTo24Hour(selectedTime), // Convert time range to 24-hour format
+         address: bookingAddress,
          phone: currentUser.phone || '',
          status: 'pending',
          total_amount: 0, // Will be calculated later
-         special_instructions: specialInstructions
+         special_instructions: `${specialInstructions}\n\nTracking Code: ${trackingCode}`
        });
 
-      alert(`${serviceType === 'pickup' ? 'Pickup' : 'Drop-off'} request submitted successfully!`);
+      // Set tracking code and show success modal
+      setGeneratedTrackingCode(trackingCode);
+      setShowSuccessModal(true);
       
       // Reset form
       setSelectedAddress('');
@@ -252,10 +271,11 @@ const DryCleaningPage = () => {
                 </div>
               </div>
 
-              {/* Address Selection */}
+              {/* Address Selection - Only for Pickup */}
+              {serviceType === 'pickup' && (
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                  {serviceType === 'pickup' ? 'Pickup Address' : 'Your Address'} *
+                  Pickup Address *
                 </label>
                 <select
                   value={selectedAddress}
@@ -352,6 +372,7 @@ const DryCleaningPage = () => {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Date and Time Selection */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -449,45 +470,67 @@ const DryCleaningPage = () => {
               )}
             </div>
           )}
-
-          {activeTab === 'tracker' && (
-            <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-              {bookingsLoading ? (
-                <div className="text-center py-6 sm:py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3 sm:mb-4"></div>
-                  <p className="text-gray-500 text-xs sm:text-sm">Loading orders...</p>
-                </div>
-              ) : bookings.filter(booking => 
-                  (booking.service_type === 'dry_cleaning' || booking.service_name?.toLowerCase().includes('dry')) &&
-                  booking.status !== 'cancelled'
-                ).length === 0 ? (
-                <div className="text-center py-8 sm:py-12">
-                  <Package className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Active Orders</h3>
-                  <p className="text-gray-600 mb-4 text-xs sm:text-sm">You don't have any orders in progress right now.</p>
-                  <button
-                    onClick={() => setActiveTab('request')}
-                    className="bg-blue-600 text-white px-4 py-2 sm:py-3 rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base touch-manipulation min-h-[44px]"
-                  >
-                    Request Service
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-                  {bookings
-                    .filter(booking => 
-                      (booking.service_type === 'dry_cleaning' || booking.service_name?.toLowerCase().includes('dry')) &&
-                      booking.status !== 'cancelled'
-                    )
-                    .map((booking) => (
-                      <OrderTracker key={booking.id} booking={booking} />
-                    ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Success Modal with Tracking Code */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg w-full max-w-md p-6 shadow-xl border border-transparent dark:border-gray-800">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 mb-4">
+                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Request Submitted Successfully!
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Your {serviceType === 'pickup' ? 'pickup' : 'drop-off'} request has been submitted.
+              </p>
+              
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                  Your Tracking Code
+                </h4>
+                <div className="bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-md p-3">
+                  <code className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">
+                    {formatTrackingCodeDisplay(generatedTrackingCode)}
+                  </code>
+                </div>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                  Save this code to track your dry cleaning order
+                </p>
+              </div>
+
+              <div className="text-left bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-4">
+                <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Next Steps:</h5>
+                <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                  {serviceType === 'pickup' ? (
+                    <>
+                      <li>• We'll contact you to confirm pickup details</li>
+                      <li>• Our team will arrive at your scheduled time</li>
+                      <li>• Use your tracking code to monitor progress</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>• Bring your items to our location at your scheduled time</li>
+                      <li>• Present your tracking code at drop-off</li>
+                      <li>• We'll process your items and notify you when ready</li>
+                    </>
+                  )}
+                </ul>
+              </div>
+
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

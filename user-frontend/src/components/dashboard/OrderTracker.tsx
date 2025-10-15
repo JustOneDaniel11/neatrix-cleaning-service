@@ -46,17 +46,98 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
       
       if (error) {
         console.error('Error fetching tracking progress:', error);
+        
+        // If the function doesn't exist, create basic tracking from booking data
+        if (error.code === 'PGRST202') {
+          console.log('Database function not found, using fallback tracking');
+          const fallbackStages = createFallbackTrackingStages();
+          setTrackingStages(fallbackStages);
+          return;
+        }
+        
         setError('Failed to load tracking information');
         return;
       }
       
-      setTrackingStages(data || []);
+      // Convert the JSON response to tracking stages array
+      if (data) {
+        const stages = createTrackingStagesFromData(data);
+        setTrackingStages(stages);
+      } else {
+        setTrackingStages([]);
+      }
     } catch (err) {
       console.error('Error:', err);
       setError('Failed to load tracking information');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Create tracking stages array from booking data
+  const createTrackingStagesFromData = (data: any): TrackingStage[] => {
+    const currentStage = data.tracking_stage || 'sorting';
+    const pickupOption = data.pickup_option || 'pickup';
+    const stageTimestamps = data.stage_timestamps || {};
+    const stageNotes = data.stage_notes || {};
+    
+    // Define the standard stages
+    const standardStages = [
+      { name: 'sorting', label: 'Sorting' },
+      { name: 'stain_removing', label: 'Stain Removing' },
+      { name: 'washing', label: 'Washing' },
+      { name: 'ironing', label: 'Ironing' },
+      { name: 'packing', label: 'Packing' }
+    ];
+    
+    // Define final stages based on pickup option
+    const finalStages = pickupOption === 'pickup' 
+      ? [
+          { name: 'ready_for_pickup', label: 'Ready for Pickup' },
+          { name: 'picked_up', label: 'Picked Up' }
+        ]
+      : [
+          { name: 'ready_for_delivery', label: 'Ready for Delivery' },
+          { name: 'out_for_delivery', label: 'Out for Delivery' },
+          { name: 'delivered', label: 'Delivered' }
+        ];
+    
+    const allStages = [...standardStages, ...finalStages];
+    
+    // Find current stage index
+    const currentStageIndex = allStages.findIndex(stage => stage.name === currentStage);
+    
+    // Create tracking stages array
+    return allStages.map((stage, index) => ({
+      stage_name: stage.name,
+      stage_label: stage.label,
+      completed: index <= currentStageIndex,
+      timestamp: stageTimestamps[stage.name] || null,
+      notes: stageNotes[stage.name] || ''
+    }));
+  };
+
+  // Create fallback tracking stages when database function is not available
+  const createFallbackTrackingStages = (): TrackingStage[] => {
+    const standardStages = [
+      { name: 'sorting', label: 'Sorting' },
+      { name: 'stain_removing', label: 'Stain Removing' },
+      { name: 'washing', label: 'Washing' },
+      { name: 'ironing', label: 'Ironing' },
+      { name: 'packing', label: 'Packing' },
+      { name: 'ready_for_delivery', label: 'Ready for Delivery' },
+      { name: 'out_for_delivery', label: 'Out for Delivery' },
+      { name: 'delivered', label: 'Delivered' }
+    ];
+    
+    // For fallback, show first stage as current and rest as pending
+    return standardStages.map((stage, index) => ({
+      stage_name: stage.name,
+      stage_label: stage.label,
+      completed: index === 0, // Only first stage completed
+      timestamp: index === 0 ? booking.created_at : null,
+      notes: index === 0 ? 'Order received and processing started' : ''
+    }));
   };
 
   useEffect(() => {
