@@ -121,79 +121,173 @@ export default function AdminLiveChat() {
   };
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow border p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="inline-block w-5 h-5 text-purple-600">💬</span>
-            <h2 className="font-semibold">Support Tickets</h2>
-          </div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="inline-block w-4 h-4 text-gray-500">🔎</span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tickets"
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-          <div className="space-y-2 max-h-[420px] overflow-auto">
-            {filteredTickets.map((t) => (
-              <button
-                key={t.id}
-                className={`w-full text-left p-3 rounded-lg border ${
-                  selectedTicketId === t.id ? "border-purple-500 bg-purple-50" : "border-gray-200 bg-white"
-                }`}
-                onClick={() => setSelectedTicketId(t.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{t.subject}</span>
-                  <span className="text-xs text-gray-500">{t.ticket_number}</span>
-                </div>
-                <div className="text-xs text-gray-500">{t.status} • {t.priority}</div>
-              </button>
-            ))}
-            {filteredTickets.length === 0 && (
-              <div className="text-sm text-gray-500">No tickets found.</div>
-            )}
-          </div>
+    <div className="p-3 sm:p-4 lg:p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Live Chat Support</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">Manage customer support tickets and conversations</p>
         </div>
 
-        <div className="md:col-span-2 bg-white rounded-xl shadow border flex flex-col">
-          <div className="p-4 border-b">
-            <h3 className="font-semibold">Conversation</h3>
-          </div>
-          <div ref={listRef} className="flex-1 p-4 space-y-3 overflow-auto max-h-[520px]">
-            {ticketMessages.map((m) => (
-              <div key={m.id} className={`flex ${m.sender_type === "admin" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[70%] p-3 rounded-xl ${
-                  m.sender_type === "admin" ? "bg-purple-600 text-white rounded-br-none" : "bg-gray-100 text-gray-900 rounded-bl-none"
-                }`}>
-                  <div className="text-sm">{m.message}</div>
-                  <div className="text-[10px] opacity-70 mt-1">{new Date(m.created_at).toLocaleString()}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 h-[calc(100vh-8rem)] sm:h-[calc(100vh-10rem)]">
+          {/* Tickets Sidebar */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col h-full lg:h-auto">
+            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                  <span className="text-lg">💬</span>
                 </div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Support Tickets</h2>
               </div>
-            ))}
-            {!selectedTicketId && (
-              <div className="text-center text-gray-500">Select a ticket to view messages</div>
-            )}
+              
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400">🔎</span>
+                </div>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search tickets..."
+                  className="w-full pl-10 pr-4 py-3 sm:py-2.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder:text-gray-400 min-h-[44px]"
+                />
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-hidden">
+              <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 h-full overflow-y-auto scrollbar-hide">
+                {filteredTickets.map((t) => (
+                  <button
+                    key={t.id}
+                    className={`w-full text-left p-3 sm:p-4 rounded-lg border transition-all duration-200 min-h-[60px] ${
+                      selectedTicketId === t.id 
+                        ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-md" 
+                        : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-purple-300 hover:shadow-sm"
+                    }`}
+                    onClick={() => setSelectedTicketId(t.id)}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <span className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate flex-1">{t.subject}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">{t.ticket_number}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        t.status === 'open' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                        t.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                        t.status === 'resolved' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
+                      }`}>
+                        {t.status.replace('_', ' ')}
+                      </span>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        t.priority === 'urgent' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                        t.priority === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                        t.priority === 'normal' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
+                      }`}>
+                        {t.priority}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+                {filteredTickets.length === 0 && (
+                  <div className="text-center py-8">
+                    <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">📭</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">No tickets found</div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message"
-                className="flex-1 border rounded-lg px-3 py-2"
-              />
-              <button onClick={sendMessage} className="px-4 py-2 rounded-lg bg-purple-600 text-white">
-                Send
-              </button>
+
+          {/* Chat Area */}
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col h-full">
+            {/* Chat Header */}
+            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                  {selectedTicketId ? 
+                    `Conversation - ${filteredTickets.find(t => t.id === selectedTicketId)?.ticket_number}` : 
+                    'Select a Ticket'
+                  }
+                </h3>
+                {selectedTicketId && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                      {ticketMessages.length} messages
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Messages Area */}
+            <div ref={listRef} className="flex-1 p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto scrollbar-hide">
+              {selectedTicketId ? (
+                ticketMessages.length > 0 ? (
+                  ticketMessages.map((m) => (
+                    <div key={m.id} className={`flex ${m.sender_type === "admin" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[85%] sm:max-w-[70%] p-3 sm:p-4 rounded-xl shadow-sm ${
+                        m.sender_type === "admin" 
+                          ? "bg-purple-600 text-white rounded-br-sm" 
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm"
+                      }`}>
+                        <div className="text-sm sm:text-base leading-relaxed break-words">{m.message}</div>
+                        <div className="text-xs opacity-70 mt-2">
+                          {new Date(m.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">💬</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">No messages yet</div>
+                  </div>
+                )
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">💬</div>
+                  <div className="text-lg font-medium text-gray-500 dark:text-gray-400 mb-2">Select a ticket to view messages</div>
+                  <div className="text-sm text-gray-400 dark:text-gray-500">Choose a support ticket from the sidebar to start chatting</div>
+                </div>
+              )}
+            </div>
+            
+            {/* Message Input */}
+            <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <div className="flex gap-2 sm:gap-3">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                  placeholder={selectedTicketId ? "Type a message..." : "Select a ticket first"}
+                  disabled={!selectedTicketId}
+                  className="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-3 sm:py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+                />
+                <button 
+                  onClick={sendMessage}
+                  disabled={!selectedTicketId || !input.trim()}
+                  className="px-4 sm:px-6 py-3 sm:py-2.5 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] min-w-[80px] flex items-center justify-center"
+                >
+                  <span className="hidden sm:inline">Send</span>
+                  <span className="sm:hidden">📤</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
+        
+        {loading && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">Loading...</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      {loading && <div className="text-sm text-gray-500 mt-2">Loading…</div>}
     </div>
   );
 }

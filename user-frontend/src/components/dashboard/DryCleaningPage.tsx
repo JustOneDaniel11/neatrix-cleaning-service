@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useSupabaseData } from "../../contexts/SupabaseDataContext";
 import { useRealtimeData } from "../../hooks/useRealtimeData";
+import OrderTracker from "./OrderTracker";
 import type { Booking, Address } from "../../contexts/SupabaseDataContext";
 
 const DryCleaningPage = () => {
@@ -89,54 +90,11 @@ const DryCleaningPage = () => {
       address: `${address.street}, ${address.city}, ${address.state} ${address.zip_code}`
     }));
 
-  // Get dry cleaning orders from real bookings
-  const activeOrders = bookings
+  // Get count of dry cleaning orders
+  const dryCleaningOrdersCount = bookings
     .filter(booking => 
       (booking.service_type === 'dry_cleaning' || booking.service_name?.toLowerCase().includes('dry'))
-    )
-    .map(booking => {
-      // Generate steps based on booking status and dates
-      const steps = [
-        { 
-          label: 'Picked Up', 
-          completed: ['confirmed', 'in_progress', 'completed'].includes(booking.status),
-          time: booking.pickup_date ? new Date(booking.pickup_date).toLocaleString() : null
-        },
-        { 
-          label: 'In Cleaning', 
-          completed: ['in_progress', 'completed'].includes(booking.status),
-          time: booking.status === 'in_progress' || booking.status === 'completed' ? 
-                new Date(booking.updated_at).toLocaleString() : null
-        },
-        { 
-          label: 'Out for Delivery', 
-          completed: booking.delivery_status === 'out_for_delivery' || booking.status === 'completed',
-          time: booking.delivery_status === 'out_for_delivery' || booking.status === 'completed' ? 
-                new Date(booking.updated_at).toLocaleString() : null
-        },
-        { 
-          label: 'Delivered', 
-          completed: booking.status === 'completed',
-          time: booking.status === 'completed' ? new Date(booking.updated_at).toLocaleString() : null
-        }
-      ];
-
-      const currentStep = steps.findIndex(step => !step.completed);
-
-      return {
-        id: booking.id.slice(-6).toUpperCase(),
-        status: booking.status,
-        items: booking.item_details ? 
-               (typeof booking.item_details === 'string' ? 
-                booking.item_details.split(',') : 
-                [booking.item_details]) : 
-               [`${booking.item_count || 1} items`],
-        pickupDate: booking.service_date,
-        estimatedDelivery: booking.estimated_completion || booking.service_date,
-        currentStep: currentStep === -1 ? steps.length - 1 : currentStep,
-        steps
-      };
-    });
+    ).length;
 
   const timeSlots = [
     '8:00 AM - 10:00 AM',
@@ -239,7 +197,7 @@ const DryCleaningPage = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Track Orders ({activeOrders.length})
+              Track Orders ({dryCleaningOrdersCount})
             </button>
           </nav>
         </div>
@@ -462,7 +420,10 @@ const DryCleaningPage = () => {
                   <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3 sm:mb-4"></div>
                   <p className="text-gray-500 text-xs sm:text-sm">Loading orders...</p>
                 </div>
-              ) : activeOrders.length === 0 ? (
+              ) : bookings.filter(booking => 
+                  (booking.service_type === 'dry_cleaning' || booking.service_name?.toLowerCase().includes('dry')) &&
+                  booking.status !== 'cancelled'
+                ).length === 0 ? (
                 <div className="text-center py-8 sm:py-12">
                   <Package className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
                   <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Active Orders</h3>
@@ -476,85 +437,51 @@ const DryCleaningPage = () => {
                 </div>
               ) : (
                 <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-                  {activeOrders.map((order) => (
-                    <div key={order.id} className="bg-gray-50 rounded-lg p-3 sm:p-4 lg:p-6">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 space-y-2 sm:space-y-0">
-                        <div>
-                          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Order #{order.id}</h3>
-                          <p className="text-xs sm:text-sm text-gray-600">
-                            Picked up: {new Date(order.pickupDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getStatusColor(order.status)} self-start sm:self-auto`}>
-                          {getStatusText(order.status)}
-                        </span>
-                      </div>
+                  {bookings
+                    .filter(booking => 
+                      (booking.service_type === 'dry_cleaning' || booking.service_name?.toLowerCase().includes('dry')) &&
+                      booking.status !== 'cancelled'
+                    )
+                    .map((booking) => (
+                      <OrderTracker key={booking.id} booking={booking} />
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                      {/* Items */}
-                      <div className="mb-3 sm:mb-4">
-                        <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Items:</p>
-                        <div className="flex flex-wrap gap-1 sm:gap-2">
-                          {order.items.map((item, index) => (
-                            <span key={index} className="bg-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm text-gray-700 border">
-                              {item}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Progress Tracker */}
-                      <div className="mb-3 sm:mb-4">
-                        <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Progress:</p>
-                        <div className="space-y-2 sm:space-y-3">
-                          {order.steps.map((step, index) => (
-                            <div key={index} className="flex items-center space-x-2 sm:space-x-3">
-                              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                step.completed 
-                                  ? 'bg-green-500 text-white' 
-                                  : index === order.currentStep 
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-gray-200 text-gray-400'
-                              }`}>
-                                {step.completed ? (
-                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                                ) : (
-                                  <span className="text-xs font-bold">{index + 1}</span>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className={`text-xs sm:text-sm font-medium ${
-                                  step.completed ? 'text-green-700' : 'text-gray-700'
-                                }`}>
-                                  {step.label}
-                                </p>
-                                {step.time && (
-                                  <p className="text-xs text-gray-500">{step.time}</p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Estimated Delivery */}
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-3 sm:pt-4 border-t border-gray-200 space-y-2 sm:space-y-0">
-                        <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
-                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                          <span>Estimated delivery: {new Date(order.estimatedDelivery).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium flex items-center touch-manipulation min-h-[44px] px-2">
-                            <Phone className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                            Call
-                          </button>
-                          <button className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium flex items-center touch-manipulation min-h-[44px] px-2">
-                            <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                            Message
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+          {activeTab === 'tracker' && (
+            <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+              {bookingsLoading ? (
+                <div className="text-center py-6 sm:py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3 sm:mb-4"></div>
+                  <p className="text-gray-500 text-xs sm:text-sm">Loading orders...</p>
+                </div>
+              ) : bookings.filter(booking => 
+                  (booking.service_type === 'dry_cleaning' || booking.service_name?.toLowerCase().includes('dry')) &&
+                  booking.status !== 'cancelled'
+                ).length === 0 ? (
+                <div className="text-center py-8 sm:py-12">
+                  <Package className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Active Orders</h3>
+                  <p className="text-gray-600 mb-4 text-xs sm:text-sm">You don't have any orders in progress right now.</p>
+                  <button
+                    onClick={() => setActiveTab('request')}
+                    className="bg-blue-600 text-white px-4 py-2 sm:py-3 rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base touch-manipulation min-h-[44px]"
+                  >
+                    Request Service
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+                  {bookings
+                    .filter(booking => 
+                      (booking.service_type === 'dry_cleaning' || booking.service_name?.toLowerCase().includes('dry')) &&
+                      booking.status !== 'cancelled'
+                    )
+                    .map((booking) => (
+                      <OrderTracker key={booking.id} booking={booking} />
+                    ))}
                 </div>
               )}
             </div>

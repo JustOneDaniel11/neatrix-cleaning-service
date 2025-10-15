@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseData, formatCurrency, formatDate } from '../contexts/SupabaseDataContext';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import OrderTrackingControl from '../components/OrderTrackingControl';
 import { 
   Users, 
   Calendar, 
@@ -123,6 +124,11 @@ export default function AdminDashboard() {
   const [originalSettings, setOriginalSettings] = useState({ ...settings });
   const [isSettingsLoading, setIsSettingsLoading] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState({ type: '', text: '' });
+
+  // Order tracking state
+  const [trackingOrders, setTrackingOrders] = useState([]);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingMessage, setTrackingMessage] = useState({ type: '', text: '' });
 
   // Redirect to login if not authenticated
   // useEffect(() => {
@@ -721,12 +727,15 @@ export default function AdminDashboard() {
     });
 
     return (
-      <div className="space-y-4 sm:space-y-6 w-full overflow-hidden">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">User Management</h3>
+      <div className="space-y-4 sm:space-y-6 w-full max-w-full">
+        {/* Header Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full max-w-full overflow-hidden">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">User Management</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage registered users and view their activity</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 w-full min-w-0 overflow-hidden">
+
+        {/* Users Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 w-full max-w-full overflow-hidden">
           <div className="overflow-x-auto scrollbar-hide">
             <table className="w-full min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
@@ -1379,6 +1388,16 @@ export default function AdminDashboard() {
     </div>
   );
 
+  const renderOrderTracking = () => (
+    <OrderTrackingControl
+      bookings={state.bookings || []}
+      supabase={state.supabase}
+      formatCurrency={formatCurrency}
+      formatDate={formatDate}
+      onRefreshBookings={fetchAllBookings}
+    />
+  );
+
   const renderSettings = () => (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1796,70 +1815,73 @@ export default function AdminDashboard() {
   );
 
   const renderLaundryOrders = () => (
-    <div className="w-full overflow-hidden space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Laundry Orders</h2>
-          <p className="text-gray-600 dark:text-gray-400">Track laundry and dry cleaning orders</p>
-        </div>
-        <div className="flex items-center space-x-2 flex-shrink-0">
-          <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-            state.realTimeConnected 
-              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-          }`}>
-            {state.realTimeConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-            <span className="hidden sm:inline">{state.realTimeConnected ? 'Live' : 'Offline'}</span>
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full">
+      {/* Header Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full max-w-full overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">Laundry Orders</h2>
+            <p className="text-gray-600 dark:text-gray-400">Track laundry and dry cleaning orders</p>
           </div>
-          <button 
-            onClick={async () => {
-              try {
-                await fetchLaundryOrders();
-                alert('Laundry orders refreshed successfully!');
-              } catch (error) {
-                alert('Failed to refresh laundry orders. Please try again.');
-              }
-            }}
-            className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+              state.realTimeConnected 
+                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+            }`}>
+              {state.realTimeConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+              <span className="hidden sm:inline">{state.realTimeConnected ? 'Live' : 'Offline'}</span>
+            </div>
+            <button 
+              onClick={async () => {
+                try {
+                  await fetchLaundryOrders();
+                  alert('Laundry orders refreshed successfully!');
+                } catch (error) {
+                  alert('Failed to refresh laundry orders. Please try again.');
+                }
+              }}
+              className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Order Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full min-w-0 overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full max-w-full">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full max-w-full overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg flex-shrink-0">
               <Shirt className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Orders</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{state.laundryOrders.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full min-w-0 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full max-w-full overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex-shrink-0">
               <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Pending Orders</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{state.stats.pendingOrders}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full min-w-0 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full max-w-full overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg flex-shrink-0">
               <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Completed Today</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                  {state.laundryOrders.filter(order => {
@@ -1871,12 +1893,12 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full min-w-0 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 sm:p-6 w-full max-w-full overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg flex-shrink-0">
               <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Revenue Today</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                  {formatCurrency(state.laundryOrders.filter(order => {
@@ -1890,7 +1912,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 overflow-hidden w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 w-full max-w-full overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Orders</h3>
         </div>
@@ -2317,12 +2339,6 @@ export default function AdminDashboard() {
                 <Bell className="w-5 h-5 sm:w-5 sm:h-5" />
               </button>
               <button 
-                onClick={() => setActiveTab('settings')}
-                className="p-2.5 sm:p-2 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
-              >
-                <Settings className="w-5 h-5 sm:w-5 sm:h-5" />
-              </button>
-              <button 
                 onClick={handleLogout}
                 className="p-2.5 sm:p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
@@ -2333,8 +2349,8 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1">
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1 w-full overflow-hidden">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8 w-full min-w-0">
           {/* Sidebar */}
           <div className="lg:w-72">
             <nav className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 lg:sticky lg:top-24">
@@ -2380,7 +2396,7 @@ export default function AdminDashboard() {
                     { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
                     { id: 'subscriptions', label: 'Subs', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
                     { id: 'laundry', label: 'Laundry', icon: Shirt, color: 'from-teal-500 to-teal-600' },
-                    { id: 'settings', label: 'Settings', icon: Settings, color: 'from-gray-500 to-gray-600' },
+                    { id: 'tracking', label: 'Tracking', icon: Package, color: 'from-indigo-500 to-indigo-600' },
                   ].map((item) => (
                     <button
                       key={item.id}
@@ -2420,7 +2436,6 @@ export default function AdminDashboard() {
                   { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-pink-500 to-pink-600' },
                   { id: 'reviews', label: 'Reviews & Feedback', icon: Star, color: 'from-yellow-500 to-yellow-600' },
                   { id: 'complaints', label: 'User Complaints', icon: AlertTriangle, color: 'from-red-500 to-red-600' },
-                  { id: 'settings', label: 'Admin Settings', icon: Settings, color: 'from-gray-500 to-gray-600' },
                 ].map((item) => (
                   <li key={item.id}>
                     <button
@@ -2449,8 +2464,8 @@ export default function AdminDashboard() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 min-w-0">
-            <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 sm:p-4 lg:p-6 min-h-[500px] sm:min-h-[600px] overflow-hidden">
+          <div className="flex-1 min-w-0 w-full overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 sm:p-4 lg:p-6 min-h-[500px] sm:min-h-[600px] overflow-auto w-full">
               {activeTab === 'overview' && renderOverview()}
         {activeTab === 'bookings' && renderBookings()}
         {activeTab === 'users' && renderUsers()}
@@ -2462,7 +2477,7 @@ export default function AdminDashboard() {
         {activeTab === 'notifications' && renderNotifications()}
         {activeTab === 'reviews' && renderReviews()}
         {activeTab === 'complaints' && renderComplaints()}
-        {activeTab === 'settings' && renderSettings()}
+        {activeTab === 'tracking' && renderOrderTracking()}
             </div>
           </div>
         </div>
