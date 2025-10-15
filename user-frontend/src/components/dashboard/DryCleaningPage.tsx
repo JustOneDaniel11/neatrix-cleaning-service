@@ -15,6 +15,7 @@ import {
 import { useSupabaseData } from "../../contexts/SupabaseDataContext";
 import { useRealtimeData } from "../../hooks/useRealtimeData";
 import OrderTracker from "./OrderTracker";
+import OrderInbox from "./OrderInbox";
 import type { Booking, Address } from "../../contexts/SupabaseDataContext";
 import { convertTo24Hour } from "../../lib/timeUtils";
 import { generateTrackingCode, formatTrackingCodeDisplay } from "../../lib/trackingUtils";
@@ -435,39 +436,8 @@ const DryCleaningPage = () => {
           )}
 
           {activeTab === 'tracker' && (
-            <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-              {bookingsLoading ? (
-                <div className="text-center py-6 sm:py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-3 sm:mb-4"></div>
-                  <p className="text-gray-500 text-xs sm:text-sm">Loading orders...</p>
-                </div>
-              ) : bookings.filter(booking => 
-                  (booking.service_type === 'dry_cleaning' || booking.service_name?.toLowerCase().includes('dry')) &&
-                  booking.status !== 'cancelled'
-                ).length === 0 ? (
-                <div className="text-center py-8 sm:py-12">
-                  <Package className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Active Orders</h3>
-                  <p className="text-gray-600 mb-4 text-xs sm:text-sm">You don't have any orders in progress right now.</p>
-                  <button
-                    onClick={() => setActiveTab('request')}
-                    className="bg-blue-600 text-white px-4 py-2 sm:py-3 rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base touch-manipulation min-h-[44px]"
-                  >
-                    Request Service
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-                  {bookings
-                    .filter(booking => 
-                      (booking.service_type === 'dry_cleaning' || booking.service_name?.toLowerCase().includes('dry')) &&
-                      booking.status !== 'cancelled'
-                    )
-                    .map((booking) => (
-                      <OrderTracker key={booking.id} booking={booking} />
-                    ))}
-                </div>
-              )}
+            <div className="h-[600px] lg:h-[700px]">
+              <OrderInbox />
             </div>
           )}
         </div>

@@ -9,7 +9,8 @@ import {
   Star,
   Bell,
   CreditCard,
-  Headphones
+  Headphones,
+  Package
 } from "lucide-react";
 
 interface DashboardLayoutProps {

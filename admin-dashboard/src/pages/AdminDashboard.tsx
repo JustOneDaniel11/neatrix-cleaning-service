@@ -2515,6 +2515,7 @@ export default function AdminDashboard() {
                   { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
                   { id: 'subscriptions', label: 'Subscriptions', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
                   { id: 'laundry', label: 'Laundry Orders', icon: Shirt, color: 'from-teal-500 to-teal-600' },
+                  { id: 'tracking', label: 'Order Tracking', icon: Package, color: 'from-indigo-500 to-indigo-600' },
                   { id: 'delivery', label: 'Pickup & Delivery', icon: Truck, color: 'from-indigo-500 to-indigo-600' },
                   { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-pink-500 to-pink-600' },
                   { id: 'reviews', label: 'Reviews & Feedback', icon: Star, color: 'from-yellow-500 to-yellow-600' },

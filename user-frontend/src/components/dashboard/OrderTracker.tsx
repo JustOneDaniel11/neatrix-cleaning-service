@@ -291,112 +291,159 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
           </div>
         </div>
 
-        {/* Horizontal Progress Tracker */}
-         <div className="relative px-2 sm:px-0">
-           {/* Progress Line Background */}
-           <div className="absolute top-8 left-6 right-6 h-0.5 bg-gray-200 rounded-full hidden sm:block"></div>
-           <div className="absolute top-8 left-4 right-4 h-0.5 bg-gray-200 rounded-full sm:hidden"></div>
-           
-           {/* Animated Progress Line */}
-           <div 
-             className="absolute top-8 h-0.5 bg-gradient-to-r from-green-400 to-purple-500 rounded-full transition-all duration-1000 ease-out hidden sm:block"
-             style={{ 
-               left: '1.5rem',
-               width: `calc(${Math.max(0, (progressPercentage / 100) * 100)}% - 3rem)`,
-               maxWidth: 'calc(100% - 3rem)'
-             }}
-           ></div>
-           <div 
-             className="absolute top-8 h-0.5 bg-gradient-to-r from-green-400 to-purple-500 rounded-full transition-all duration-1000 ease-out sm:hidden"
-             style={{ 
-               left: '1rem',
-               width: `calc(${Math.max(0, (progressPercentage / 100) * 100)}% - 2rem)`,
-               maxWidth: 'calc(100% - 2rem)'
-             }}
-           ></div>
+        {/* Mobile-First Progress Tracker */}
+        <div className="w-full max-w-full overflow-hidden">
+          {/* Mobile: Vertical Progress Tracker */}
+          <div className="block sm:hidden">
+            <div className="space-y-3">
+              {trackingStages.map((stage, index) => {
+                const isCompleted = stage.completed;
+                const isCurrent = index === currentStageIndex;
+                const timestamp = formatTimestamp(stage.timestamp);
 
-           {/* Stage Nodes */}
-           <div className="flex justify-between items-center relative overflow-x-auto pb-4 scrollbar-hide">
-             {trackingStages.map((stage, index) => {
-               const isCompleted = stage.completed;
-               const isCurrent = index === currentStageIndex;
-               const isFuture = index > currentStageIndex && currentStageIndex !== -1;
-               const timestamp = formatTimestamp(stage.timestamp);
+                return (
+                  <div key={stage.stage_name} className="flex items-center space-x-3 w-full">
+                    {/* Stage Node */}
+                    <div className={`
+                      flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-300
+                      ${isCompleted 
+                        ? 'bg-green-500 border-green-500 text-white' 
+                        : isCurrent 
+                          ? 'bg-purple-500 border-purple-500 text-white animate-pulse' 
+                          : 'bg-gray-100 border-gray-300 text-gray-400'
+                      }
+                    `}>
+                      {isCompleted ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : isCurrent ? (
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      ) : (
+                        <div className="w-4 h-4">
+                          {getStageIcon(stage, index)}
+                        </div>
+                      )}
+                    </div>
 
-               return (
-                 <div key={stage.stage_name} className="flex flex-col items-center group relative min-w-0 flex-shrink-0 px-1">
-                   {/* Stage Node - Larger touch targets for mobile */}
-                   <div className={`
-                     relative w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 transform hover:scale-110 cursor-pointer
-                     ${isCompleted 
-                       ? 'bg-green-500 border-green-500 text-white shadow-lg' 
-                       : isCurrent 
-                         ? 'bg-purple-500 border-purple-500 text-white shadow-lg shadow-purple-500/50 animate-pulse' 
-                         : 'bg-gray-100 border-gray-300 text-gray-400'
-                     }
-                   `}>
-                     {isCompleted ? (
-                       <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7" />
-                     ) : isCurrent ? (
-                       <div className="w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full animate-ping"></div>
-                     ) : (
-                       <div className="w-5 h-5 sm:w-6 sm:h-6">
-                         {getStageIcon(stage, index)}
-                       </div>
-                     )}
-                     
-                     {/* Glow effect for current stage */}
-                     {isCurrent && (
-                       <div className="absolute inset-0 rounded-full bg-purple-500 opacity-30 animate-ping"></div>
-                     )}
-                   </div>
+                    {/* Stage Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className={`text-sm font-medium truncate ${
+                          isCompleted 
+                            ? 'text-green-700' 
+                            : isCurrent 
+                              ? 'text-purple-700' 
+                              : 'text-gray-500'
+                        }`}>
+                          {stage.stage_label}
+                        </p>
+                        {timestamp && (isCompleted || isCurrent) && (
+                          <p className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                            {timestamp.time}
+                          </p>
+                        )}
+                      </div>
+                      {stage.notes && (isCompleted || isCurrent) && (
+                        <p className="text-xs text-gray-500 mt-1 truncate">{stage.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-                   {/* Stage Label - Better mobile text sizing */}
-                   <div className="mt-3 sm:mt-4 text-center max-w-20 sm:max-w-24">
-                     <p className={`text-xs sm:text-sm font-medium transition-colors duration-300 leading-tight ${
-                       isCompleted 
-                         ? 'text-green-700' 
-                         : isCurrent 
-                           ? 'text-purple-700' 
-                           : 'text-gray-500'
-                     }`}>
-                       {stage.stage_label}
-                     </p>
-                     
-                     {/* Timestamp - Better mobile visibility */}
-                     {timestamp && (
-                       <p className="text-xs text-gray-400 mt-1 hidden sm:block">
-                         {timestamp.time}
-                       </p>
-                     )}
-                     
-                     {/* Mobile timestamp - show on current/completed stages */}
-                     {timestamp && (isCompleted || isCurrent) && (
-                       <p className="text-xs text-gray-400 mt-1 sm:hidden">
-                         {timestamp.time}
-                       </p>
-                     )}
-                   </div>
+          {/* Desktop: Horizontal Progress Tracker */}
+          <div className="hidden sm:block">
+            <div className="relative">
+              {/* Progress Line Background */}
+              <div className="absolute top-8 left-6 right-6 h-0.5 bg-gray-200 rounded-full"></div>
+              
+              {/* Animated Progress Line */}
+              <div 
+                className="absolute top-8 h-0.5 bg-gradient-to-r from-green-400 to-purple-500 rounded-full transition-all duration-1000 ease-out"
+                style={{ 
+                  left: '1.5rem',
+                  width: `calc(${Math.max(0, (progressPercentage / 100) * 100)}% - 3rem)`,
+                  maxWidth: 'calc(100% - 3rem)'
+                }}
+              ></div>
 
-                   {/* Enhanced Mobile-Friendly Tooltip */}
-                   {timestamp && (
-                     <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                       <div className="text-center">
-                         <div className="font-medium">{stage.stage_label}</div>
-                         <div className="text-gray-300">{timestamp.date}</div>
-                         <div className="text-gray-300">{timestamp.time}</div>
-                         {stage.notes && (
-                           <div className="text-gray-300 text-xs mt-1 max-w-32 break-words">{stage.notes}</div>
-                         )}
-                       </div>
-                       <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                     </div>
-                   )}
-                 </div>
-               );
-             })}
-           </div>
-         </div>
+              {/* Stage Nodes */}
+              <div className="flex justify-between items-center relative">
+                {trackingStages.map((stage, index) => {
+                  const isCompleted = stage.completed;
+                  const isCurrent = index === currentStageIndex;
+                  const timestamp = formatTimestamp(stage.timestamp);
+
+                  return (
+                    <div key={stage.stage_name} className="flex flex-col items-center group relative">
+                      {/* Stage Node */}
+                      <div className={`
+                        relative w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 transform hover:scale-110 cursor-pointer
+                        ${isCompleted 
+                          ? 'bg-green-500 border-green-500 text-white shadow-lg' 
+                          : isCurrent 
+                            ? 'bg-purple-500 border-purple-500 text-white shadow-lg shadow-purple-500/50 animate-pulse' 
+                            : 'bg-gray-100 border-gray-300 text-gray-400'
+                        }
+                      `}>
+                        {isCompleted ? (
+                          <CheckCircle className="w-7 h-7" />
+                        ) : isCurrent ? (
+                          <div className="w-4 h-4 bg-white rounded-full animate-ping"></div>
+                        ) : (
+                          <div className="w-6 h-6">
+                            {getStageIcon(stage, index)}
+                          </div>
+                        )}
+                        
+                        {/* Glow effect for current stage */}
+                        {isCurrent && (
+                          <div className="absolute inset-0 rounded-full bg-purple-500 opacity-30 animate-ping"></div>
+                        )}
+                      </div>
+
+                      {/* Stage Label */}
+                      <div className="mt-4 text-center max-w-24">
+                        <p className={`text-sm font-medium transition-colors duration-300 leading-tight ${
+                          isCompleted 
+                            ? 'text-green-700' 
+                            : isCurrent 
+                              ? 'text-purple-700' 
+                              : 'text-gray-500'
+                        }`}>
+                          {stage.stage_label}
+                        </p>
+                        
+                        {/* Timestamp */}
+                        {timestamp && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            {timestamp.time}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Tooltip */}
+                      {timestamp && (
+                        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 shadow-lg">
+                          <div className="text-center">
+                            <div className="font-medium">{stage.stage_label}</div>
+                            <div className="text-gray-300">{timestamp.date}</div>
+                            <div className="text-gray-300">{timestamp.time}</div>
+                            {stage.notes && (
+                              <div className="text-gray-300 text-xs mt-1 max-w-32 break-words">{stage.notes}</div>
+                            )}
+                          </div>
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Order Details */}
