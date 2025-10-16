@@ -190,7 +190,7 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
     return allStages.map((stage, index) => ({
       stage_name: stage.name,
       stage_label: stage.label,
-      completed: index <= currentStageIndex,
+      completed: index < currentStageIndex,
       timestamp: stageTimestamps[stage.name] || null,
       notes: ''
     }));
@@ -430,7 +430,7 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
   const trackingStages = createTrackingStages(selectedOrder);
   const progressPercentage = getProgressPercentage(trackingStages);
   const currentStageIndex = trackingStages.findIndex(s => !s.completed);
-  const nextStage = getNextStage(selectedOrder.tracking_stage || 'order_received');
+  const nextStage = getNextStage(selectedOrder.tracking_stage || 'sorting', selectedOrder.pickup_option);
 
   return (
     <div className="space-y-6">

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useSupabaseData } from '../../contexts/SupabaseDataContext';
 import { supabase } from '../../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 import type { Booking } from '../../contexts/SupabaseDataContext';
 
 interface TrackingStage {
@@ -34,6 +35,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
   const [trackingStages, setTrackingStages] = useState<TrackingStage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Fetch tracking progress for this booking
   const fetchTrackingProgress = async () => {
@@ -478,11 +480,17 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-gray-200">
-          <button className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors min-h-[44px] touch-manipulation">
+          <button 
+             onClick={() => window.open('tel:+2349034842430', '_self')}
+             className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors min-h-[44px] touch-manipulation"
+           >
             <Phone className="w-5 h-5 mr-2" />
             Call Support
           </button>
-          <button className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors min-h-[44px] touch-manipulation">
+          <button 
+            onClick={() => navigate('/support')}
+            className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors min-h-[44px] touch-manipulation"
+          >
             <MessageSquare className="w-5 h-5 mr-2" />
             Send Message
           </button>

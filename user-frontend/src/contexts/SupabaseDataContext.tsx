@@ -43,6 +43,7 @@ export interface Booking {
   item_count?: number;
   item_details?: any;
   tracking_notes?: string;
+  tracking_stage?: string;
   created_at: string;
   updated_at: string;
   // Legacy fields for compatibility

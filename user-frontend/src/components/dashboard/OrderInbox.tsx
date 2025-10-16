@@ -5,6 +5,7 @@ import { useRealtimeData } from "../../hooks/useRealtimeData";
 import OrderTracker from "./OrderTracker";
 import type { Booking } from "../../contexts/SupabaseDataContext";
 import { formatTrackingCodeDisplay, isValidTrackingCode } from "../../lib/trackingUtils";
+import { supabase } from "../../lib/supabase";
 
 interface OrderInboxProps {
   className?: string;
@@ -17,7 +18,7 @@ const OrderInbox = ({ className = "" }: OrderInboxProps) => {
   const [showMobileDetails, setShowMobileDetails] = useState(false);
   const [isLoadingTrackingCode, setIsLoadingTrackingCode] = useState(false);
 
-  const { state: { currentUser }, supabase } = useSupabaseData();
+  const { state: { currentUser } } = useSupabaseData();
 
   // Use real-time data for bookings
   const { data: allBookings, loading: bookingsLoading, error: bookingsError } = useRealtimeData<Booking>('bookings');

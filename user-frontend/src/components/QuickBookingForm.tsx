@@ -113,13 +113,13 @@ const QuickBookingForm = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium mb-2">Service</label>
+            <label className="block text-sm font-medium mb-3">Service</label>
             <select
               value={formData.service}
               onChange={(e) => handleInputChange('service', e.target.value)}
-              className="w-full p-3 border border-border rounded-lg bg-background"
+              className="w-full px-4 py-3 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 min-h-[48px]"
               required
             >
               <option value="">Select a service</option>
@@ -129,31 +129,31 @@ const QuickBookingForm = () => {
             </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">
-                <Calendar className="w-4 h-4 inline mr-1" />
+              <label className="block text-sm font-medium mb-3">
+                <Calendar className="w-4 h-4 inline mr-2" />
                 Date
               </label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => handleInputChange('date', e.target.value)}
-                className="w-full p-3 border border-border rounded-lg bg-background"
+                className="w-full px-4 py-3 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 min-h-[48px]"
                 min={new Date().toISOString().split('T')[0]}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
-                <Clock className="w-4 h-4 inline mr-1" />
+              <label className="block text-sm font-medium mb-3">
+                <Clock className="w-4 h-4 inline mr-2" />
                 Time
               </label>
               <select
                 value={formData.time}
                 onChange={(e) => handleInputChange('time', e.target.value)}
-                className="w-full p-3 border border-border rounded-lg bg-background"
+                className="w-full px-4 py-3 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 min-h-[48px]"
                 required
               >
                 <option value="">Select time</option>
@@ -165,8 +165,8 @@ const QuickBookingForm = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
-              <MapPin className="w-4 h-4 inline mr-1" />
+            <label className="block text-sm font-medium mb-3">
+              <MapPin className="w-4 h-4 inline mr-2" />
               Address
             </label>
             <input
@@ -174,26 +174,26 @@ const QuickBookingForm = () => {
               value={formData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
               placeholder="Enter your address"
-              className="w-full p-3 border border-border rounded-lg bg-background"
+              className="w-full px-4 py-3 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 min-h-[48px]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Notes (Optional)</label>
+            <label className="block text-sm font-medium mb-3">Notes (Optional)</label>
             <textarea
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               placeholder="Any special instructions or requirements"
-              className="w-full p-3 border border-border rounded-lg bg-background"
-              rows={3}
+              className="w-full px-4 py-3 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 resize-none"
+              rows={4}
             />
           </div>
 
           {formData.service && (
-            <div className="p-4 bg-primary/5 rounded-lg">
-              <p className="text-sm text-muted-foreground">Estimated Price:</p>
-              <p className="text-lg font-bold text-primary">
+            <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <p className="text-sm text-muted-foreground mb-1">Estimated Price:</p>
+              <p className="text-xl font-bold text-primary">
                 ₦{getServicePrice(formData.service).toLocaleString()}
               </p>
             </div>
@@ -202,7 +202,7 @@ const QuickBookingForm = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="w-full bg-primary text-primary-foreground py-4 px-6 text-base font-medium rounded-lg hover:bg-primary/90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             {isSubmitting ? 'Creating Booking...' : 'Create Booking'}
           </button>

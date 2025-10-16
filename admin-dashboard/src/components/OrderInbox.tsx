@@ -127,17 +127,18 @@ const OrderInbox: React.FC<OrderInboxProps> = ({
         <div className="flex gap-2 mb-4">
           <input
             type="text"
-            placeholder="Enter tracking code..."
+            placeholder="Enter tracking code (e.g., #12345678)..."
             value={trackingSearch}
             onChange={(e) => setTrackingSearch(e.target.value)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
             onKeyPress={(e) => e.key === 'Enter' && handleTrackingSearch()}
           />
           <button
             onClick={handleTrackingSearch}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            disabled={!trackingSearch.trim()}
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-sm"
           >
-            Locate
+            🔍 Find
           </button>
         </div>
 
@@ -178,17 +179,22 @@ const OrderInbox: React.FC<OrderInboxProps> = ({
                     : 'border-gray-200 hover:border-gray-300'
                 } ${isOrderCompleted(order.tracking_stage) ? 'opacity-75' : ''}`}
               >
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     {getStatusDot(order.tracking_stage)}
-                    <h3 className="font-medium text-gray-900">
-                      {order.customer_name}
-                    </h3>
+                    <div className="flex flex-col">
+                      <h3 className="font-semibold text-gray-900 text-base">
+                        {order.customer_name}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {order.customer_email}
+                      </p>
+                    </div>
                     {isOrderCompleted(order.tracking_stage) && (
-                      <span className="text-green-600 text-sm">✅</span>
+                      <span className="text-green-600 text-sm ml-2">✅</span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                     {formatDate(order.updated_at)}
                   </span>
                 </div>
@@ -196,12 +202,7 @@ const OrderInbox: React.FC<OrderInboxProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Package className="w-4 h-4" />
-                    <span>#{order.id.slice(-8)}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <User className="w-4 h-4" />
-                    <span>{order.customer_email}</span>
+                    <span className="font-mono">#{order.id.slice(-8)}</span>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm text-gray-600">

@@ -293,10 +293,10 @@ export default function AdminLoginAdvanced() {
 
       {/* Forgot Password Modal */}
       {showForgotPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white/95 backdrop-blur-sm shadow-[0_20px_45px_-10px_rgba(0,0,0,0.25)] border border-white/50 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white/95 backdrop-blur-sm shadow-[0_20px_45px_-10px_rgba(0,0,0,0.25)] border border-white/50 overflow-hidden mx-2 sm:mx-0">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-600" />
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="text-center mb-6">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-purple-100 mb-4">
                   <Mail className="h-6 w-6 text-purple-600" />
@@ -312,26 +312,26 @@ export default function AdminLoginAdvanced() {
                     type="email"
                     value={forgotPasswordEmail}
                     onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                    className="peer w-full rounded-xl border border-gray-200 bg-white px-3 pl-10 py-3 text-gray-900 shadow-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200 placeholder:text-transparent"
+                    className="peer w-full rounded-xl border border-gray-200 bg-white px-3 pl-10 py-4 text-gray-900 shadow-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-200 placeholder:text-transparent touch-manipulation"
                     placeholder="Email address"
                     aria-label="Email address"
                   />
-                  <label className="pointer-events-none absolute left-10 -top-2.5 inline-flex items-center gap-2 rounded-full bg-white px-2 text-xs text-gray-500 transition-all peer-placeholder-shown:left-10 peer-placeholder-shown:top-3 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:left-10 peer-focus:bg-white peer-focus:text-purple-600">
+                  <label className="pointer-events-none absolute left-10 -top-2.5 inline-flex items-center gap-2 rounded-full bg-white px-2 text-xs text-gray-500 transition-all peer-placeholder-shown:left-10 peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:left-10 peer-focus:bg-white peer-focus:text-purple-600">
                     <Mail className="h-4 w-4 text-gray-400" />
                     Email address
                   </label>
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-4 h-5 w-5 text-gray-400" />
                 </div>
 
                 {/* Buttons */}
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     type="button"
                     onClick={() => {
                       setShowForgotPasswordModal(false);
                       setForgotPasswordEmail("");
                     }}
-                    className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                    className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-4 text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-300 touch-manipulation"
                   >
                     Cancel
                   </button>
@@ -339,7 +339,7 @@ export default function AdminLoginAdvanced() {
                     type="button"
                     onClick={handleForgotPasswordSubmit}
                     disabled={forgotPasswordLoading || !forgotPasswordEmail}
-                    className="flex-1 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 px-4 py-3 text-white shadow-md transition hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="flex-1 inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 px-4 py-4 text-white shadow-md transition hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-60 disabled:cursor-not-allowed touch-manipulation"
                   >
                     {forgotPasswordLoading ? (
                       <>

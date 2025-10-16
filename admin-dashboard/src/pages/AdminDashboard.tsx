@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSupabaseData, formatCurrency, formatDate } from '../contexts/SupabaseDataContext';
+import { useSupabaseData } from '../contexts/SupabaseDataContext';
+import { formatCurrency, formatDate } from '../lib/utils';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { supabase } from '../lib/supabase';
 import MessengerOrderTracking from '../components/MessengerOrderTracking';
+import NotificationsPage from '../components/NotificationsPage';
 import { 
   Users, 
   Calendar, 
@@ -42,7 +44,9 @@ import {
   Shirt,
   MessageCircle,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  Send,
+  X
 } from 'lucide-react';
 
 // Custom CSS for hiding scrollbars
@@ -110,6 +114,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [showChatInterface, setShowChatInterface] = useState(false);
   
   // Settings state management
   const [settings, setSettings] = useState({
@@ -532,31 +538,31 @@ export default function AdminDashboard() {
       </div>
 
       {/* Mobile Card View */}
-      <div className="block sm:hidden space-y-3">
+      <div className="block sm:hidden space-y-4">
         {filteredBookings.map((booking) => (
-          <div key={booking.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate leading-tight">
+          <div key={booking.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-5">
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex-1 min-w-0 pr-3">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white leading-tight mb-1">
                   {booking.userName}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400 break-words">
                   {booking.userEmail}
                 </p>
               </div>
               <select
                 value={booking.status}
                 onChange={(e) => updateBookingStatus(booking.id, e.target.value)}
-                className={`ml-2 px-2 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${
+                className={`px-3 py-2 text-sm rounded-lg border-0 focus:ring-2 focus:ring-blue-500 min-h-[44px] min-w-[120px] ${
                   booking.status === 'completed'
-                    ? 'bg-green-100 text-green-800'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                     : booking.status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
+                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                     : booking.status === 'in_progress'
-                    ? 'bg-blue-100 text-blue-800'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                     : booking.status === 'confirmed'
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-red-100 text-red-800'
+                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                 }`}
               >
                 <option value="pending">Pending</option>
@@ -567,43 +573,46 @@ export default function AdminDashboard() {
               </select>
             </div>
             
-            <div className="space-y-3 mb-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Service:</span>
-                <span className="text-sm text-gray-900 dark:text-white font-medium">{booking.service}</span>
+            <div className="space-y-4 mb-5">
+              <div className="flex justify-between items-start">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[80px]">Service:</span>
+                <span className="text-sm text-gray-900 dark:text-white font-medium text-right flex-1 ml-3">{booking.service}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Date:</span>
-                <span className="text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</span>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[80px]">Date:</span>
+                <span className="text-sm text-gray-900 dark:text-white text-right">{formatDate(booking.date)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Time:</span>
-                <span className="text-sm text-gray-900 dark:text-white">{booking.time}</span>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[80px]">Time:</span>
+                <span className="text-sm text-gray-900 dark:text-white text-right">{booking.time}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Amount:</span>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(booking.amount)}</span>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[80px]">Amount:</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-white text-right">{formatCurrency(booking.amount)}</span>
               </div>
               {booking.address && (
                 <div className="flex justify-between items-start">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Address:</span>
-                  <span className="text-xs text-gray-900 dark:text-white text-right ml-2">{booking.address}</span>
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400 min-w-[80px]">Address:</span>
+                  <span className="text-sm text-gray-900 dark:text-white text-right flex-1 ml-3 break-words">{booking.address}</span>
                 </div>
               )}
             </div>
             
-            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-              <button className="p-3 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+            <div className="flex items-center justify-center space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <button className="flex-1 flex items-center justify-center space-x-2 p-3 text-blue-600 hover:text-blue-900 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[48px]">
                 <Eye className="w-5 h-5" />
+                <span className="text-sm font-medium">View</span>
               </button>
-              <button className="p-3 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+              <button className="flex-1 flex items-center justify-center space-x-2 p-3 text-green-600 hover:text-green-900 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 min-h-[48px]">
                 <Edit className="w-5 h-5" />
+                <span className="text-sm font-medium">Edit</span>
               </button>
               <button 
                 onClick={() => handleDeleteBooking(booking.id)}
-                className="p-3 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="flex-1 flex items-center justify-center space-x-2 p-3 text-red-600 hover:text-red-900 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 min-h-[48px]"
               >
                 <Trash2 className="w-5 h-5" />
+                <span className="text-sm font-medium">Delete</span>
               </button>
             </div>
           </div>
@@ -851,10 +860,73 @@ export default function AdminDashboard() {
             </tbody>
             </table>
           </div>
-        </div>
       </div>
-    );
-  };
+
+      {/* Chat Interface Modal */}
+      {showChatInterface && selectedTicket && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl h-[85vh] sm:h-[70vh] flex flex-col max-h-screen">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b dark:border-gray-700 flex-shrink-0">
+              <div className="min-w-0 flex-1 mr-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
+                  Chat: #{selectedTicket.ticket_number}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{selectedTicket.subject}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowChatInterface(false);
+                  setSelectedTicket(null);
+                }}
+                className="p-2 sm:p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg touch-manipulation flex-shrink-0"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="flex-1 p-3 sm:p-4 overflow-y-auto min-h-0">
+              <div className="space-y-3 sm:space-y-4">
+                {state.supportMessages
+                  .filter(msg => msg.ticket_id === selectedTicket.id)
+                  .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                  .map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[85%] sm:max-w-xs px-3 sm:px-4 py-2 sm:py-3 rounded-lg ${
+                          message.sender_type === 'admin'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                        }`}
+                      >
+                        <p className="text-sm sm:text-base break-words">{message.message}</p>
+                        <span className="text-xs opacity-75 block mt-1">
+                          {formatDate(message.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+            <div className="p-3 sm:p-4 border-t dark:border-gray-700 flex-shrink-0">
+              <div className="flex space-x-2 sm:space-x-3">
+                <input
+                  type="text"
+                  placeholder="Type your message..."
+                  className="flex-1 p-3 sm:p-4 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white touch-manipulation"
+                />
+                <button className="px-3 sm:px-4 py-3 sm:py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 touch-manipulation flex-shrink-0">
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
   const renderLiveMessages = () => {
     // Get user info for tickets
@@ -921,7 +993,14 @@ export default function AdminDashboard() {
                 const latestMessage = getLatestMessage(ticket.id);
                 
                 return (
-                  <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr 
+                    key={ticket.id} 
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => {
+                      setSelectedTicket(ticket);
+                      setShowChatInterface(true);
+                    }}
+                  >
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       <div className="min-w-0">
                         <div className="flex items-center space-x-2">
@@ -1025,6 +1104,51 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+    );
+  };
+
+  const renderNotifications = () => {
+    const handleNotificationClick = (notification: any) => {
+      // Mark notification as read
+      handleMarkAsRead(notification.id);
+      
+      // Route to relevant page based on notification type
+      switch (notification.type) {
+        case 'booking':
+          setActiveTab('bookings');
+          break;
+        case 'payment':
+          setActiveTab('payments');
+          break;
+        case 'user':
+          setActiveTab('users');
+          break;
+        case 'complaint':
+        case 'support':
+          setActiveTab('contacts');
+          break;
+        case 'review':
+          setActiveTab('reviews');
+          break;
+        case 'delivery':
+          setActiveTab('delivery');
+          break;
+        case 'laundry':
+          setActiveTab('laundry');
+          break;
+        default:
+          setActiveTab('overview');
+      }
+    };
+
+    return (
+      <NotificationsPage
+        notifications={state.adminNotifications || []}
+        realTimeConnected={state.realTimeConnected}
+        onNotificationClick={handleNotificationClick}
+        onDeleteNotification={handleDeleteNotification}
+        onMarkAsRead={handleMarkAsRead}
+      />
     );
   };
 
@@ -1289,187 +1413,7 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const renderComplaints = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">User Complaints Management</h2>
-          <p className="text-gray-600">Monitor and resolve customer complaints</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Export Report
-          </button>
-        </div>
-      </div>
 
-      {/* Complaints Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Open Complaints</p>
-              <p className="text-2xl font-bold text-gray-900">{state.userComplaints.filter(c => c.status === 'new').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">In Progress</p>
-              <p className="text-2xl font-bold text-gray-900">{state.userComplaints.filter(c => c.status === 'investigating').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Resolved</p>
-              <p className="text-2xl font-bold text-gray-900">{state.userComplaints.filter(c => c.status === 'resolved').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">This Month</p>
-              <p className="text-2xl font-bold text-gray-900">{state.userComplaints.filter(c => new Date(c.created_at).getMonth() === new Date().getMonth()).length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Complaints Table */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <div className="p-6 border-b">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Complaints</h3>
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search complaints..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">All Status</option>
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="resolved">Resolved</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {state.userComplaints.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center">
-                      <AlertTriangle className="w-12 h-12 text-gray-300 mb-4" />
-                      <p className="text-lg font-medium">No complaints found</p>
-                      <p className="text-sm">Great! No customer complaints to address</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                state.userComplaints.map((complaint) => (
-                  <tr key={complaint.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{complaint.customerName}</div>
-                        <div className="text-sm text-gray-500">{complaint.customerEmail}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">{complaint.subject}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        complaint.complaint_type === 'service_quality'
-                          ? 'bg-red-100 text-red-800'
-                          : complaint.complaint_type === 'billing'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : complaint.complaint_type === 'staff_behavior'
-                          ? 'bg-orange-100 text-orange-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {complaint.complaint_type.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        complaint.priority === 'high'
-                          ? 'bg-red-100 text-red-800'
-                          : complaint.priority === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {complaint.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        complaint.status === 'resolved'
-                          ? 'bg-green-100 text-green-800'
-                          : complaint.status === 'investigating'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {complaint.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(complaint.created_at)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900" title="View Details">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="text-green-600 hover:text-green-900" title="Respond">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button className="text-purple-600 hover:text-purple-900" title="Update Status">
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
 
   const renderOrderTracking = () => (
     <MessengerOrderTracking />
@@ -1515,7 +1459,8 @@ export default function AdminDashboard() {
                 type="text"
                 value={settings.businessName}
                 onChange={(e) => handleSettingsChange('businessName', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[48px] transition-colors"
+                placeholder="Enter business name"
               />
             </div>
             <div>
@@ -1526,7 +1471,8 @@ export default function AdminDashboard() {
                 type="email"
                 value={settings.contactEmail}
                 onChange={(e) => handleSettingsChange('contactEmail', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[48px] transition-colors"
+                placeholder="Enter contact email"
               />
             </div>
             <div>
@@ -1537,7 +1483,8 @@ export default function AdminDashboard() {
                 type="tel"
                 value={settings.phoneNumber}
                 onChange={(e) => handleSettingsChange('phoneNumber', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[48px] transition-colors"
+                placeholder="Enter phone number"
               />
             </div>
           </div>
@@ -1547,41 +1494,50 @@ export default function AdminDashboard() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Notification Settings</h3>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Notifications</label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Receive email alerts for new bookings</p>
+            <div className="flex items-center justify-between py-2">
+              <div className="flex-1 min-w-0 pr-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block">Email Notifications</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Receive email alerts for new bookings</p>
               </div>
-              <input 
-                type="checkbox" 
-                checked={settings.emailNotifications}
-                onChange={(e) => handleSettingsChange('emailNotifications', e.target.checked)}
-                className="rounded focus:ring-2 focus:ring-blue-500" 
-              />
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={settings.emailNotifications}
+                  onChange={(e) => handleSettingsChange('emailNotifications', e.target.checked)}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">SMS Notifications</label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Receive SMS alerts for urgent matters</p>
+            <div className="flex items-center justify-between py-2">
+              <div className="flex-1 min-w-0 pr-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block">SMS Notifications</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Receive SMS alerts for urgent matters</p>
               </div>
-              <input 
-                type="checkbox" 
-                checked={settings.smsNotifications}
-                onChange={(e) => handleSettingsChange('smsNotifications', e.target.checked)}
-                className="rounded focus:ring-2 focus:ring-blue-500" 
-              />
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={settings.smsNotifications}
+                  onChange={(e) => handleSettingsChange('smsNotifications', e.target.checked)}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Push Notifications</label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Browser push notifications</p>
+            <div className="flex items-center justify-between py-2">
+              <div className="flex-1 min-w-0 pr-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block">Push Notifications</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Browser push notifications</p>
               </div>
-              <input 
-                type="checkbox" 
-                checked={settings.pushNotifications}
-                onChange={(e) => handleSettingsChange('pushNotifications', e.target.checked)}
-                className="rounded focus:ring-2 focus:ring-blue-500" 
-              />
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={settings.pushNotifications}
+                  onChange={(e) => handleSettingsChange('pushNotifications', e.target.checked)}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
             </div>
             <div className="flex items-center justify-between">
               <div>
@@ -1618,7 +1574,8 @@ export default function AdminDashboard() {
                 onChange={(e) => handleSettingsChange('defaultServiceDuration', parseInt(e.target.value))}
                 min="1"
                 max="8"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 2"
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               />
             </div>
             <div>
@@ -1630,20 +1587,24 @@ export default function AdminDashboard() {
                 value={settings.bookingLeadTime}
                 onChange={(e) => handleSettingsChange('bookingLeadTime', parseInt(e.target.value))}
                 min="1"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 24"
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-confirm bookings</label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Automatically confirm new bookings</p>
+            <div className="flex items-center justify-between py-2">
+              <div className="flex-1 min-w-0 pr-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block">Auto-confirm bookings</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Automatically confirm new bookings</p>
               </div>
-              <input 
-                type="checkbox" 
-                checked={settings.autoConfirmBookings}
-                onChange={(e) => handleSettingsChange('autoConfirmBookings', e.target.checked)}
-                className="rounded focus:ring-2 focus:ring-blue-500" 
-              />
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={settings.autoConfirmBookings}
+                  onChange={(e) => handleSettingsChange('autoConfirmBookings', e.target.checked)}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
             </div>
           </div>
         </div>
@@ -1659,7 +1620,7 @@ export default function AdminDashboard() {
               <select 
                 value={settings.currency}
                 onChange={(e) => handleSettingsChange('currency', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white dark:bg-gray-700"
               >
                  <option value="USD">USD ($)</option>
                  <option value="EUR">EUR (€)</option>
@@ -1674,7 +1635,7 @@ export default function AdminDashboard() {
               <select 
                 value={settings.timeZone}
                 onChange={(e) => handleSettingsChange('timeZone', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white dark:bg-gray-700"
               >
                 <option value="America/New_York">Eastern Time</option>
                 <option value="America/Chicago">Central Time</option>
@@ -1682,35 +1643,38 @@ export default function AdminDashboard() {
                 <option value="America/Los_Angeles">Pacific Time</option>
               </select>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Maintenance Mode</label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Temporarily disable booking system</p>
+            <div className="flex items-center justify-between py-2">
+              <div className="flex-1 min-w-0 pr-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block">Maintenance Mode</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Temporarily disable booking system</p>
               </div>
-              <input 
-                type="checkbox" 
-                checked={settings.maintenanceMode}
-                onChange={(e) => handleSettingsChange('maintenanceMode', e.target.checked)}
-                className="rounded focus:ring-2 focus:ring-blue-500" 
-              />
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={settings.maintenanceMode}
+                  onChange={(e) => handleSettingsChange('maintenanceMode', e.target.checked)}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div>
+              </label>
             </div>
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-end gap-3">
+      <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
         <button 
           onClick={handleResetSettings}
           disabled={isSettingsLoading}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          className="px-6 py-3 text-base border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 min-h-[48px] font-medium"
         >
           Reset to Defaults
         </button>
         <button 
           onClick={handleSaveSettings}
           disabled={isSettingsLoading}
-          className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="flex items-center justify-center px-6 py-3 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[48px] font-medium"
         >
           {isSettingsLoading ? (
             <>
@@ -2070,158 +2034,7 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const renderNotifications = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h2>
-          <p className="text-gray-600 dark:text-gray-400">Manage admin notifications and alerts</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-            state.realTimeConnected 
-              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-          }`}>
-            {state.realTimeConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-            <span>{state.realTimeConnected ? 'Live' : 'Offline'}</span>
-          </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <RefreshCw className="w-4 h-4" />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
 
-      {/* Notification Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
-              <Bell className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Unread Notifications</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{state.stats.unreadNotifications}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <MessageCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Notifications</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{state.adminNotifications.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-              <Activity className="w-6 h-6 text-green-600 dark:text-green-400" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Today's Alerts</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {state.adminNotifications.filter(notification => {
-                  const today = new Date().toDateString();
-                  return new Date(notification.created_at).toDateString() === today;
-                }).length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Notifications List */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Notifications</h3>
-        </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {state.adminNotifications.filter(n => n.status !== 'archived').length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <div className="flex flex-col items-center">
-                <Bell className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">No notifications found</p>
-              </div>
-            </div>
-          ) : (
-            state.adminNotifications
-              .filter(n => n.status !== 'archived')
-              .slice(0, 10)
-              .map((notification) => (
-              <div key={notification.id} className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                notification.status === 'unread' ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-              }`}>
-                <div className="flex items-start space-x-3">
-                  <div className={`p-2 rounded-lg ${
-                    notification.type === 'booking'
-                      ? 'bg-blue-100 dark:bg-blue-900'
-                      : notification.type === 'payment'
-                      ? 'bg-green-100 dark:bg-green-900'
-                      : notification.type === 'complaint'
-                      ? 'bg-red-100 dark:bg-red-900'
-                      : 'bg-gray-100 dark:bg-gray-700'
-                  }`}>
-                    {notification.type === 'booking' && <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
-                    {notification.type === 'payment' && <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />}
-                    {notification.type === 'complaint' && <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />}
-                    {notification.type === 'system' && <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{notification.title}</p>
-                      <div className="flex items-center space-x-2">
-                        {notification.status === 'unread' && (
-                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        )}
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {formatDate(notification.created_at)}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{notification.message}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        notification.priority === 'high'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          : notification.priority === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                      }`}>
-                        {notification.priority} priority
-                      </span>
-                      <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                        {notification.status === 'unread' && (
-                          <button 
-                            onClick={() => handleMarkAsRead(notification.id)}
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 text-xs transition-colors px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          >
-                            Mark as read
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => handleDeleteNotification(notification.id)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 text-xs transition-colors px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                        >
-                          Archive
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   const renderReviews = () => (
     <div className="space-y-6">
@@ -2412,8 +2225,16 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-3">
-              <button className="p-2.5 sm:p-2 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center">
+              <button 
+                onClick={() => setActiveTab('notifications')}
+                className="relative p-2.5 sm:p-2 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              >
                 <Bell className="w-5 h-5 sm:w-5 sm:h-5" />
+                {state.adminNotifications && state.adminNotifications.filter(n => n.status === 'unread').length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {state.adminNotifications.filter(n => n.status === 'unread').length}
+                  </span>
+                )}
               </button>
               <button 
                 onClick={handleLogout}
@@ -2438,40 +2259,39 @@ export default function AdminDashboard() {
               
               {/* Mobile: Comprehensive grid navigation */}
               <div className="lg:hidden">
-                <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto scrollbar-hide">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-80 overflow-y-auto scrollbar-hide">
                   {[
                     { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
                     { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
                     { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
                     { id: 'contacts', label: 'Messages', icon: MessageSquare, color: 'from-orange-500 to-orange-600' },
+                    { id: 'notifications', label: 'Alerts', icon: Bell, color: 'from-red-500 to-red-600' },
                     { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
                     { id: 'subscriptions', label: 'Subs', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
                     { id: 'laundry', label: 'Laundry', icon: Shirt, color: 'from-teal-500 to-teal-600' },
                     { id: 'tracking', label: 'Tracking', icon: Package, color: 'from-indigo-500 to-indigo-600' },
                     { id: 'delivery', label: 'Delivery', icon: Truck, color: 'from-indigo-500 to-indigo-600' },
-                    { id: 'notifications', label: 'Alerts', icon: Bell, color: 'from-pink-500 to-pink-600' },
                     { id: 'reviews', label: 'Reviews', icon: Star, color: 'from-yellow-500 to-yellow-600' },
-                    { id: 'complaints', label: 'Issues', icon: AlertTriangle, color: 'from-red-500 to-red-600' },
                   ].map((item) => (
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`flex flex-col items-center space-y-1 p-2 rounded-lg text-center transition-all duration-200 min-h-[70px] ${
+                      className={`flex flex-col items-center justify-center space-y-2 p-3 rounded-xl text-center transition-all duration-200 min-h-[80px] touch-manipulation active:scale-95 ${
                         activeTab === item.id
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 scale-95'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-2 border-blue-200 dark:border-blue-700 shadow-md'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-transparent hover:border-gray-200 dark:hover:border-gray-600'
                       }`}
                     >
-                      <div className={`p-1.5 rounded-md ${
+                      <div className={`p-2 rounded-lg transition-all duration-200 ${
                         activeTab === item.id 
-                          ? `bg-gradient-to-r ${item.color}` 
+                          ? `bg-gradient-to-r ${item.color} shadow-sm` 
                           : 'bg-gray-100 dark:bg-gray-700'
                       }`}>
-                        <item.icon className={`w-4 h-4 ${
+                        <item.icon className={`w-5 h-5 ${
                           activeTab === item.id ? 'text-white' : 'text-gray-600 dark:text-gray-400'
                         }`} />
                       </div>
-                      <span className="text-xs font-medium leading-tight">{item.label}</span>
+                      <span className="text-xs font-medium leading-tight px-1">{item.label}</span>
                     </button>
                   ))}
                 </div>
@@ -2484,14 +2304,13 @@ export default function AdminDashboard() {
                   { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
                   { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
                   { id: 'contacts', label: 'Contact Messages', icon: MessageSquare, color: 'from-orange-500 to-orange-600' },
+                  { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-red-500 to-red-600' },
                   { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
                   { id: 'subscriptions', label: 'Subscriptions', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
                   { id: 'laundry', label: 'Laundry Orders', icon: Shirt, color: 'from-teal-500 to-teal-600' },
                   { id: 'tracking', label: 'Order Tracking', icon: Package, color: 'from-indigo-500 to-indigo-600' },
                   { id: 'delivery', label: 'Pickup & Delivery', icon: Truck, color: 'from-indigo-500 to-indigo-600' },
-                  { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-pink-500 to-pink-600' },
                   { id: 'reviews', label: 'Reviews & Feedback', icon: Star, color: 'from-yellow-500 to-yellow-600' },
-                  { id: 'complaints', label: 'User Complaints', icon: AlertTriangle, color: 'from-red-500 to-red-600' },
                 ].map((item) => (
                   <li key={item.id}>
                     <button
@@ -2526,13 +2345,12 @@ export default function AdminDashboard() {
         {activeTab === 'bookings' && renderBookings()}
         {activeTab === 'users' && renderUsers()}
         {activeTab === 'contacts' && renderLiveMessages()}
+        {activeTab === 'notifications' && renderNotifications()}
         {activeTab === 'payments' && renderPayments()}
         {activeTab === 'subscriptions' && renderSubscriptions()}
         {activeTab === 'laundry' && renderLaundryOrders()}
         {activeTab === 'delivery' && renderDelivery()}
-        {activeTab === 'notifications' && renderNotifications()}
         {activeTab === 'reviews' && renderReviews()}
-        {activeTab === 'complaints' && renderComplaints()}
         {activeTab === 'tracking' && renderOrderTracking()}
             </div>
           </div>

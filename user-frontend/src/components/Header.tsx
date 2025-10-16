@@ -120,14 +120,14 @@ const Header = () => {
           <div className="md:hidden">
             <Button
               variant="ghost"
-              size="sm"
+              size="lg"
               onClick={toggleMobileMenu}
-              className="p-2"
+              className="p-3 h-12 w-12 touch-manipulation"
             >
               {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
+                <X className="h-7 w-7" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <Menu className="h-7 w-7" />
               )}
             </Button>
           </div>
@@ -135,66 +135,66 @@ const Header = () => {
 
         {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border shadow-lg">
-            <nav className="container mx-auto px-4 py-4 space-y-4">
+          <div className="md:hidden absolute top-full left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border shadow-lg z-40">
+            <nav className="container mx-auto px-4 py-6 space-y-2 safe-area-inset-bottom">
               <Link 
                 to="/" 
-                className="block text-foreground hover:text-primary transition-colors py-2"
+                className="block text-foreground hover:text-primary transition-colors py-3 px-2 rounded-lg hover:bg-muted/50 touch-manipulation"
                 onClick={closeMobileMenu}
               >
                 Home
               </Link>
               <Link 
                 to="/services" 
-                className="block text-foreground hover:text-primary transition-colors py-2"
+                className="block text-foreground hover:text-primary transition-colors py-3 px-2 rounded-lg hover:bg-muted/50 touch-manipulation"
                 onClick={closeMobileMenu}
               >
                 Services
               </Link>
               <Link 
                 to="/about" 
-                className="block text-foreground hover:text-primary transition-colors py-2"
+                className="block text-foreground hover:text-primary transition-colors py-3 px-2 rounded-lg hover:bg-muted/50 touch-manipulation"
                 onClick={closeMobileMenu}
               >
                 About
               </Link>
               <Link 
                 to="/gallery" 
-                className="block text-foreground hover:text-primary transition-colors py-2"
+                className="block text-foreground hover:text-primary transition-colors py-3 px-2 rounded-lg hover:bg-muted/50 touch-manipulation"
                 onClick={closeMobileMenu}
               >
                 Gallery
               </Link>
               <Link 
                 to="/faq" 
-                className="block text-foreground hover:text-primary transition-colors py-2"
+                className="block text-foreground hover:text-primary transition-colors py-3 px-2 rounded-lg hover:bg-muted/50 touch-manipulation"
                 onClick={closeMobileMenu}
               >
                 FAQ
               </Link>
               <Link 
                 to="/blog" 
-                className="block text-foreground hover:text-primary transition-colors py-2"
+                className="block text-foreground hover:text-primary transition-colors py-3 px-2 rounded-lg hover:bg-muted/50 touch-manipulation"
                 onClick={closeMobileMenu}
               >
                 Blog
               </Link>
               <Link 
                 to="/contact" 
-                className="block text-foreground hover:text-primary transition-colors py-2"
+                className="block text-foreground hover:text-primary transition-colors py-3 px-2 rounded-lg hover:bg-muted/50 touch-manipulation"
                 onClick={closeMobileMenu}
               >
                 Contact
               </Link>
               
               {/* Mobile Auth Buttons */}
-              <div className="pt-4 space-y-3 border-t border-border">
+              <div className="pt-6 space-y-3 border-t border-border mt-4">
                 {state.isAuthenticated ? (
                   <Link to="/dashboard" onClick={closeMobileMenu}>
                     <Button 
                       variant="default" 
-                      size="sm" 
-                      className="w-full bg-gradient-primary"
+                      size="lg" 
+                      className="w-full bg-gradient-primary h-12 text-base font-medium touch-manipulation"
                     >
                       Dashboard
                     </Button>
@@ -204,8 +204,8 @@ const Header = () => {
                     <Link to="/login" onClick={closeMobileMenu}>
                       <Button 
                         variant="outline" 
-                        size="sm"
-                        className="w-full"
+                        size="lg"
+                        className="w-full h-12 text-base font-medium touch-manipulation"
                       >
                         Login
                       </Button>
@@ -213,8 +213,8 @@ const Header = () => {
                     <Link to="/signup" onClick={closeMobileMenu}>
                       <Button 
                         variant="default" 
-                        size="sm" 
-                        className="w-full bg-gradient-primary"
+                        size="lg" 
+                        className="w-full bg-gradient-primary h-12 text-base font-medium touch-manipulation"
                       >
                         Sign Up
                       </Button>

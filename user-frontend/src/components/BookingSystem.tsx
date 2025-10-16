@@ -350,9 +350,9 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
           <p className="text-sm text-gray-600">{selectedService?.description}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
               {bookingData.service === 'house' ? 'Number of Rooms' : 
                bookingData.service === 'office' ? 'Area (sqm)' :
                bookingData.service === 'laundry' ? 'Weight (kg)' : 'Quantity'}
@@ -369,16 +369,16 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
                   setBookingData(prev => ({ ...prev, area: value }));
                 }
               }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[48px] transition-all duration-200"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Service Frequency</label>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Service Frequency</label>
             <select
               value={bookingData.frequency}
               onChange={(e) => setBookingData(prev => ({ ...prev, frequency: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[48px] transition-all duration-200"
             >
               <option value="one-time">One-time Service</option>
               <option value="weekly">Weekly (15% discount)</option>
@@ -389,10 +389,10 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">Add-on Services</label>
+          <label className="block text-sm font-medium text-gray-700 mb-4">Add-on Services</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {addOns.map((addOn) => (
-              <label key={addOn.id} className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+              <label key={addOn.id} className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-all duration-200 min-h-[56px]">
                 <input
                   type="checkbox"
                   checked={bookingData.addOns.includes(addOn.id)}
@@ -452,7 +452,7 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
           <select
             value={bookingData.time}
             onChange={(e) => setBookingData(prev => ({ ...prev, time: e.target.value }))}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[48px] transition-all duration-200"
           >
             <option value="">Select time</option>
             {timeSlots.map((time) => (
@@ -463,14 +463,14 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-3">
           <MapPin className="w-4 h-4 inline mr-2" />
           Service Location
         </label>
         <select
           value={bookingData.location}
           onChange={(e) => setBookingData(prev => ({ ...prev, location: e.target.value }))}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[48px] transition-all duration-200"
         >
           <option value="">Select location</option>
           <option value="lagos-island">Lagos Island</option>
@@ -492,9 +492,9 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
     <div className="space-y-6">
       <h3 className="text-xl sm:text-2xl font-bold text-center text-gray-800 mb-6">Contact Information</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
             <User className="w-4 h-4 inline mr-2" />
             Full Name
           </label>
@@ -505,13 +505,13 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
               ...prev,
               customerInfo: { ...prev.customerInfo, name: e.target.value }
             }))}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[48px] transition-all duration-200"
             placeholder="Enter your full name"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
             <Phone className="w-4 h-4 inline mr-2" />
             Phone Number
           </label>
@@ -522,14 +522,14 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
               ...prev,
               customerInfo: { ...prev.customerInfo, phone: e.target.value }
             }))}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[48px] transition-all duration-200"
             placeholder="+234 xxx xxx xxxx"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-3">
           <Mail className="w-4 h-4 inline mr-2" />
           Email Address
         </label>
@@ -540,7 +540,7 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
             ...prev,
             customerInfo: { ...prev.customerInfo, email: e.target.value }
           }))}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[48px] transition-all duration-200"
           placeholder="your.email@example.com"
         />
       </div>

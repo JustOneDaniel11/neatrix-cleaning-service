@@ -24,37 +24,58 @@ import { supabase } from '../lib/supabase';
 
 interface Order {
   id: string;
+  user_id?: string;
   customer_name: string;
   customer_email: string;
   service_name: string;
+  service_type?: string;
   pickup_option: string;
   tracking_stage: string;
   total_amount: number;
+  amount?: number;
+  status?: string;
+  phone?: string;
+  address?: string;
   created_at: string;
   updated_at: string;
   stage_timestamps?: { [key: string]: string };
+  stages?: string[];
 }
 
 interface OrderDetailsProps {
   order: Order | null;
-  formatCurrency: (amount: number) => string;
-  formatDate: (date: string) => string;
   onOrderUpdate?: () => void;
-  onShowToast?: (message: string, type: 'success' | 'error' | 'info') => void;
+  showToast?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 const OrderDetails: React.FC<OrderDetailsProps> = ({
   order,
-  formatCurrency,
-  formatDate,
   onOrderUpdate,
-  onShowToast
+  showToast
 }) => {
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingDelivery, setIsEditingDelivery] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Default formatters if not provided
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
   const [tempPrice, setTempPrice] = useState('');
   const [tempDeliveryType, setTempDeliveryType] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
 
   // Stage definitions - matching the original dry cleaning workflow
   const getTrackingStages = (pickupOption: string) => {
@@ -151,7 +172,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
 
         if (error) throw error;
 
-        onShowToast?.('Order details updated successfully', 'success');
+        showToast?.('Order details updated successfully', 'success');
         onOrderUpdate?.();
       }
 
@@ -159,7 +180,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
       setIsEditingDelivery(false);
     } catch (error) {
       console.error('Error updating order:', error);
-      onShowToast?.('Failed to update order details', 'error');
+      showToast?.('Failed to update order details', 'error');
     } finally {
       setIsUpdating(false);
     }
@@ -171,11 +192,19 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
     
     if (!order || !newStage) {
       console.log('🔥 Early return - order or newStage missing:', { order: !!order, newStage });
+      showToast?.('❌ Missing order or stage information', 'error');
       return;
     }
 
     try {
       setIsUpdating(true);
+      
+      // Check if supabase client is available
+      if (!supabase) {
+        console.error('❌ Supabase client not available');
+        showToast?.('❌ Database connection not available', 'error');
+        return;
+      }
       
       const now = new Date().toISOString();
       const currentTimestamps = order.stage_timestamps || {};
@@ -189,13 +218,16 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
         currentStage: order.tracking_stage,
         newStage,
         pickupOption: order.pickup_option,
-        updatedTimestamps
+        updatedTimestamps,
+        orderIdType: typeof order.id,
+        orderIdLength: order.id?.length
       });
 
+      // Full update with stage_timestamps
       const updateData: any = {
         tracking_stage: newStage,
-        stage_timestamps: updatedTimestamps,
-        updated_at: now
+        updated_at: now,
+        stage_timestamps: updatedTimestamps
       };
 
       // Ensure pickup_option is set if missing
@@ -204,6 +236,9 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
         console.log('📝 Also setting pickup_option to: pickup');
       }
 
+      console.log('📝 Final update data:', updateData);
+      console.log('📝 Updating record with ID:', order.id);
+
       const { data, error } = await supabase
         .from('bookings')
         .update(updateData)
@@ -211,17 +246,62 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
         .select();
 
       if (error) {
-        console.error('Supabase update error:', error);
+        console.error('❌ Supabase update error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        showToast?.(`❌ Database error: ${error.message}`, 'error');
         throw error;
       }
 
-      console.log('Update successful, data:', data);
+      // Note: Due to RLS policies, update may return empty array even when successful
+      // We'll verify the update by checking if no error occurred
+      if (!data || data.length === 0) {
+        console.log('ℹ️ Update returned no data (likely due to RLS policy), verifying...');
+        
+        // Verify the update was successful by fetching the record
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('bookings')
+          .select('id, tracking_stage, updated_at')
+          .eq('id', order.id)
+          .single();
+        
+        if (verifyError) {
+          console.error('❌ Failed to verify update:', verifyError);
+          showToast?.('⚠️ Order not found or not updated', 'error');
+          return;
+        }
+        
+        if (verifyData.tracking_stage === newStage) {
+          console.log('✅ Update verified successful via re-fetch');
+        } else {
+          console.warn('⚠️ Update verification failed - stage not updated');
+          showToast?.('⚠️ Order not found or not updated', 'error');
+          return;
+        }
+      } else {
+        console.log('✅ Update successful, data:', data);
+      }
 
-      onShowToast?.(`🚀 Order moved to: ${getStageLabel(newStage)}`, 'success');
+      showToast?.(`🚀 Order moved to: ${getStageLabel(newStage)}`, 'success');
       onOrderUpdate?.();
     } catch (error) {
-      console.error('Error updating tracking stage:', error);
-      onShowToast?.('❌ Failed to update order stage', 'error');
+      console.error('❌ Error updating tracking stage:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          showToast?.('❌ Network error - check your connection', 'error');
+        } else if (error.message.includes('permission')) {
+          showToast?.('❌ Permission denied - contact administrator', 'error');
+        } else {
+          showToast?.(`❌ Update failed: ${error.message}`, 'error');
+        }
+      } else {
+        showToast?.('❌ Failed to update order stage', 'error');
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -385,9 +465,9 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
             </div>
           </div>
 
-          {/* Advanced Progress Tracker */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 sm:p-6 border border-purple-100 mt-6 sm:mt-8">
-            <div className="flex items-center justify-between mb-6">
+          {/* Advanced Progress Tracker - Mobile Optimized */}
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3 sm:p-6 border border-purple-100 mt-4 sm:mt-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
               <h4 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center">
                 <Package className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-600" />
                 Order Progress
@@ -397,73 +477,160 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
               </div>
             </div>
 
-            {/* Visual Progress Bar */}
-            <div className="relative mb-8">
-              {/* Background Line */}
-              <div className="absolute top-8 left-6 right-6 h-0.5 bg-gray-200 rounded-full"></div>
-              
-              {/* Progress Line */}
-              <div 
-                className="absolute top-8 h-0.5 bg-gradient-to-r from-green-400 to-purple-500 rounded-full transition-all duration-1000 ease-out"
-                style={{ 
-                  left: '1.5rem',
-                  width: `calc(${Math.max(0, ((currentStageIndex + 1) / stages.length) * 100)}% - 3rem)`,
-                  maxWidth: 'calc(100% - 3rem)'
-                }}
-              ></div>
+            {/* Mobile-First Progress Bar - Fixed Layout */}
+            <div className="mb-6 sm:mb-8 lg:mb-10">
+              {/* Progress Percentage Bar */}
+              <div className="mb-4 sm:mb-6 lg:mb-8">
+                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3 lg:h-4">
+                  <div 
+                    className="bg-gradient-to-r from-green-400 to-purple-500 h-2 sm:h-3 lg:h-4 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${((currentStageIndex + 1) / stages.length) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs sm:text-sm lg:text-base text-gray-500 mt-2 lg:mt-3">
+                  <span>Started</span>
+                  <span className="font-medium text-purple-600">
+                    {Math.round(((currentStageIndex + 1) / stages.length) * 100)}%
+                  </span>
+                  <span>Complete</span>
+                </div>
+              </div>
 
-              {/* Stage Nodes */}
-              <div className="flex justify-between items-center relative">
+              {/* Stage Timeline - Tablet Optimized */}
+              <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                 {stages.map((stage, index) => {
                   const isCompleted = index <= currentStageIndex;
                   const isCurrent = index === currentStageIndex;
+                  const isUpcoming = index > currentStageIndex;
 
                   return (
-                    <div key={stage} className="flex flex-col items-center group relative">
-                      {/* Stage Node */}
+                    <div key={stage} className="flex items-center space-x-3 sm:space-x-4 lg:space-x-6">
+                      {/* Stage Node - Tablet Enhanced */}
                       <div className={`
-                        relative w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 transform hover:scale-110 cursor-pointer
+                        relative w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16 rounded-full border-2 lg:border-3 flex items-center justify-center transition-all duration-300 flex-shrink-0
                         ${isCompleted 
-                          ? 'bg-green-500 border-green-500 text-white shadow-lg' 
+                          ? 'bg-green-500 border-green-500 text-white shadow-lg lg:shadow-xl' 
                           : isCurrent 
-                            ? 'bg-purple-500 border-purple-500 text-white shadow-lg shadow-purple-500/50 animate-pulse' 
-                            : 'bg-gray-100 border-gray-300 text-gray-400'
+                            ? 'bg-purple-500 border-purple-500 text-white shadow-lg shadow-purple-500/50 lg:shadow-xl lg:shadow-purple-500/60' 
+                            : 'bg-gray-100 border-gray-300 text-gray-400 lg:bg-gray-50'
                         }
                       `}>
                         {isCompleted ? (
-                          <CheckCircle className="w-5 h-5 sm:w-7 sm:h-7" />
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-8 lg:h-8" />
                         ) : isCurrent ? (
-                          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full animate-ping"></div>
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 bg-white rounded-full animate-pulse"></div>
                         ) : (
-                          <div className="w-4 h-4 sm:w-6 sm:h-6">
+                          <div className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6">
                             {getStageIcon(stage)}
                           </div>
                         )}
                         
-                        {/* Glow effect for current stage */}
+                        {/* Current stage indicator - Enhanced for tablet */}
                         {isCurrent && (
-                          <div className="absolute inset-0 rounded-full bg-purple-500 opacity-30 animate-ping"></div>
+                          <div className="absolute -top-1 -right-1 w-3 h-3 lg:w-4 lg:h-4 bg-yellow-400 rounded-full animate-ping"></div>
                         )}
                       </div>
 
-                      {/* Stage Label */}
-                      <div className="mt-3 sm:mt-4 text-center max-w-20 sm:max-w-24">
-                        <p className={`text-xs sm:text-sm font-medium transition-colors duration-300 leading-tight ${
+                      {/* Stage Content - Tablet Enhanced */}
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-medium text-sm sm:text-base lg:text-lg transition-colors duration-300 ${
                           isCompleted 
                             ? 'text-green-700' 
                             : isCurrent 
                               ? 'text-purple-700' 
                               : 'text-gray-500'
                         }`}>
-                          {getStageLabel(stage)}
-                        </p>
+                          {/* Responsive labels for different screen sizes */}
+                          <span className="block sm:hidden">
+                            {stage === 'order_placed' ? 'Order Placed' :
+                             stage === 'confirmed' ? 'Confirmed' :
+                             stage === 'in_progress' ? 'In Progress' :
+                             stage === 'ready_for_pickup' ? 'Ready for Pickup' :
+                             stage === 'out_for_delivery' ? 'Out for Delivery' :
+                             stage === 'delivered' ? 'Delivered' :
+                             getStageLabel(stage)}
+                          </span>
+                          <span className="hidden sm:block lg:hidden">
+                            {getStageLabel(stage)}
+                          </span>
+                          {/* Enhanced labels for tablets */}
+                          <span className="hidden lg:block">
+                            {stage === 'order_placed' ? '📋 Order Successfully Placed' :
+                             stage === 'confirmed' ? '✅ Order Confirmed & Scheduled' :
+                             stage === 'in_progress' ? '🔄 Service Currently in Progress' :
+                             stage === 'ready_for_pickup' ? '📦 Ready for Customer Pickup' :
+                             stage === 'out_for_delivery' ? '🚚 Out for Delivery to Customer' :
+                             stage === 'delivered' ? '🎉 Successfully Delivered' :
+                             getStageLabel(stage)}
+                          </span>
+                        </div>
+                        <div className={`text-xs sm:text-sm lg:text-base mt-1 lg:mt-2 ${
+                          isCompleted 
+                            ? 'text-green-600' 
+                            : isCurrent 
+                              ? 'text-purple-600' 
+                              : 'text-gray-400'
+                        }`}>
+                          {/* Enhanced status messages for tablets */}
+                          <span className="lg:hidden">
+                            {isCurrent && '🔄 Currently in progress'}
+                            {isCompleted && '✅ Completed'}
+                            {isUpcoming && '⏳ Pending'}
+                          </span>
+                          <span className="hidden lg:block">
+                            {isCurrent && '🔄 This stage is currently being processed'}
+                            {isCompleted && '✅ This stage has been completed successfully'}
+                            {isUpcoming && '⏳ This stage is pending and will begin soon'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Status Badge - Tablet Enhanced */}
+                      <div className="flex-shrink-0">
                         {isCurrent && (
-                          <p className="text-xs text-purple-600 mt-1">Current</p>
+                          <div className="bg-purple-100 text-purple-700 text-xs lg:text-sm font-medium px-2 py-1 lg:px-4 lg:py-2 rounded-full lg:rounded-lg">
+                            <span className="hidden sm:inline lg:hidden">CURRENT</span>
+                            <span className="sm:hidden lg:inline">NOW</span>
+                            <span className="hidden lg:inline">ACTIVE</span>
+                          </div>
+                        )}
+                        {isCompleted && (
+                          <div className="bg-green-100 text-green-700 text-xs lg:text-sm font-medium px-2 py-1 lg:px-4 lg:py-2 rounded-full lg:rounded-lg">
+                            <span className="hidden sm:inline lg:hidden">DONE</span>
+                            <span className="sm:hidden lg:inline">✓</span>
+                            <span className="hidden lg:inline">COMPLETED</span>
+                          </div>
+                        )}
+                        {isUpcoming && (
+                          <div className="bg-gray-100 text-gray-500 text-xs lg:text-sm font-medium px-2 py-1 lg:px-4 lg:py-2 rounded-full lg:rounded-lg">
+                            <span className="hidden sm:inline lg:hidden">NEXT</span>
+                            <span className="sm:hidden lg:inline">⏳</span>
+                            <span className="hidden lg:inline">UPCOMING</span>
+                          </div>
                         )}
                       </div>
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Tablet-specific progress summary */}
+              <div className="hidden lg:block mt-8 p-4 bg-gradient-to-r from-purple-50 to-green-50 rounded-lg border border-purple-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Progress Summary: {currentStageIndex + 1} of {stages.length} stages completed
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {currentStageIndex < stages.length - 1 ? (
+                      <>Next: {getStageLabel(stages[currentStageIndex + 1])}</>
+                    ) : (
+                      <>🎉 Order Complete!</>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
