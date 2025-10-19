@@ -10,6 +10,7 @@ const EmailVerificationSuccessPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { state } = useSupabaseData();
+  const errorDescription = searchParams.get('error_description');
   const [countdown, setCountdown] = useState(5);
 
   // Removed auto-redirect to allow manual navigation
@@ -46,28 +47,35 @@ const EmailVerificationSuccessPage = () => {
           <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
-                🎉 Email Verified Successfully!
+                {errorDescription 
+                  ? '❌ Confirmation failed or link expired. Request a new link from the app or contact support.' 
+                  : '✅ Email confirmed successfully! Welcome to Neatrix.'}
               </CardTitle>
               <p className="text-lg text-gray-600">
-                Welcome to CleanPro Services! Your account is now active.
+                {errorDescription ? (
+                  <>Error details: {errorDescription}</>
+                ) : 'Your account is now active.'}
               </p>
             </CardHeader>
 
             <CardContent className="space-y-6">
               {/* Welcome Message */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
-                  Your Account is Ready!
-                </h3>
-                <p className="text-gray-700 text-sm leading-relaxed">
-                  Thank you for verifying your email address. You now have full access to all CleanPro Services features, 
-                  including booking management, service history, and exclusive member benefits.
-                </p>
-              </div>
+              {!errorDescription && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                    Your Account is Ready!
+                  </h3>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    Thank you for verifying your email address. You now have full access to all Neatrix Professional Cleaning Services features, 
+                    including booking management, service history, and exclusive member benefits.
+                  </p>
+                </div>
+              )}
 
               {/* What's Next Section */}
-              <div className="space-y-4">
+              {!errorDescription && (
+                <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900 text-lg">What's Next?</h3>
                 
                 <div className="grid gap-4">
@@ -102,7 +110,7 @@ const EmailVerificationSuccessPage = () => {
                   </div>
                 </div>
               </div>
-
+              )}
               {/* Action Buttons */}
               <div className="space-y-3 pt-4">
                 {state.isAuthenticated ? (
