@@ -343,6 +343,42 @@
             .logo-container img {
                 height: 48px;
             }
+            .mobile-info-card {
+                display: block;
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 16px;
+                margin: 16px 0;
+                text-align: center;
+            }
+            .mobile-info-card .title {
+                font-size: 16px;
+                font-weight: 600;
+                color: #8b5cf6;
+                margin-bottom: 8px;
+            }
+            .mobile-info-card .text {
+                font-size: 14px;
+                color: #475569;
+                line-height: 1.6;
+            }
+            .mobile-info-card .links {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-top: 12px;
+            }
+            .mobile-info-card .link {
+                color: #8b5cf6;
+                text-decoration: none;
+                font-weight: 500;
+                font-size: 15px;
+                padding: 8px 0;
+            }
+            .mobile-info-card .link:hover {
+                text-decoration: underline;
+            }
         }
     </style>
 </head>
@@ -370,6 +406,18 @@
                 <a href="{{ .ConfirmationURL }}" class="cta-button">
                     Confirm My Email
                 </a>
+            </div>
+
+            <div class="mobile-info-card" style="display:none;">
+                <div class="title">🔒 Security Note</div>
+                <div class="text">This confirmation link will expire in 24 hours for your security. If you didn't create this account, you can safely ignore this email.</div>
+                <div class="title" style="margin-top:12px;">Need help? Contact contactneatrix@gmail.com</div>
+                <div class="text">We're here to help you get the most out of Neatrix.</div>
+                <div class="links">
+                    <a href="mailto:contactneatrix@gmail.com" class="link">contactneatrix@gmail.com</a>
+                    <a href="tel:+2349034842430" class="link">📞 +2349034842430</a>
+                    <a href="https://wa.me/2349034842430" class="link">WhatsApp Support</a>
+                </div>
             </div>
 
             <!-- Features -->
