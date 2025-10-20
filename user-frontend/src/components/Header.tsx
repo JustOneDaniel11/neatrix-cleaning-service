@@ -41,9 +41,10 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <img
-              src="/Neatrix_logo%20transparent.png"
+              src="/Neatrix_logo_transparent.png"
               alt="Neatrix Logo"
-              className="w-8 h-8 md:w-10 md:h-10 rounded object-cover"
+              className="h-8 w-auto md:h-10 max-w-[160px] select-none"
+              onError={(e) => { e.currentTarget.src = '/Neatrix_logo_transparent_white.png'; }}
             />
           </div>
 

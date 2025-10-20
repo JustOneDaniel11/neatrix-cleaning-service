@@ -83,6 +83,24 @@ async function generateConfirmationLink(email, redirectTo) {
   }
 }
 
+function buildHtmlFromOldTemplate(confirmLink) {
+  const templateFile = path.join(__dirname, 'user-frontend', 'src', 'email-templates', 'neatrix-signup-confirmation.html');
+  if (!fs.existsSync(templateFile)) {
+    return null;
+  }
+  try {
+    let html = fs.readFileSync(templateFile, 'utf8');
+    // Inject confirmation URL in all placeholders
+    html = html.replace(/\{\{\s*\.ConfirmationURL\s*\}\}/g, confirmLink);
+    // Swap logo src to use embedded CID attachment rather than external SiteURL
+    html = html.replace(/src="\{\{\s*\.SiteURL\s*\}\}\/Neatrix_logo_transparent_white\.png"/g, 'src="cid:neatrix-logo"');
+    return html;
+  } catch (e) {
+    console.warn('⚠️ Failed to load old template, falling back to built-in.', e.message);
+    return null;
+  }
+}
+
 function buildHtml(confirmLink) {
   const logoPath = path.join(__dirname, 'user-frontend', 'public', 'Neatrix_logo_transparent_white.png');
   const hasLogo = fs.existsSync(logoPath);
@@ -154,7 +172,7 @@ async function createTransport() {
 
 async function main() {
   const emailArg = process.argv[2] || 'helptrendingnotice@gmail.com';
-  const redirectArg = process.argv[3] || 'http://localhost:5175/email-verification-success';
+  const redirectArg = process.argv[3] || 'https://neatrix.vercel.app/email-verification-success';
 
   console.log('📧 Target recipient:', emailArg);
   console.log('🔗 Redirect URL:', redirectArg);
@@ -162,7 +180,7 @@ async function main() {
   if (!SERVICE_ROLE_KEY) console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY missing — cannot generate real action link.');
 
   const confirmLink = await generateConfirmationLink(emailArg, redirectArg);
-  const html = buildHtml(confirmLink);
+  const html = buildHtmlFromOldTemplate(confirmLink) || buildHtml(confirmLink);
 
   const { transporter, mode } = await createTransport();
 
@@ -179,7 +197,7 @@ async function main() {
     const info = await transporter.sendMail({
       from: fromHeader,
       to: emailArg,
-      subject: 'Confirm your Neatrix account',
+      subject: 'Welcome to Neatrix! 🎉 — Confirm your account',
       html,
       attachments,
     });

@@ -23,7 +23,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
   const { isDarkMode, toggleDarkMode, setDarkMode } = useDarkMode();
   const logoSrc = isDarkMode 
     ? "/Neatrix_logo_transparent_white.png" 
-    : "/Neatrix_logo%20transparent.png";
+    : "/Neatrix_logo_transparent.png";
 
   // On first dashboard visit, default to dark if no saved preference
   useEffect(() => {
@@ -72,7 +72,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
       {/* Mobile Header */}
       <div className="lg:hidden bg-white dark:bg-secondary border-b border-gray-200 dark:border-secondary px-4 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <img src={logoSrc} alt="Neatrix Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded object-cover" />
+          <img src={logoSrc} alt="Neatrix Logo" className="h-8 w-auto sm:h-10" onError={(e) => { e.currentTarget.src = '/Neatrix_logo_transparent_white.png'; }} />
           <span className="sr-only">Neatrix</span>
         </div>
         <div className="flex items-center space-x-2">
@@ -157,7 +157,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
           <div className="hidden lg:block bg-white dark:bg-secondary border-b border-gray-200 dark:border-secondary px-6 py-4 sticky top-0 z-30">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <img src={logoSrc} alt="Neatrix Logo" className="w-12 h-12 rounded object-cover" />
+                <img src={logoSrc} alt="Neatrix Logo" className="h-12 w-auto" onError={(e) => { e.currentTarget.src = '/Neatrix_logo_transparent_white.png'; }} />
                 <h2 className="sr-only">
                   {activeTab === 'dry-cleaning' ? 'Dry Cleaning' : 
                    activeTab === 'inspection' ? 'Book Inspection' : 

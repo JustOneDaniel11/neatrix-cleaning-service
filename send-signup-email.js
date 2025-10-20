@@ -24,7 +24,7 @@ const supabase = createClient(supabaseUrl, anonKey);
 
 async function main() {
   const emailArg = process.argv[2] || 'helptrendingnotice@gmail.com';
-  const redirectArg = process.argv[3] || 'http://localhost:5175/email-verification-success';
+  const redirectArg = process.argv[3] || 'https://neatrix.vercel.app/email-verification-success';
   const password = 'TestPassword123!';
 
   console.log('🧪 Sending signup to:', emailArg);

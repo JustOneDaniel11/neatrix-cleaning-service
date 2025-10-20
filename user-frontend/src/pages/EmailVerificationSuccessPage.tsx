@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, Home, Calendar, ArrowRight, Sparkles } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -11,7 +11,7 @@ const EmailVerificationSuccessPage = () => {
   const [searchParams] = useSearchParams();
   const { state } = useSupabaseData();
   // Removed direct use of query-only error; support hash fragment too
-  const [countdown, setCountdown] = useState(5);
+
   const [status, setStatus] = useState<'success' | 'error'>('success');
   const [failureReason, setFailureReason] = useState<string | null>(null);
 
@@ -148,9 +148,7 @@ const EmailVerificationSuccessPage = () => {
                       <span>Go to Dashboard</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Redirecting automatically in {countdown} seconds...
-                    </p>
+
                   </div>
                 ) : (
                   <button
