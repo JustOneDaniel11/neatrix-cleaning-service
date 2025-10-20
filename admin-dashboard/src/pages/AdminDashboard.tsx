@@ -49,6 +49,8 @@ import {
   Send,
   X
 } from 'lucide-react';
+import OrderDetails from '../components/OrderDetails';
+import { useToast } from '../hooks/use-toast';
 
 // Custom CSS for hiding scrollbars
 const scrollbarHideStyle = `
@@ -122,6 +124,13 @@ export default function AdminDashboard() {
   const [showContactChat, setShowContactChat] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState(null);
+  
+  // Modal state for booking details
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  
+  // Toast hook
+  const { toast } = useToast();
   
   // Settings state management
   const [settings, setSettings] = useState({
@@ -369,6 +378,33 @@ export default function AdminDashboard() {
         console.error('Error deleting booking:', error);
       }
     }
+  };
+
+  // Modal handlers
+  const handleViewBooking = (booking: any) => {
+    setSelectedBooking(booking);
+    setShowBookingModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowBookingModal(false);
+    setSelectedBooking(null);
+  };
+
+  const handleOrderUpdate = () => {
+    // Refresh bookings after update
+    fetchAllBookings();
+  };
+
+  // Toast wrapper for OrderDetails component
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const variant: 'default' | 'destructive' = type === 'error' ? 'destructive' : 'default';
+    const title = type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Info';
+    toast({
+      title,
+      description: message,
+      variant,
+    });
   };
 
   const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
@@ -639,7 +675,10 @@ export default function AdminDashboard() {
             </div>
             
             <div className="flex items-center justify-center space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <button className="flex-1 flex items-center justify-center space-x-2 p-3 text-blue-600 hover:text-blue-900 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[48px]">
+              <button 
+                onClick={() => handleViewBooking(booking)}
+                className="flex-1 flex items-center justify-center space-x-2 p-3 text-blue-600 hover:text-blue-900 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[48px]"
+              >
                 <Eye className="w-5 h-5" />
                 <span className="text-sm font-medium">View</span>
               </button>
@@ -745,7 +784,10 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
-                        <button className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <button 
+                          onClick={() => handleViewBooking(booking)}
+                          className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
@@ -2172,7 +2214,13 @@ export default function AdminDashboard() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Pending Orders</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{state.stats.pendingOrders}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                {state.laundryOrders.filter(order => 
+                  order.status === 'pending' || 
+                  order.status === 'in_progress' || 
+                  order.status === 'ready_for_pickup'
+                ).length}
+              </p>
             </div>
           </div>
         </div>
@@ -2617,6 +2665,29 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Booking Details Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Booking Details</h2>
+              <button
+                onClick={handleCloseModal}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+              <OrderDetails
+                order={selectedBooking}
+                onOrderUpdate={handleOrderUpdate}
+                showToast={showToast}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

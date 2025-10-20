@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface SupabaseUser { id: string; email?: string | null }
@@ -324,6 +324,16 @@ const SupabaseDataContext = createContext<SupabaseDataContextType | null>(null);
 
 export function SupabaseDataProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const debounceTimers = useRef<Record<string, number>>({});
+  const debounceFetch = (key: string, fn: () => Promise<void>, delay = 300) => {
+    const prev = debounceTimers.current[key];
+    if (prev) {
+      window.clearTimeout(prev);
+    }
+    debounceTimers.current[key] = window.setTimeout(() => {
+      fn();
+    }, delay);
+  };
 
   useEffect(() => {
     (async () => {
@@ -349,12 +359,75 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     try {
       const channel = supabase
         .channel('admin-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {})
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => {
-          if (mounted) fetchSupportTickets();
+        // Bookings changes
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, () => {
+          if (mounted) debounceFetch('bookings', fetchAllBookings);
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'support_messages' }, () => {
-          if (mounted) fetchSupportMessages();
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings' }, () => {
+          if (mounted) debounceFetch('bookings', fetchAllBookings);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'bookings' }, () => {
+          if (mounted) debounceFetch('bookings', fetchAllBookings);
+        })
+        // Support tickets
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_tickets' }, () => {
+          if (mounted) debounceFetch('support_tickets', fetchSupportTickets);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'support_tickets' }, () => {
+          if (mounted) debounceFetch('support_tickets', fetchSupportTickets);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'support_tickets' }, () => {
+          if (mounted) debounceFetch('support_tickets', fetchSupportTickets);
+        })
+        // Support messages
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, () => {
+          if (mounted) debounceFetch('support_messages', fetchSupportMessages);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'support_messages' }, () => {
+          if (mounted) debounceFetch('support_messages', fetchSupportMessages);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'support_messages' }, () => {
+          if (mounted) debounceFetch('support_messages', fetchSupportMessages);
+        })
+        // Laundry orders
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'laundry_orders' }, () => {
+          if (mounted) debounceFetch('laundry_orders', fetchLaundryOrders);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'laundry_orders' }, () => {
+          if (mounted) debounceFetch('laundry_orders', fetchLaundryOrders);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'laundry_orders' }, () => {
+          if (mounted) debounceFetch('laundry_orders', fetchLaundryOrders);
+        })
+        // Admin notifications
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_notifications' }, () => {
+          if (mounted) debounceFetch('admin_notifications', fetchAdminNotifications);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'admin_notifications' }, () => {
+          if (mounted) debounceFetch('admin_notifications', fetchAdminNotifications);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'admin_notifications' }, () => {
+          if (mounted) debounceFetch('admin_notifications', fetchAdminNotifications);
+        })
+        // Contact messages
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'contact_messages' }, () => {
+          if (mounted) debounceFetch('contact_messages', fetchContactMessages);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'contact_messages' }, () => {
+          if (mounted) debounceFetch('contact_messages', fetchContactMessages);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'contact_messages' }, () => {
+          if (mounted) debounceFetch('contact_messages', fetchContactMessages);
+        })
+        // Pickup deliveries
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pickup_deliveries' }, () => {
+          if (mounted) debounceFetch('pickup_deliveries', fetchPickupDeliveries);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pickup_deliveries' }, () => {
+          if (mounted) debounceFetch('pickup_deliveries', fetchPickupDeliveries);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'pickup_deliveries' }, () => {
+          if (mounted) debounceFetch('pickup_deliveries', fetchPickupDeliveries);
         })
         .subscribe((status) => {
           if (!mounted) return;
