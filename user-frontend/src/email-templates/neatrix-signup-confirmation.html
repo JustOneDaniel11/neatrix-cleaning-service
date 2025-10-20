@@ -383,10 +383,10 @@
     </style>
 </head>
 <body>
-    <div class="email-container">
+    <div class="email-container" style="width:100%;max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.1);">
         <!-- Header -->
-        <div class="header">
-            <div class="logo-container">
+        <div class="header" style="background:linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);color:#ffffff;padding:40px 30px;text-align:center;position:relative;">
+            <div class="logo-container" style="display:block; text-align:center; margin-bottom:20px;">
                 <img src="{{ .SiteURL }}/Neatrix_logo_transparent_white.png" alt="Neatrix logo" style="height:60px;width:auto;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.2);" />
                 <div class="brand-text">Neatrix</div>
             </div>
@@ -395,15 +395,15 @@
         </div>
 
         <!-- Content -->
-        <div class="content">
+        <div class="content" style="padding:40px 30px;">
             <div class="welcome-title">Thanks for joining Neatrix!</div>
             <div class="welcome-message">
                 We're excited to have you as part of our community. To get started with our premium cleaning services, please confirm your email address by clicking the button below.
             </div>
 
             <!-- CTA Button -->
-            <div class="cta-container">
-                <a href="{{ .ConfirmationURL }}" class="cta-button">
+            <div class="cta-container" style="text-align:center;margin:32px 0;">
+                <a href="{{ .ConfirmationURL }}" class="cta-button" style="background:#10b981;color:#ffffff;text-decoration:none;padding:16px 32px;border-radius:12px;font-weight:600;font-size:16px;display:inline-block;min-width:240px;min-height:44px;line-height:1.2;text-align:center;box-shadow:0 4px 15px rgba(16, 185, 129, 0.3);">
                     Confirm My Email
                 </a>
             </div>
@@ -421,19 +421,19 @@
             </div>
 
             <!-- Features -->
-            <div class="features">
-                <div class="feature">
-                    <div class="feature-icon">🏠</div>
+            <div class="features" style="display:block;margin:40px 0;padding:30px 20px;background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);border-radius:12px;border:1px solid #e2e8f0;">
+                <div class="feature" style="text-align:center;padding:20px 10px;">
+                    <div class="feature-icon" style="width:60px;height:60px;line-height:60px;background:linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);border-radius:12px;display:inline-block;margin:0 auto 16px;font-size:24px;">🏠</div>
                     <h3>House Cleaning</h3>
                     <p>Professional home cleaning services tailored to your needs</p>
                 </div>
-                <div class="feature">
-                    <div class="feature-icon">🏢</div>
+                <div class="feature" style="text-align:center;padding:20px 10px;">
+                    <div class="feature-icon" style="width:60px;height:60px;line-height:60px;background:linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);border-radius:12px;display:inline-block;margin:0 auto 16px;font-size:24px;">🏢</div>
                     <h3>Office Cleaning</h3>
                     <p>Keep your workspace spotless and productive</p>
                 </div>
-                <div class="feature">
-                    <div class="feature-icon">🎓</div>
+                <div class="feature" style="text-align:center;padding:20px 10px;">
+                    <div class="feature-icon" style="width:60px;height:60px;line-height:60px;background:linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);border-radius:12px;display:inline-block;margin:0 auto 16px;font-size:24px;">🎓</div>
                     <h3>School Cleaning</h3>
                     <p>Safe and thorough cleaning for educational facilities</p>
                 </div>
@@ -480,7 +480,7 @@
         </div>
 
         <!-- Footer -->
-        <div class="footer">
+        <div class="footer" style="background:#f8fafc;padding:30px;text-align:center;border-top:1px solid #e2e8f0;">
             <div class="footer-content">
                 <strong>Need help?</strong> Contact contactneatrix@gmail.com<br>
                 We're here to help you get the most out of Neatrix.
