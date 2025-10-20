@@ -128,6 +128,8 @@ const SupportPage: React.FC = () => {
         activeTicketId = await startNewChat();
         if (!activeTicketId) throw new Error('Unable to create chat ticket');
       }
+      
+      // Create support message for the chat
       await createSupportMessage({
         ticket_id: activeTicketId!,
         sender_id: currentUser.id,
@@ -136,6 +138,15 @@ const SupportPage: React.FC = () => {
         message_type: 'text',
         is_read: false
       });
+
+      // Also create a contact message for admin dashboard visibility
+      await createContactMessage({
+        name: currentUser.full_name || currentUser.email,
+        email: currentUser.email,
+        phone: currentUser.phone || '',
+        message: `Support Chat Message: ${newMessage.trim()}`
+      });
+      
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);

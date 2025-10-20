@@ -74,19 +74,6 @@ const PaymentPage: React.FC = () => {
       }
     });
 
-    // Add default payment method if none exist
-    if (uniquePaymentMethods.size === 0) {
-      uniquePaymentMethods.set('default', {
-        id: 'default-1',
-        type: 'card',
-        last4: '4242',
-        brand: 'Visa',
-        expiryMonth: 12,
-        expiryYear: 2025,
-        isDefault: true
-      });
-    }
-
     setPaymentMethods(Array.from(uniquePaymentMethods.values()));
 
     // Generate transactions from subscription billing
@@ -108,7 +95,7 @@ const PaymentPage: React.FC = () => {
       description: `${booking.service_name} - ${booking.service_type}`,
       status: booking.status === 'completed' ? 'completed' : booking.status === 'cancelled' ? 'failed' : 'pending',
       date: booking.created_at,
-      paymentMethod: 'Card ****4242', // Default since we don't have payment method in bookings
+      paymentMethod: 'Unknown', // No payment method stored for bookings
       bookingId: booking.id
     }));
 
@@ -225,37 +212,44 @@ const PaymentPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid gap-3 sm:gap-4">
-            {paymentMethods.map((method) => (
-              <div key={method.id} className="border border-gray-200 rounded-lg p-4 sm:p-4">
-                <div className="flex items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
-                    <div className="w-12 h-10 sm:w-12 sm:h-8 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
-                      <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-gray-900 text-sm sm:text-base truncate">
-                        {method.type === 'card' && `${method.brand} ****${method.last4}`}
-                        {method.type === 'paypal' && `PayPal - ${method.email}`}
-                        {method.type === 'bank' && `${method.bankName} - ****${method.last4}`}
+          {paymentMethods.length === 0 ? (
+            <div className="border border-gray-200 rounded-lg p-4 sm:p-6 bg-gray-50">
+              <p className="text-sm sm:text-base text-gray-700">No saved payment methods.</p>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">Click “Add Payment Method” to add your first method.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:gap-4">
+              {paymentMethods.map((method) => (
+                <div key={method.id} className="border border-gray-200 rounded-lg p-4 sm:p-4">
+                  <div className="flex items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                      <div className="w-12 h-10 sm:w-12 sm:h-8 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                        <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-500 flex flex-wrap items-center gap-2 mt-1">
-                        {method.type === 'card' && `Expires ${method.expiryMonth}/${method.expiryYear}`}
-                        {method.isDefault && (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                            Default
-                          </span>
-                        )}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-gray-900 text-sm sm:text-base truncate">
+                          {method.type === 'card' && `${method.brand} ****${method.last4}`}
+                          {method.type === 'paypal' && `PayPal - ${method.email}`}
+                          {method.type === 'bank' && `${method.bankName} - ****${method.last4}`}
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-500 flex flex-wrap items-center gap-2 mt-1">
+                          {method.type === 'card' && `Expires ${method.expiryMonth}/${method.expiryYear}`}
+                          {method.isDefault && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                              Default
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <button className="text-red-600 hover:text-red-800 p-2 sm:p-1 flex-shrink-0 min-h-[44px] min-w-[44px] sm:min-h-auto sm:min-w-auto flex items-center justify-center">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button className="text-red-600 hover:text-red-800 p-2 sm:p-1 flex-shrink-0 min-h-[44px] min-w-[44px] sm:min-h-auto sm:min-w-auto flex items-center justify-center">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Add Payment Method Modal */}
           {showAddPayment && (

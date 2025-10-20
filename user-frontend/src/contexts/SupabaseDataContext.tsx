@@ -1264,6 +1264,44 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
 
       dispatch({ type: 'ADD_BOOKING', payload: data });
+
+      // Check if this is a laundry-related service and create a laundry order
+      const isLaundryService = 
+        bookingData.service_type === 'dry_cleaning' ||
+        bookingData.service_type === 'laundry' ||
+        bookingData.service_name?.toLowerCase().includes('laundry') ||
+        bookingData.service_name?.toLowerCase().includes('dry') ||
+        bookingData.service_name?.toLowerCase().includes('cleaning');
+
+      if (isLaundryService && state.currentUser) {
+        try {
+          // Create corresponding laundry order for admin dashboard
+          const laundryOrderData = {
+            user_id: state.authUser.id,
+            booking_id: data.id,
+            order_number: `LO-${Date.now()}`,
+            customer_name: state.currentUser.full_name,
+            customer_phone: bookingData.phone || state.currentUser.phone,
+            service_type: bookingData.service_type,
+            item_count: bookingData.item_count || 1,
+            amount: bookingData.total_amount,
+            total_amount: bookingData.total_amount,
+            status: 'pending'
+          };
+
+          const { error: laundryError } = await supabase
+            .from('laundry_orders')
+            .insert([laundryOrderData]);
+
+          if (laundryError) {
+            console.error('Error creating laundry order:', laundryError);
+            // Don't throw error here as the booking was successful
+          }
+        } catch (laundryError) {
+          console.error('Error creating laundry order:', laundryError);
+          // Don't throw error here as the booking was successful
+        }
+      }
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       throw error;

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { CreditCard, Smartphone, Building, Zap, Shield, CheckCircle, AlertCircle, Copy, Phone } from 'lucide-react';
 import { usePaystackPayment } from 'react-paystack';
+import { useSupabaseData } from '@/contexts/SupabaseDataContext';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 interface PaymentMethod {
   id: string;
@@ -56,6 +58,7 @@ const PaymentIntegration: React.FC = () => {
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'failed'>('idle');
+  const { state, createSubscriptionBilling, createNotification } = useSupabaseData();
 
   // Paystack configuration
   const paystackConfig = {
@@ -87,6 +90,47 @@ const PaymentIntegration: React.FC = () => {
 
   // Initialize Paystack payment
   const initializePayment = usePaystackPayment(paystackConfig);
+
+  // Helper: log payment results to Supabase (subscription billing if available, else notification)
+  const logPayment = async (
+    status: 'paid' | 'failed',
+    params: { reference?: string; method?: string; note?: string }
+  ) => {
+    try {
+      if (!isSupabaseConfigured || !state.authUser) return;
+      const methodName = params.method || selectedMethod || 'unknown';
+      const activeSubscription = state.userSubscriptions.find(s => s.status === 'active');
+
+      if (status === 'paid' && activeSubscription?.id) {
+        await createSubscriptionBilling({
+          subscription_id: activeSubscription.id,
+          user_id: state.authUser.id,
+          amount: paymentData.amount,
+          billing_date: new Date().toISOString(),
+          status: 'paid',
+          payment_method: methodName,
+          transaction_id: params.reference
+        });
+      } else {
+        await createNotification({
+          user_id: state.authUser.id,
+          title: status === 'paid' ? 'Payment successful' : 'Payment issue',
+          message: `${status === 'paid' ? 'Paid' : 'Failed'} ₦${paymentData.amount} via ${methodName}${params.reference ? ` (Ref: ${params.reference})` : ''}.`,
+          type: 'payment',
+          status: 'unread',
+          priority: status === 'paid' ? 'normal' : 'urgent',
+          metadata: {
+            amount: paymentData.amount,
+            method: methodName,
+            reference: params.reference,
+            note: params.note
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error logging payment:', err);
+    }
+  };
 
   const paymentMethods: PaymentMethod[] = [
     {
@@ -163,18 +207,21 @@ const PaymentIntegration: React.FC = () => {
           onSuccess: (reference: any) => {
             setPaymentStatus('success');
             setIsProcessing(false);
+            logPayment('paid', { reference: reference.reference, method: selectedMethod });
             alert(`Payment successful! Reference: ${reference.reference}. Your booking has been confirmed.`);
             console.log('Payment successful:', reference);
           },
           onClose: () => {
             setPaymentStatus('idle');
             setIsProcessing(false);
+            logPayment('failed', { reference: paystackConfig.reference, method: selectedMethod, note: 'User cancelled' });
             alert('Payment was cancelled.');
           }
         });
-      } catch (error) {
+      } catch (error: any) {
         setPaymentStatus('failed');
         setIsProcessing(false);
+        logPayment('failed', { reference: paystackConfig.reference, method: selectedMethod, note: error?.message });
         alert('Payment failed. Please try again or use a different payment method.');
         console.error('Payment error:', error);
       }
@@ -184,9 +231,11 @@ const PaymentIntegration: React.FC = () => {
         const success = Math.random() > 0.1; // 90% success rate for demo
         if (success) {
           setPaymentStatus('success');
+          logPayment('paid', { method: selectedMethod });
           alert('Payment successful! Your booking has been confirmed.');
         } else {
           setPaymentStatus('failed');
+          logPayment('failed', { method: selectedMethod });
           alert('Payment failed. Please try again or use a different payment method.');
         }
         setIsProcessing(false);
