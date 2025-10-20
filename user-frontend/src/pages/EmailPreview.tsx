@@ -1,3 +1,10 @@
+import React from 'react';
+
+const EmailPreview: React.FC = () => {
+  // Mock confirmation URL for preview
+  const mockConfirmationURL = "https://your-app.supabase.co/auth/v1/verify?token=mock-token&type=signup&redirect_to=http://localhost:5173/dashboard";
+
+  const emailHTML = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,14 +152,11 @@
                 flex-direction: column;
             }
         }
-        .brand-logo { height: 48px; width: auto; border-radius: 8px; display:block; margin: 0 auto 12px; }
-        @media (max-width: 600px) { .brand-logo { height: 40px; } }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <img class="brand-logo" src="{{ .SiteURL }}/Neatrix_logo_transparent_white.png" alt="Neatrix logo" />
             <h1>🏠 Neatrix Professional Cleaning Services</h1>
             <p>Professional Cleaning Solutions</p>
         </div>
@@ -169,7 +173,7 @@
             </div>
             
             <div style="text-align: center;">
-                <a href="{{ .ConfirmationURL }}" class="verify-button">
+                <a href="${mockConfirmationURL}" class="verify-button">
                     ✅ Verify My Email Address
                 </a>
             </div>
@@ -191,7 +195,7 @@
             
             <div class="alternative-link">
                 <p><strong>Can't click the button?</strong> Copy and paste this link into your browser:</p>
-                <p><a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a></p>
+                <p><a href="${mockConfirmationURL}">${mockConfirmationURL}</a></p>
             </div>
             
             <div class="message">
@@ -223,3 +227,65 @@
     </div>
 </body>
 </html>
+  `;
+
+  return (
+    <div className="min-h-screen bg-gray-100 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">
+            📧 Email Confirmation Template Preview
+          </h1>
+          <p className="text-gray-600 mb-4">
+            This is how the email confirmation message will appear to users when they sign up for Neatrix Professional Cleaning Services.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-blue-800 text-sm">
+              <strong>Note:</strong> The confirmation URL shown is a mock URL for preview purposes. 
+              In production, this will be replaced with the actual Supabase verification link.
+            </p>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-gray-50 px-6 py-3 border-b">
+            <h2 className="text-lg font-semibold text-gray-700">Email Preview</h2>
+          </div>
+          <div className="p-6">
+            <iframe
+              srcDoc={emailHTML}
+              className="w-full h-[800px] border border-gray-300 rounded-lg"
+              title="Email Template Preview"
+            />
+          </div>
+        </div>
+        
+        <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Template Features</h3>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Design Elements</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• Modern gradient header with Neatrix branding</li>
+                <li>• Responsive design for mobile and desktop</li>
+                <li>• Professional color scheme (blue gradient)</li>
+                <li>• Clean typography and spacing</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Functionality</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• Prominent verification button</li>
+                <li>• Alternative link for accessibility</li>
+                <li>• Contact information and support links</li>
+                <li>• Security notice about link expiration</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EmailPreview;

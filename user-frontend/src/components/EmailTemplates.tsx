@@ -15,27 +15,29 @@ export const EmailVerificationTemplate: React.FC<EmailVerificationTemplateProps>
       maxWidth: '600px',
       margin: '0 auto',
       backgroundColor: '#ffffff',
-      color: '#333333'
+      color: '#333333',
+      width: '100%'
     }}>
       {/* Header */}
       <div style={{
         backgroundColor: '#2563eb',
-        padding: '20px',
+        padding: '15px 10px',
         textAlign: 'center'
       }}>
         <h1 style={{
           color: '#ffffff',
           margin: '0',
-          fontSize: '24px',
-          fontWeight: 'bold'
+          fontSize: '20px',
+          fontWeight: 'bold',
+          lineHeight: '1.3'
         }}>
-          Welcome to CleanPro Services!
+          Welcome to Neatrix Professional Cleaning Services!
         </h1>
       </div>
 
       {/* Main Content */}
       <div style={{
-        padding: '30px 20px',
+        padding: '20px 15px',
         lineHeight: '1.6'
       }}>
         <h2 style={{
@@ -51,7 +53,7 @@ export const EmailVerificationTemplate: React.FC<EmailVerificationTemplateProps>
           marginBottom: '20px',
           color: '#4b5563'
         }}>
-          Thank you for signing up with CleanPro Services! We're excited to help you keep your space spotless.
+          Thank you for signing up with Neatrix Professional Cleaning Services! We're excited to help you keep your space spotless.
         </p>
 
         <p style={{
@@ -72,13 +74,14 @@ export const EmailVerificationTemplate: React.FC<EmailVerificationTemplateProps>
             style={{
               backgroundColor: '#2563eb',
               color: '#ffffff',
-              padding: '15px 30px',
+              padding: '12px 24px',
               textDecoration: 'none',
               borderRadius: '8px',
               fontSize: '16px',
               fontWeight: 'bold',
               display: 'inline-block',
-              minWidth: '200px'
+              minWidth: '180px',
+              textAlign: 'center'
             }}
           >
             Verify Email Address
@@ -209,14 +212,14 @@ export const EmailVerificationTemplate: React.FC<EmailVerificationTemplateProps>
           fontSize: '12px',
           margin: '0 0 10px 0'
         }}>
-          This email was sent to verify your CleanPro Services account.
+          This email was sent to verify your Neatrix Professional Cleaning Services account.
         </p>
         <p style={{
           color: '#9ca3af',
           fontSize: '12px',
           margin: '0'
         }}>
-          © 2024 CleanPro Services. All rights reserved.
+          © 2024 Neatrix Professional Cleaning Services. All rights reserved.
         </p>
       </div>
     </div>
@@ -252,7 +255,7 @@ export const WelcomeEmailTemplate: React.FC<WelcomeEmailTemplateProps> = ({
           fontSize: '24px',
           fontWeight: 'bold'
         }}>
-          🎉 Welcome to CleanPro Services!
+          🎉 Welcome to Neatrix Professional Cleaning Services!
         </h1>
       </div>
 
@@ -274,7 +277,7 @@ export const WelcomeEmailTemplate: React.FC<WelcomeEmailTemplateProps> = ({
           marginBottom: '20px',
           color: '#4b5563'
         }}>
-          Congratulations! Your email has been successfully verified and your CleanPro Services account is now active.
+          Congratulations! Your email has been successfully verified and your Neatrix Professional Cleaning Services account is now active.
         </p>
 
         <p style={{
@@ -389,14 +392,14 @@ export const WelcomeEmailTemplate: React.FC<WelcomeEmailTemplateProps> = ({
           fontSize: '12px',
           margin: '0 0 10px 0'
         }}>
-          Thank you for choosing CleanPro Services for your cleaning needs.
+          Thank you for choosing Neatrix Professional Cleaning Services for your cleaning needs.
         </p>
         <p style={{
           color: '#9ca3af',
           fontSize: '12px',
           margin: '0'
         }}>
-          © 2024 CleanPro Services. All rights reserved.
+          © 2024 Neatrix Professional Cleaning Services. All rights reserved.
         </p>
       </div>
     </div>
@@ -413,7 +416,7 @@ export const generateEmailHTML = (template: React.ReactElement): string => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>CleanPro Services</title>
+      <title>Neatrix Professional Cleaning Services</title>
       <style>
         @media only screen and (max-width: 600px) {
           .container { width: 100% !important; }

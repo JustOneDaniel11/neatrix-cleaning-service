@@ -11,7 +11,7 @@ const ServicesPage = () => {
         <div className="container mx-auto px-4 py-12">
           <div className="text-center mb-12">
             <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-              Our <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Cleaning Services</span>
+              Our <span className="bg-gradient-to-r from-primary to-accent text-primary sm:bg-clip-text sm:text-transparent">Cleaning Services</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Professional cleaning services tailored to your needs. From residential homes to commercial offices, 

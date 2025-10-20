@@ -210,13 +210,35 @@ const ProfileSettings = () => {
   };
 
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout?')) {
+    if (window.confirm('Are you sure you want to logout? This will end your current session.')) {
       try {
+        // Show loading state
+        const loadingToast = document.createElement('div');
+        loadingToast.textContent = 'Logging out...';
+        loadingToast.style.cssText = 'position:fixed;top:20px;right:20px;background:#333;color:white;padding:10px;border-radius:5px;z-index:9999';
+        document.body.appendChild(loadingToast);
+        
         await signOut();
-        navigate('/');
+        
+        // Remove loading toast
+        document.body.removeChild(loadingToast);
+        
+        // The signOut function now handles navigation automatically
       } catch (error) {
         console.error('Error logging out:', error);
-        alert('Failed to logout. Please try again.');
+        
+        // Remove loading toast if it exists
+        const existingToast = document.querySelector('div[style*="Logging out"]');
+        if (existingToast) {
+          document.body.removeChild(existingToast);
+        }
+        
+        alert('Failed to logout. Please try again. If the problem persists, try refreshing the page.');
+        
+        // As a fallback, force reload the page to clear any cached state
+        if (window.confirm('Would you like to refresh the page to complete logout?')) {
+          window.location.reload();
+        }
       }
     }
   };

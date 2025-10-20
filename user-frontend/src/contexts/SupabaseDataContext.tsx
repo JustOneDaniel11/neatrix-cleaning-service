@@ -1139,7 +1139,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         options: {
           data: {
             full_name: fullName
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/email-verification-success`
         }
       });
 
@@ -1196,10 +1197,28 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
+      // Clear all local storage items related to authentication
+      localStorage.removeItem('supabase.auth.token');
+      // Clear Supabase auth tokens from localStorage
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('sb-') && key.includes('-auth-token')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Clear session storage
+      sessionStorage.clear();
+      
+      // Dispatch logout action to reset state
       dispatch({ type: 'LOGOUT' });
+      
+      // Force a page reload to ensure complete cleanup
+      window.location.href = '/';
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       throw error;

@@ -6,6 +6,7 @@ import { useDarkMode } from '../contexts/DarkModeContext';
 import { supabase } from '../lib/supabase';
 import MessengerOrderTracking from '../components/MessengerOrderTracking';
 import NotificationsPage from '../components/NotificationsPage';
+import AdminLiveChat from './AdminLiveChat';
 import { 
   Users, 
   Calendar, 
@@ -75,6 +76,7 @@ export default function AdminDashboard() {
     signOut,
     fetchContactMessages, 
     updateContactMessage, 
+    deleteContactMessage,
     updateBooking, 
     deleteBooking,
     fetchAllUsers,
@@ -116,6 +118,10 @@ export default function AdminDashboard() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showChatInterface, setShowChatInterface] = useState(false);
+  const [selectedContactMessage, setSelectedContactMessage] = useState(null);
+  const [showContactChat, setShowContactChat] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState(null);
   
   // Settings state management
   const [settings, setSettings] = useState({
@@ -165,6 +171,7 @@ export default function AdminDashboard() {
       try {
         await fetchAllUsers();
         await fetchAllBookings();
+        await fetchContactMessages();
         await fetchPayments();
         await fetchSubscriptions();
         await fetchLaundryOrders();
@@ -201,6 +208,39 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
+  };
+
+  // Contact message handlers
+  const handleContactMessageClick = (message: any) => {
+    setSelectedContactMessage(message);
+    setShowContactChat(true);
+  };
+
+  const handleDeleteContactMessage = (message: any) => {
+    setMessageToDelete(message);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteMessage = async () => {
+    if (messageToDelete) {
+      try {
+        await deleteContactMessage(messageToDelete.id);
+        setShowDeleteConfirm(false);
+        setMessageToDelete(null);
+        // Close chat if the deleted message was selected
+        if (selectedContactMessage?.id === messageToDelete.id) {
+          setShowContactChat(false);
+          setSelectedContactMessage(null);
+        }
+      } catch (error) {
+        console.error('Error deleting contact message:', error);
+      }
+    }
+  };
+
+  const cancelDeleteMessage = () => {
+    setShowDeleteConfirm(false);
+    setMessageToDelete(null);
   };
 
   // Settings handlers
@@ -1103,6 +1143,226 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+
+        {/* Contact Chat Interface */}
+        {showContactChat && selectedContactMessage && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Contact Message Chat
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowContactChat(false);
+                    setSelectedContactMessage(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <AdminLiveChat
+                  mode="contact"
+                  contactMessages={state.contactMessages || []}
+                  selectedContactMessage={selectedContactMessage}
+                  onContactMessageSelect={(message) => setSelectedContactMessage(message)}
+                  onContactMessageUpdate={async (messageId, status) => {
+                    await updateContactMessage(messageId, { status });
+                  }}
+                  onContactMessageDelete={(message) => {
+                    handleDeleteContactMessage(message);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderContactMessages = () => {
+    const filteredMessages = state.contactMessages?.filter(message => {
+      const matchesSearch = searchTerm === '' || 
+        message.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        message.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        message.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        message.message.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesFilter = filterStatus === 'all' || message.status === filterStatus;
+      
+      return matchesSearch && matchesFilter;
+    }) || [];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Contact Messages</h2>
+            <p className="text-gray-600 dark:text-gray-400">Manage contact form submissions</p>
+          </div>
+          <div className="flex gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search messages..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="all">All Status</option>
+              <option value="new">New</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Contact Info
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Subject
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredMessages.map((message) => (
+                  <tr 
+                    key={message.id} 
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => handleContactMessageClick(message)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                            <span className="text-white font-medium">
+                              {message.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {message.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {message.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {message.subject}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                        {message.message}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        message.status === 'new' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : message.status === 'in_progress'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                      }`}>
+                        {message.status === 'new' ? 'New' : 
+                         message.status === 'in_progress' ? 'In Progress' : 'Resolved'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(message.created_at)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleContactMessageClick(message);
+                          }}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteContactMessage(message);
+                          }}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {filteredMessages.length === 0 && (
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+              No contact messages found.
+            </div>
+          )}
+        </div>
+
+        {/* Delete Confirmation Dialog */}
+        {showDeleteConfirm && messageToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center mb-4">
+                <AlertTriangle className="h-6 w-6 text-red-500 mr-3" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Delete Contact Message
+                </h3>
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Are you sure you want to delete the message from <strong>{messageToDelete.name}</strong>? 
+                This action cannot be undone.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={cancelDeleteMessage}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteMessage}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -2344,7 +2604,7 @@ export default function AdminDashboard() {
               {activeTab === 'overview' && renderOverview()}
         {activeTab === 'bookings' && renderBookings()}
         {activeTab === 'users' && renderUsers()}
-        {activeTab === 'contacts' && renderLiveMessages()}
+        {activeTab === 'contacts' && renderContactMessages()}
         {activeTab === 'notifications' && renderNotifications()}
         {activeTab === 'payments' && renderPayments()}
         {activeTab === 'subscriptions' && renderSubscriptions()}

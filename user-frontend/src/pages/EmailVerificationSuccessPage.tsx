@@ -10,8 +10,33 @@ const EmailVerificationSuccessPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { state } = useSupabaseData();
-  const errorDescription = searchParams.get('error_description');
+  // Removed direct use of query-only error; support hash fragment too
   const [countdown, setCountdown] = useState(5);
+  const [status, setStatus] = useState<'success' | 'error'>('success');
+  const [failureReason, setFailureReason] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Supabase often returns params in the hash fragment (e.g., #error=...)
+    const queryErr = searchParams.get('error') || searchParams.get('error_code');
+    const queryDesc = searchParams.get('error_description');
+
+    const hash = window.location.hash?.startsWith('#') ? window.location.hash.slice(1) : '';
+    const hashParams = new URLSearchParams(hash);
+    const hashErr = hashParams.get('error') || hashParams.get('error_code');
+    const hashDesc = hashParams.get('error_description') || hashParams.get('message');
+
+    if (hashErr || hashDesc || queryErr || queryDesc) {
+      setStatus('error');
+      setFailureReason(hashDesc || queryDesc || hashErr || queryErr || 'Verification failed. Link invalid or expired.');
+    } else {
+      // If Supabase attached an access token or type=signup, treat as success
+      const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+      const typeParam = hashParams.get('type') || searchParams.get('type');
+      if (accessToken || typeParam === 'signup') {
+        setStatus('success');
+      }
+    }
+  }, [searchParams]);
 
   // Removed auto-redirect to allow manual navigation
 
@@ -47,20 +72,20 @@ const EmailVerificationSuccessPage = () => {
           <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
-                {errorDescription 
-                  ? '❌ Confirmation failed or link expired. Request a new link from the app or contact support.' 
+                {status === 'error'
+                  ? '❌ Confirmation failed or link expired. Request a new link from the app or contact support.'
                   : '✅ Email confirmed successfully! Welcome to Neatrix.'}
               </CardTitle>
               <p className="text-lg text-gray-600">
-                {errorDescription ? (
-                  <>Error details: {errorDescription}</>
+                {status === 'error' ? (
+                  <>Error details: {failureReason}</>
                 ) : 'Your account is now active.'}
               </p>
             </CardHeader>
 
             <CardContent className="space-y-6">
               {/* Welcome Message */}
-              {!errorDescription && (
+              {status !== 'error' && (
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
                   <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
                     <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
@@ -74,7 +99,7 @@ const EmailVerificationSuccessPage = () => {
               )}
 
               {/* What's Next Section */}
-              {!errorDescription && (
+              {status !== 'error' && (
                 <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900 text-lg">What's Next?</h3>
                 
@@ -133,7 +158,7 @@ const EmailVerificationSuccessPage = () => {
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
                   >
                     <Home className="w-5 h-5" />
-                    <span>Sign In to Continue</span>
+                    <span>{status === 'error' ? 'Back to Sign In' : 'Sign In to Continue'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 )}

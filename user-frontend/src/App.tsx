@@ -14,6 +14,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
 import EmailVerificationSuccessPage from "./pages/EmailVerificationSuccessPage";
+import EmailPreview from "./pages/EmailPreview";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/email-verification" element={<EmailVerificationPage />} />
             <Route path="/email-verification-success" element={<EmailVerificationSuccessPage />} />
+            <Route path="/email-preview" element={<EmailPreview />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/book-service" element={<BookingPage />} />

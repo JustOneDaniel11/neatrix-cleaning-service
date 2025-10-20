@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import { supabase } from '@/lib/supabase';
 
 interface SupabaseUser { id: string; email?: string | null }
-interface User { id: string; email: string; full_name?: string | null; phone?: string; created_at?: string }
+interface User { id: string; email?: string | null; full_name?: string | null; phone?: string; created_at?: string }
 interface CustomerWithStats extends User {
   totalSpent: number;
   totalBookings: number;
@@ -41,7 +41,7 @@ interface Booking {
   service?: string;
   amount?: number;
 }
-interface ContactMessage { id: string; name: string; email: string; subject: string; message: string; status: string; created_at: string }
+interface ContactMessage { id: string; name: string; email: string; subject: string; message: string; status: "new" | "in_progress" | "resolved"; created_at: string }
 interface PickupDelivery { 
   id: string; 
   user_id: string; 
@@ -308,6 +308,7 @@ interface SupabaseDataContextType {
   updateUser: (id: string, updates: any) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   updateContactMessage: (id: string, updates: any) => Promise<void>;
+  deleteContactMessage: (id: string) => Promise<void>;
   createPickupDelivery: (payload: any) => Promise<void>;
   updatePickupDelivery: (id: string, updates: any) => Promise<void>;
   createUserComplaint: (payload: any) => Promise<void>;
@@ -558,6 +559,10 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.from('contact_messages').update(updates).eq('id', id);
     if (!error) await fetchContactMessages();
   };
+  const deleteContactMessage = async (id: string) => {
+    const { error } = await supabase.from('contact_messages').delete().eq('id', id);
+    if (!error) await fetchContactMessages();
+  };
 
   const createPickupDelivery = async (payload: any) => {
     const { error } = await supabase.from('pickup_deliveries').insert(payload);
@@ -621,6 +626,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     updateUser,
     deleteUser,
     updateContactMessage,
+    deleteContactMessage,
     createPickupDelivery,
     updatePickupDelivery,
     createUserComplaint,

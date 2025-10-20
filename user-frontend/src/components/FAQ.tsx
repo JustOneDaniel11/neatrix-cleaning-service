@@ -155,34 +155,34 @@ const FAQ = () => {
   ];
 
   return (
-    <section id="faq" className="py-20 bg-gradient-to-br from-background to-secondary/20">
+    <section id="faq" className="py-12 md:py-20 bg-gradient-to-br from-background to-secondary/20">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+        <div className="text-center mb-12 md:mb-16">
+          <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6">
             <span className="bg-gradient-hero bg-clip-text text-transparent">
               Frequently Asked Questions
             </span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
             Find answers to common questions about our cleaning services, policies, and procedures. 
             Can't find what you're looking for? Contact us directly for personalized assistance.
           </p>
         </div>
 
         {/* FAQ Categories */}
-        <div className="space-y-8 mb-16">
+        <div className="space-y-6 md:space-y-8 mb-12 md:mb-16">
           {faqCategories.map((category, categoryIndex) => (
             <Card key={categoryIndex} className="bg-gradient-card border-0 shadow-soft">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center">
-                    <category.icon className="w-6 h-6 text-primary-foreground" />
+              <CardContent className="p-4 md:p-8">
+                <div className="flex items-center gap-3 mb-4 md:mb-6">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-primary rounded-xl flex items-center justify-center">
+                    <category.icon className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
                   </div>
-                  <h3 className="text-2xl font-bold text-card-foreground">{category.title}</h3>
+                  <h3 className="text-lg md:text-2xl font-bold text-card-foreground">{category.title}</h3>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {category.faqs.map((faq, faqIndex) => {
                     const globalIndex = categoryIndex * 100 + faqIndex;
                     const isOpen = openItems.includes(globalIndex);
@@ -190,19 +190,19 @@ const FAQ = () => {
                     return (
                       <div key={faqIndex} className="border border-border rounded-lg overflow-hidden">
                         <button
-                          className="w-full px-6 py-4 text-left bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between"
+                          className="w-full px-4 md:px-6 py-3 md:py-4 text-left bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between touch-manipulation"
                           onClick={() => toggleItem(globalIndex)}
                         >
-                          <span className="font-semibold text-card-foreground pr-4">{faq.question}</span>
+                          <span className="font-semibold text-card-foreground pr-3 md:pr-4 text-sm md:text-base leading-relaxed">{faq.question}</span>
                           {isOpen ? (
-                            <ChevronUp className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                            <ChevronUp className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
                           ) : (
-                            <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                            <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground flex-shrink-0" />
                           )}
                         </button>
                         {isOpen && (
-                          <div className="px-6 py-4 bg-background/50">
-                            <p className="text-muted-foreground leading-relaxed">{faq.answer}</p>
+                          <div className="px-4 md:px-6 py-3 md:py-4 bg-background/50">
+                            <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{faq.answer}</p>
                           </div>
                         )}
                       </div>
@@ -215,29 +215,29 @@ const FAQ = () => {
         </div>
 
         {/* Quick Contact */}
-        <Card className="bg-gradient-card border-0 shadow-soft mb-16">
-          <CardContent className="p-8 text-center">
-            <h3 className="text-2xl font-bold text-card-foreground mb-4">
+        <Card className="bg-gradient-card border-0 shadow-soft mb-12 md:mb-16">
+          <CardContent className="p-4 md:p-8 text-center">
+            <h3 className="text-lg md:text-2xl font-bold text-card-foreground mb-3 md:mb-4">
               Still Have Questions?
             </h3>
-            <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-muted-foreground mb-6 md:mb-8 max-w-2xl mx-auto text-sm md:text-base">
               Our friendly customer service team is here to help. Reach out through your preferred 
               communication method and we'll get back to you promptly.
             </p>
             
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
               {contactMethods.map((method, index) => (
-                <Card key={index} className="bg-background border-0 shadow-soft hover:shadow-medium transition-all group cursor-pointer" onClick={method.onClick}>
-                  <CardContent className="p-6 text-center">
-                    <div className={`w-16 h-16 ${method.color} rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}>
-                      <method.icon className="w-8 h-8 text-white" />
+                <Card key={index} className="bg-background border-0 shadow-soft hover:shadow-medium transition-all group cursor-pointer touch-manipulation" onClick={method.onClick}>
+                  <CardContent className="p-4 md:p-6 text-center">
+                    <div className={`w-12 h-12 md:w-16 md:h-16 ${method.color} rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
+                      <method.icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
-                    <h4 className="font-semibold text-card-foreground mb-2">{method.title}</h4>
-                    <p className="text-sm text-muted-foreground mb-4">{method.description}</p>
+                    <h4 className="font-semibold text-card-foreground mb-2 text-sm md:text-base">{method.title}</h4>
+                    <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">{method.description}</p>
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                      className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs md:text-sm touch-manipulation"
                       onClick={(e) => {
                         e.stopPropagation();
                         method.onClick();

@@ -302,17 +302,17 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
   );
 
   const renderServiceSelection = () => (
-    <div className="space-y-6">
-      <h3 className="text-2xl font-bold text-center text-gray-800 mb-6">Select Your Service</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <h3 className="text-xl md:text-2xl font-bold text-center text-gray-800 mb-4 md:mb-6">Select Your Service</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {services.map((service) => (
           <div
             key={service.id}
             onClick={() => handleServiceSelect(service.id)}
-            className="p-4 sm:p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-lg transition-all duration-300"
+            className="p-3 sm:p-4 md:p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-lg transition-all duration-300 touch-manipulation"
           >
-            <div className="flex items-center mb-4">
-              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg mr-3 sm:mr-4">
+            <div className="flex items-center mb-3 md:mb-4">
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg mr-2 sm:mr-3 md:mr-4 flex-shrink-0">
                 {service.icon}
               </div>
               <div className="flex-1 min-w-0">
@@ -320,7 +320,7 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
                 <p className="text-xs sm:text-sm text-gray-600">₦{service.basePrice.toLocaleString()} {service.priceUnit}</p>
               </div>
             </div>
-            <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2">{service.description}</p>
+            <p className="text-xs sm:text-sm text-gray-600 mb-2 md:mb-3 line-clamp-2">{service.description}</p>
             <ul className="text-xs text-gray-500 space-y-1">
               {service.features.slice(0, 3).map((feature, index) => (
                 <li key={index} className="flex items-start">

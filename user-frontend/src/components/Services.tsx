@@ -2,24 +2,24 @@ const Services = () => {
   return (
     <section id="services" className="py-20 bg-secondary/20">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-            <span className="bg-gradient-hero bg-clip-text text-transparent">
+        <div className="text-center mb-12 md:mb-16">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6">
+            <span className="bg-gradient-hero text-primary sm:bg-clip-text sm:text-transparent">
               Our Services
             </span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
             From offices to homes, schools to specialty items - we provide comprehensive cleaning solutions 
             tailored to your specific needs with professional excellence.
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <div className="bg-gradient-card rounded-2xl p-8 shadow-soft">
-            <h3 className="text-2xl font-semibold mb-6 text-card-foreground">
+        <div className="max-w-4xl mx-auto text-center space-y-6 md:space-y-8">
+          <div className="bg-gradient-card rounded-2xl p-6 md:p-8 shadow-soft">
+            <h3 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6 text-card-foreground">
               Professional Cleaning Services
             </h3>
-            <div className="grid md:grid-cols-2 gap-6 text-left">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 text-left">
               <div className="space-y-4">
                 <p className="text-muted-foreground leading-relaxed">
                   <strong className="text-card-foreground">Office Cleaning:</strong> Professional commercial cleaning for offices, buildings, and workspaces. Keep your business environment pristine and productive.

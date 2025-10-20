@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles, Menu, X } from "lucide-react";
+import { Sparkles, Menu, X, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSupabaseData } from "@/contexts/SupabaseDataContext";
 import { useState } from "react";
 
 const Header = () => {
-  const { state } = useSupabaseData();
+  const { state, signOut } = useSupabaseData();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
@@ -23,6 +23,18 @@ const Header = () => {
     setIsMobileMenuOpen(false);
   };
 
+  const handleLogout = async () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      try {
+        await signOut();
+        closeMobileMenu();
+      } catch (error) {
+        console.error('Error logging out:', error);
+        alert('Failed to logout. Please try again.');
+      }
+    }
+  };
+
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4 py-4">
@@ -31,7 +43,7 @@ const Header = () => {
             <img
               src="/Neatrix_logo%20transparent.png"
               alt="Neatrix Logo"
-              className="w-6 h-6 md:w-24 md:h-24 rounded object-cover"
+              className="w-8 h-8 md:w-10 md:h-10 rounded object-cover"
             />
           </div>
 
@@ -84,15 +96,26 @@ const Header = () => {
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             {state.isAuthenticated ? (
-              <Link to="/dashboard">
+              <>
+                <Link to="/dashboard">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="bg-gradient-primary"
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
                 <Button 
-                  variant="default" 
-                  size="sm" 
-                  className="bg-gradient-primary"
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleLogout}
+                  className="flex items-center space-x-2"
                 >
-                  Dashboard
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
                 </Button>
-              </Link>
+              </>
             ) : (
               <>
                 <Link to="/login">
@@ -190,15 +213,26 @@ const Header = () => {
               {/* Mobile Auth Buttons */}
               <div className="pt-6 space-y-3 border-t border-border mt-4">
                 {state.isAuthenticated ? (
-                  <Link to="/dashboard" onClick={closeMobileMenu}>
+                  <>
+                    <Link to="/dashboard" onClick={closeMobileMenu}>
+                      <Button 
+                        variant="default" 
+                        size="lg" 
+                        className="w-full bg-gradient-primary h-12 text-base font-medium touch-manipulation"
+                      >
+                        Dashboard
+                      </Button>
+                    </Link>
                     <Button 
-                      variant="default" 
-                      size="lg" 
-                      className="w-full bg-gradient-primary h-12 text-base font-medium touch-manipulation"
+                      variant="outline" 
+                      size="lg"
+                      onClick={handleLogout}
+                      className="w-full h-12 text-base font-medium touch-manipulation flex items-center justify-center space-x-2"
                     >
-                      Dashboard
+                      <LogOut className="h-5 w-5" />
+                      <span>Logout</span>
                     </Button>
-                  </Link>
+                  </>
                 ) : (
                   <>
                     <Link to="/login" onClick={closeMobileMenu}>

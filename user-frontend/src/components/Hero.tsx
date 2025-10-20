@@ -20,8 +20,8 @@ const Hero = () => {
                 <span className="text-sm font-medium text-accent-dark">5-Star Rated Service</span>
               </div>
               
-              <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
-                <span className="bg-gradient-hero bg-clip-text text-transparent">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
+                <span className="bg-gradient-hero text-primary sm:bg-clip-text sm:text-transparent">
                   Sparkling Clean
                 </span>
                 <br />
@@ -30,7 +30,7 @@ const Hero = () => {
                 </span>
               </h1>
               
-              <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
+              <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-lg">
                 Professional cleaning services for offices, homes, schools, and more. 
                 Trust Neatrix to make your space shine with our expert team and eco-friendly approach.
               </p>
@@ -97,14 +97,14 @@ const Hero = () => {
             </div>
             
             {/* Floating Card */}
-            <div className="absolute -bottom-6 -left-6 bg-card p-6 rounded-xl shadow-medium border border-border">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-accent rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-accent-foreground" />
+            <div className="absolute -bottom-4 -left-2 sm:-bottom-6 sm:-left-6 bg-card p-4 sm:p-6 rounded-xl shadow-medium border border-border max-w-[280px] sm:max-w-none">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-accent rounded-full flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-accent-foreground" />
                 </div>
-                <div>
-                  <div className="font-semibold text-card-foreground">100% Satisfaction</div>
-                  <div className="text-sm text-muted-foreground">Guaranteed Results</div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-card-foreground text-sm sm:text-base">100% Satisfaction</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Guaranteed Results</div>
                 </div>
               </div>
             </div>

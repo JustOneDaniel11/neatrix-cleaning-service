@@ -74,7 +74,7 @@ const About = () => {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-            <span className="bg-gradient-hero bg-clip-text text-transparent">
+            <span className="bg-gradient-hero text-primary sm:bg-clip-text sm:text-transparent">
               About Neatrix
             </span>
           </h2>
