@@ -33,6 +33,8 @@ export interface Booking {
   special_instructions?: string;
   status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
   total_amount: number;
+  // User delivery preference
+  pickup_option?: 'pickup' | 'delivery';
   // Dry cleaning specific fields
   pickup_status?: 'pending' | 'scheduled' | 'picked_up';
   cleaning_status?: 'pending' | 'in_progress' | 'completed';
@@ -276,6 +278,24 @@ export interface ChatSession {
   adminName?: string;
 }
 
+export interface UserPaymentMethod {
+  id: string;
+  user_id: string;
+  payment_type: 'card' | 'bank';
+  card_last4?: string;
+  card_brand?: string;
+  card_exp_month?: number;
+  card_exp_year?: number;
+  bank_name?: string;
+  account_name?: string;
+  paystack_authorization_code?: string;
+  paystack_customer_code?: string;
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AppState {
   users: User[];
   bookings: Booking[];
@@ -293,6 +313,7 @@ export interface AppState {
   supportTickets: SupportTicket[];
   supportMessages: SupportMessage[];
   chatSessions: ChatSession[];
+  userPaymentMethods: UserPaymentMethod[];
   currentUser: User | null;
   authUser: SupabaseUser | null;
   isAuthenticated: boolean;
@@ -370,6 +391,10 @@ type Action =
   | { type: 'ADD_CHAT_SESSION'; payload: ChatSession }
   | { type: 'UPDATE_CHAT_SESSION'; payload: { id: string; updates: Partial<ChatSession> } }
   | { type: 'DELETE_CHAT_SESSION'; payload: string }
+  | { type: 'SET_USER_PAYMENT_METHODS'; payload: UserPaymentMethod[] }
+  | { type: 'ADD_USER_PAYMENT_METHOD'; payload: UserPaymentMethod }
+  | { type: 'UPDATE_USER_PAYMENT_METHOD'; payload: { id: string; updates: Partial<UserPaymentMethod> } }
+  | { type: 'DELETE_USER_PAYMENT_METHOD'; payload: string }
   | { type: 'LOGIN'; payload: { authUser: SupabaseUser; user: User } }
   | { type: 'LOGOUT' }
   | { type: 'UPDATE_STATS' };
@@ -391,6 +416,7 @@ const initialState: AppState = {
   supportTickets: [],
   supportMessages: [],
   chatSessions: [],
+  userPaymentMethods: [],
   currentUser: null,
   authUser: null,
   isAuthenticated: false,
@@ -413,21 +439,23 @@ function dataReducer(state: AppState, action: Action): AppState {
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
 
-    case 'INCREMENT_LOADING':
+    case 'INCREMENT_LOADING': {
       const newCounter = state.loadingCounter + 1;
       return { 
         ...state, 
         loadingCounter: newCounter,
         loading: newCounter > 0
       };
+    }
 
-    case 'DECREMENT_LOADING':
+    case 'DECREMENT_LOADING': {
       const decrementedCounter = Math.max(0, state.loadingCounter - 1);
       return { 
         ...state, 
         loadingCounter: decrementedCounter,
         loading: decrementedCounter > 0
       };
+    }
 
     case 'SET_ERROR':
       return { ...state, error: action.payload };
@@ -747,7 +775,35 @@ function dataReducer(state: AppState, action: Action): AppState {
         chatSessions: state.chatSessions.filter(session => session.id !== action.payload)
       };
 
-    case 'UPDATE_STATS':
+    case 'SET_USER_PAYMENT_METHODS':
+      return {
+        ...state,
+        userPaymentMethods: action.payload
+      };
+
+    case 'ADD_USER_PAYMENT_METHOD':
+      return {
+        ...state,
+        userPaymentMethods: [...state.userPaymentMethods, action.payload]
+      };
+
+    case 'UPDATE_USER_PAYMENT_METHOD':
+      return {
+        ...state,
+        userPaymentMethods: state.userPaymentMethods.map(method =>
+          method.id === action.payload.id
+            ? { ...method, ...action.payload.updates }
+            : method
+        )
+      };
+
+    case 'DELETE_USER_PAYMENT_METHOD':
+      return {
+        ...state,
+        userPaymentMethods: state.userPaymentMethods.filter(method => method.id !== action.payload)
+      };
+
+    case 'UPDATE_STATS': {
       const today = new Date().toISOString().split('T')[0];
       return {
         ...state,
@@ -765,6 +821,7 @@ function dataReducer(state: AppState, action: Action): AppState {
           todayBookings: state.bookings.filter(b => b.date === today).length
         }
       };
+    }
 
     default:
       return state;
@@ -826,6 +883,7 @@ const SupabaseDataContext = createContext<{
   cancelUserSubscription: (id: string) => Promise<void>;
   fetchSubscriptionBilling: () => Promise<void>;
   createSubscriptionBilling: (billing: Omit<SubscriptionBilling, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  createPayment: (payment: { amount: number; status: 'paid' | 'failed' | 'pending'; reference?: string; method?: string; booking_id?: string }) => Promise<void>;
   fetchSubscriptionCustomizations: () => Promise<void>;
   createSubscriptionCustomization: (customization: Omit<SubscriptionCustomization, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateSubscriptionCustomization: (id: string, updates: Partial<SubscriptionCustomization>) => Promise<void>;
@@ -853,6 +911,11 @@ const SupabaseDataContext = createContext<{
     tracking_notes?: string;
   }) => Promise<void>;
   updateDryCleaningItems: (bookingId: string, itemCount: number, itemDetails: any) => Promise<void>;
+  // Payment method functions
+  fetchUserPaymentMethods: () => Promise<void>;
+  createUserPaymentMethod: (method: Omit<UserPaymentMethod, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  setDefaultPaymentMethod: (id: string) => Promise<void>;
+  deleteUserPaymentMethod: (id: string) => Promise<void>;
 } | null>(null);
 
 // Provider
@@ -1323,6 +1386,42 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
+      // Propagate relevant updates to laundry_orders when applicable
+      try {
+        const isLaundryService =
+          data.service_type === 'dry_cleaning' ||
+          data.service_type === 'laundry' ||
+          data.service_name?.toLowerCase().includes('laundry') ||
+          data.service_name?.toLowerCase().includes('dry') ||
+          data.service_name?.toLowerCase().includes('cleaning');
+
+        if (isLaundryService) {
+          const laundryUpdates: any = {};
+          if (typeof data.status !== 'undefined') laundryUpdates.status = data.status;
+          if (typeof data.item_count !== 'undefined') laundryUpdates.item_count = data.item_count;
+          if (typeof data.total_amount !== 'undefined') {
+            laundryUpdates.total_amount = data.total_amount;
+            laundryUpdates.amount = data.total_amount;
+          }
+          if (typeof data.pickup_status !== 'undefined') laundryUpdates.pickup_status = data.pickup_status;
+          if (typeof data.cleaning_status !== 'undefined') laundryUpdates.cleaning_status = data.cleaning_status;
+          if (typeof data.delivery_status !== 'undefined') laundryUpdates.delivery_status = data.delivery_status;
+
+          if (Object.keys(laundryUpdates).length > 0) {
+            const { error: laundryError } = await supabase
+              .from('laundry_orders')
+              .update(laundryUpdates)
+              .eq('booking_id', id);
+
+            if (laundryError) {
+              console.error('Error updating laundry order:', laundryError);
+            }
+          }
+        }
+      } catch (propagationError) {
+        console.error('Laundry order propagation error:', propagationError);
+      }
+
       dispatch({ type: 'UPDATE_BOOKING', payload: { id, updates: data } });
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
@@ -1400,6 +1499,112 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
 
       dispatch({ type: 'UPDATE_BOOKING', payload: { id: bookingId, updates: data } });
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message });
+      throw error;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  // Payment method functions
+  const fetchUserPaymentMethods = async () => {
+    if (!state.currentUser) return;
+    
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_payment_methods')
+        .select('*')
+        .eq('user_id', state.currentUser.id)
+        .eq('is_active', true)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      dispatch({ type: 'SET_USER_PAYMENT_METHODS', payload: data || [] });
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message });
+      throw error;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  const createUserPaymentMethod = async (methodData: Omit<UserPaymentMethod, 'id' | 'created_at' | 'updated_at'>) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_payment_methods')
+        .insert([methodData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      dispatch({ type: 'ADD_USER_PAYMENT_METHOD', payload: data });
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message });
+      throw error;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  const setDefaultPaymentMethod = async (id: string) => {
+    if (!state.currentUser) return;
+    
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      // First, unset all other default methods for this user
+      const { error: unsetError } = await supabase
+        .from('user_payment_methods')
+        .update({ is_default: false })
+        .eq('user_id', state.currentUser.id);
+
+      if (unsetError) throw unsetError;
+
+      // Then set the selected method as default
+      const { data, error } = await supabase
+        .from('user_payment_methods')
+        .update({ is_default: true })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update all methods in state
+      dispatch({ type: 'SET_USER_PAYMENT_METHODS', payload: 
+        state.userPaymentMethods.map(method => ({
+          ...method,
+          is_default: method.id === id
+        }))
+      });
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message });
+      throw error;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  const deleteUserPaymentMethod = async (id: string) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      const { error } = await supabase
+        .from('user_payment_methods')
+        .update({ is_active: false })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      dispatch({ type: 'DELETE_USER_PAYMENT_METHOD', payload: id });
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       throw error;
@@ -2313,6 +2518,34 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const createPayment = async (payment: { amount: number; status: 'paid' | 'failed' | 'pending'; reference?: string; method?: string; booking_id?: string }) => {
+    if (!state.authUser) throw new Error('User not authenticated');
+
+    dispatch({ type: 'SET_LOADING', payload: true });
+
+    try {
+      const insertPayload: any = {
+        user_id: state.authUser.id,
+        amount: payment.amount,
+        status: payment.status,
+        payment_method: payment.method,
+        transaction_id: payment.reference,
+        booking_id: payment.booking_id
+      };
+
+      const { error } = await supabase
+        .from('payments')
+        .insert([insertPayload]);
+
+      if (error) throw error;
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message });
+      throw error;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
   const fetchSubscriptionCustomizations = async () => {
     if (!state.authUser) throw new Error('User not authenticated');
 
@@ -2541,14 +2774,23 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
+      // Ensure proper user identification
+      const messageWithUserInfo = {
+        ...message,
+        sender_id: message.sender_id || state.authUser.id,
+        sender_type: message.sender_type || 'user'
+      };
+
       const { data, error } = await supabase
         .from('support_messages')
-        .insert([message])
+        .insert([messageWithUserInfo])
         .select()
         .single();
 
       if (error) throw error;
       dispatch({ type: 'ADD_SUPPORT_MESSAGE', payload: data });
+      
+      return data;
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       throw error;
@@ -2696,6 +2938,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       cancelUserSubscription,
       fetchSubscriptionBilling,
       createSubscriptionBilling,
+      createPayment,
       fetchSubscriptionCustomizations,
       createSubscriptionCustomization,
       updateSubscriptionCustomization,
@@ -2712,7 +2955,11 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       createChatSession,
       updateChatSession,
       updateDryCleaningStatus,
-      updateDryCleaningItems
+      updateDryCleaningItems,
+      fetchUserPaymentMethods,
+      createUserPaymentMethod,
+      setDefaultPaymentMethod,
+      deleteUserPaymentMethod
     }}>
       {children}
     </SupabaseDataContext.Provider>

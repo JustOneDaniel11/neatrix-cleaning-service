@@ -27,6 +27,7 @@ const DryCleaningPage = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [returnPreference, setReturnPreference] = useState<'' | 'pickup' | 'delivery'>('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [generatedTrackingCode, setGeneratedTrackingCode] = useState('');
 
@@ -121,6 +122,11 @@ const DryCleaningPage = () => {
       return;
     }
 
+    if (!returnPreference) {
+      alert('Please select how you would like to receive your laundry after cleaning');
+      return;
+    }
+
     if (!currentUser) {
       alert('Please log in to submit a request');
       return;
@@ -149,7 +155,8 @@ const DryCleaningPage = () => {
          phone: currentUser.phone || '',
          status: 'pending',
          total_amount: 0, // Will be calculated later
-         special_instructions: `${specialInstructions}\n\nTracking Code: ${trackingCode}`
+         special_instructions: `${specialInstructions}\n\nTracking Code: ${trackingCode}`,
+         pickup_option: returnPreference as 'pickup' | 'delivery'
        });
 
       // Set tracking code and show success modal
@@ -161,6 +168,7 @@ const DryCleaningPage = () => {
       setSelectedDate('');
       setSelectedTime('');
       setSpecialInstructions('');
+      setReturnPreference('');
     } catch (error) {
       console.error('Error submitting request:', error);
       alert('Failed to submit request. Please try again.');
@@ -407,6 +415,22 @@ const DryCleaningPage = () => {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Return Preference */}
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                  How would you like to receive your laundry after cleaning? *
+                </label>
+                <select
+                  value={returnPreference}
+                  onChange={(e) => setReturnPreference(e.target.value as 'pickup' | 'delivery')}
+                  className="w-full px-3 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-h-[44px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200"
+                >
+                  <option value="">Select preference</option>
+                  <option value="pickup">I will pick it up myself</option>
+                  <option value="delivery">Deliver it to my location</option>
+                </select>
               </div>
 
               {/* Special Instructions */}

@@ -265,3 +265,89 @@ CREATE TRIGGER update_subscription_billing_updated_at BEFORE UPDATE ON public.su
 
 CREATE TRIGGER update_subscription_customizations_updated_at BEFORE UPDATE ON public.subscription_customizations
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Create payments table for transaction logging
+CREATE TABLE public.payments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  amount DECIMAL(10,2) NOT NULL,
+  currency TEXT DEFAULT 'NGN',
+  payment_method TEXT NOT NULL, -- 'card', 'bank_transfer', etc.
+  payment_gateway TEXT DEFAULT 'paystack',
+  transaction_reference TEXT UNIQUE,
+  gateway_reference TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'failed', 'cancelled')),
+  description TEXT,
+  metadata JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create user payment methods table for stored cards
+CREATE TABLE public.user_payment_methods (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  payment_type TEXT DEFAULT 'card' CHECK (payment_type IN ('card', 'bank')),
+  card_last4 TEXT,
+  card_brand TEXT,
+  card_exp_month INTEGER,
+  card_exp_year INTEGER,
+  bank_name TEXT,
+  account_name TEXT,
+  paystack_authorization_code TEXT,
+  paystack_customer_code TEXT,
+  is_default BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT unique_default_per_user UNIQUE (user_id, is_default) DEFERRABLE INITIALLY DEFERRED
+);
+
+-- Add RLS policies for payments table
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own payments" ON public.payments
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own payments" ON public.payments
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Add RLS policies for user_payment_methods table
+ALTER TABLE public.user_payment_methods ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own payment methods" ON public.user_payment_methods
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own payment methods" ON public.user_payment_methods
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own payment methods" ON public.user_payment_methods
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own payment methods" ON public.user_payment_methods
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Add triggers for new tables
+CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON public.payments
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_user_payment_methods_updated_at BEFORE UPDATE ON public.user_payment_methods
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Function to ensure only one default payment method per user
+CREATE OR REPLACE FUNCTION public.ensure_single_default_payment_method()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_default = true THEN
+    -- Set all other payment methods for this user to not default
+    UPDATE public.user_payment_methods 
+    SET is_default = false 
+    WHERE user_id = NEW.user_id AND id != NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER ensure_single_default_payment_method_trigger
+  BEFORE INSERT OR UPDATE ON public.user_payment_methods
+  FOR EACH ROW EXECUTE FUNCTION public.ensure_single_default_payment_method();

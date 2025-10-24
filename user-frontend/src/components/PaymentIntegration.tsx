@@ -58,7 +58,7 @@ const PaymentIntegration: React.FC = () => {
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'failed'>('idle');
-  const { state, createSubscriptionBilling, createNotification } = useSupabaseData();
+  const { state, createSubscriptionBilling, createNotification, createPayment } = useSupabaseData();
 
   // Paystack configuration
   const paystackConfig = {
@@ -100,6 +100,20 @@ const PaymentIntegration: React.FC = () => {
       if (!isSupabaseConfigured || !state.authUser) return;
       const methodName = params.method || selectedMethod || 'unknown';
       const activeSubscription = state.userSubscriptions.find(s => s.status === 'active');
+
+      // Always record successful payments in payments table
+      if (status === 'paid') {
+        try {
+          await createPayment({
+            amount: paymentData.amount,
+            status: 'paid',
+            reference: params.reference,
+            method: methodName
+          });
+        } catch (e) {
+          console.error('Error creating payment record:', e);
+        }
+      }
 
       if (status === 'paid' && activeSubscription?.id) {
         await createSubscriptionBilling({

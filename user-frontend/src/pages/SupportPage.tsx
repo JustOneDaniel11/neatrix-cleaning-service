@@ -139,6 +139,15 @@ const SupportPage: React.FC = () => {
     }
   };
 
+  // Helper function to get sender name
+  const getSenderName = (message: any) => {
+    if (message.sender_type === 'admin') {
+      return 'Support Agent';
+    } else {
+      return currentUser?.full_name || currentUser?.email || 'You';
+    }
+  };
+
   const handleSubmitContact = async () => {
     if (!currentUser || !contactForm.subject.trim() || !contactForm.message.trim() || isSubmittingContact) return;
 
@@ -328,26 +337,31 @@ const SupportPage: React.FC = () => {
                 currentMessages.map((message) => {
                   const isUser = message.sender_type === 'user';
                   return (
-                    <div key={message.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-end`}>
-                      {!isUser && (
-                        <div className="mr-2 flex-shrink-0">
-                          <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-semibold text-gray-700 dark:text-white">S</div>
-                        </div>
-                      )}
-                      <div className={`relative max-w-[80%] px-4 py-2 rounded-2xl shadow-sm ${isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white rounded-bl-none'}`}>
-                        <p className="text-sm leading-relaxed break-words">{message.message}</p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <span className={`text-[10px] ${isUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-300'}`}>{formatDate(message.created_at)}</span>
-                          {isUser && (
-                            <span className="text-[10px] text-blue-100">✓</span>
-                          )}
-                        </div>
+                    <div key={message.id} className={`max-w-[80%] ${isUser ? 'ml-auto' : ''}`}>
+                      <div className={`text-xs mb-1 ${isUser ? 'text-right text-gray-600 dark:text-gray-300' : 'text-gray-600 dark:text-gray-300'}`}>
+                        {getSenderName(message)}
                       </div>
-                      {isUser && (
-                        <div className="ml-2 flex-shrink-0">
-                          <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-semibold text-blue-700">You</div>
+                      <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-end`}>
+                        {!isUser && (
+                          <div className="mr-2 flex-shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-semibold text-gray-700 dark:text-white">S</div>
+                          </div>
+                        )}
+                        <div className={`relative px-4 py-2 rounded-2xl shadow-sm ${isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white rounded-bl-none'}`}>
+                          <p className="text-sm leading-relaxed break-words">{message.message}</p>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className={`text-[10px] ${isUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-300'}`}>{formatDate(message.created_at)}</span>
+                            {isUser && (
+                              <span className="text-[10px] text-blue-100">✓</span>
+                            )}
+                          </div>
                         </div>
-                      )}
+                        {isUser && (
+                          <div className="ml-2 flex-shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-semibold text-blue-700">You</div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })

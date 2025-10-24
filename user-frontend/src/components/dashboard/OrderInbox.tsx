@@ -97,10 +97,35 @@ const OrderInbox = ({ className = "" }: OrderInboxProps) => {
     }
   };
 
+  // Derive display stage from tracking_stage with status fallback
+  const deriveStage = (booking: Booking) => {
+    const status = (booking.status || '').toLowerCase();
+    if (status === 'completed') return 'completed';
+    if (status === 'cancelled') return 'cancelled';
+    if (status === 'in_progress' || status === 'confirmed') return booking.tracking_stage || 'sorting';
+    return booking.tracking_stage || 'pending';
+  };
+
   // Get current stage display
   const getCurrentStage = (booking: Booking) => {
-    const stage = booking.tracking_stage || 'pending';
-    return stage.charAt(0).toUpperCase() + stage.slice(1).replace('_', ' ');
+    const stage = deriveStage(booking);
+    const labelMap: Record<string, string> = {
+      pending: 'Pending',
+      intake: 'Picked Up / Dropped Off',
+      sorting: 'Sorting',
+      stain_removing: 'Stain Removal',
+      washing: 'Washing',
+      drying: 'Drying',
+      ironing: 'Ironing',
+      packing: 'Packing',
+      ready_for_pickup: 'Ready for Pickup',
+      picked_up: 'Picked Up',
+      ready_for_delivery: 'Ready for Delivery',
+      delivered: 'Delivered',
+      completed: 'Completed',
+      cancelled: 'Cancelled'
+    };
+    return labelMap[stage] || (stage.charAt(0).toUpperCase() + stage.slice(1).replace('_', ' '));
   };
 
   // Get stage color with improved styling
@@ -115,6 +140,9 @@ const OrderInbox = ({ className = "" }: OrderInboxProps) => {
       case 'quality_check': return 'bg-teal-100 text-teal-800 border-teal-200';
       case 'ready_for_pickup': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'picked_up': return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'delivered': return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'completed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
@@ -124,6 +152,8 @@ const OrderInbox = ({ className = "" }: OrderInboxProps) => {
     switch (stage) {
       case 'ready_for_pickup':
       case 'picked_up':
+      case 'delivered':
+      case 'completed':
         return <CheckCircle className="w-3 h-3" />;
       default:
         return <Clock className="w-3 h-3" />;
@@ -160,19 +190,19 @@ const OrderInbox = ({ className = "" }: OrderInboxProps) => {
           </div>
 
           {/* Track New Order */}
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
             <input
               type="text"
               placeholder="Enter tracking code..."
               value={trackingCode}
               onChange={(e) => setTrackingCode(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleTrackNewOrder()}
-              className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 text-sm transition-all duration-200"
+              className="flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 text-sm transition-all duration-200 min-w-0"
             />
             <button
               onClick={handleTrackNewOrder}
               disabled={!trackingCode.trim() || isLoadingTrackingCode}
-              className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md active:scale-95"
+              className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md active:scale-95 whitespace-nowrap min-h-[44px] touch-manipulation flex items-center justify-center sm:flex-shrink-0"
             >
               {isLoadingTrackingCode ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -226,8 +256,8 @@ const OrderInbox = ({ className = "" }: OrderInboxProps) => {
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate pr-2">
                       {booking.service_name || 'Dry Cleaning Service'}
                     </h3>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1 whitespace-nowrap ${getStageColor(booking.tracking_stage || 'pending')}`}>
-                      {getStageIcon(booking.tracking_stage || 'pending')}
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1 whitespace-nowrap ${getStageColor(deriveStage(booking))}`}>
+                      {getStageIcon(deriveStage(booking))}
                       {getCurrentStage(booking)}
                     </span>
                   </div>

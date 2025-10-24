@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Plus, Trash2, Calendar, DollarSign, Receipt, CheckCircle, Clock, AlertCircle, X } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Calendar, DollarSign, Receipt, CheckCircle, Clock, AlertCircle, X, Shield } from 'lucide-react';
 import { useSupabaseData } from '@/contexts/SupabaseDataContext';
+import { usePaystackPayment } from 'react-paystack';
 
 interface PaymentMethod {
   id: string;
@@ -35,48 +36,47 @@ interface Invoice {
 }
 
 const PaymentPage: React.FC = () => {
-  const { state } = useSupabaseData();
+  const { 
+    state, 
+    createPayment, 
+    createNotification, 
+    fetchUserPaymentMethods,
+    createUserPaymentMethod,
+    setDefaultPaymentMethod,
+    deleteUserPaymentMethod
+  } = useSupabaseData();
   const [activeTab, setActiveTab] = useState<'methods' | 'history' | 'invoices'>('methods');
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [newPaymentType, setNewPaymentType] = useState<'card' | 'bank' | 'paypal'>('card');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
 
-  // Generate real data from SupabaseDataContext
+  // Paystack config for adding a card (small authorization charge)
+  const paystackAddCardConfig = {
+    reference: `card_${Date.now()}`,
+    email: state.currentUser?.email || '',
+    amount: 100 * 100, // ₦100 in kobo
+    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_your_paystack_public_key_here',
+    currency: 'NGN',
+    metadata: {
+      custom_fields: [
+        { display_name: 'Action', variable_name: 'action', value: 'add_card' },
+        { display_name: 'User', variable_name: 'user_id', value: state.currentUser?.id || 'anonymous' }
+      ]
+    }
+  };
+  const initializeAddCard = usePaystackPayment(paystackAddCardConfig);
+
+  // Fetch user payment methods and generate transaction/invoice data
   useEffect(() => {
     if (!state.currentUser) return;
 
-    // Generate payment methods from user's payment history
-    const userBilling = state.subscriptionBilling.filter(billing => billing.user_id === state.currentUser?.id);
-    const uniquePaymentMethods = new Map<string, PaymentMethod>();
-    
-    userBilling.forEach((billing, index) => {
-      if (billing.payment_method) {
-        const methodKey = billing.payment_method;
-        if (!uniquePaymentMethods.has(methodKey)) {
-          const isCard = methodKey.toLowerCase().includes('card') || methodKey.toLowerCase().includes('visa') || methodKey.toLowerCase().includes('mastercard');
-          const isPaypal = methodKey.toLowerCase().includes('paypal');
-          
-          uniquePaymentMethods.set(methodKey, {
-            id: `method-${index + 1}`,
-            type: isPaypal ? 'paypal' : isCard ? 'card' : 'bank',
-            last4: isCard ? methodKey.slice(-4) : undefined,
-            brand: isCard ? (methodKey.toLowerCase().includes('visa') ? 'Visa' : 'Mastercard') : undefined,
-            expiryMonth: isCard ? 12 : undefined,
-            expiryYear: isCard ? 2025 : undefined,
-            isDefault: index === 0,
-            email: isPaypal ? state.currentUser?.email : undefined,
-            bankName: !isCard && !isPaypal ? methodKey : undefined
-          });
-        }
-      }
-    });
-
-    setPaymentMethods(Array.from(uniquePaymentMethods.values()));
+    // Fetch user payment methods from database
+    fetchUserPaymentMethods();
 
     // Generate transactions from subscription billing
+    const userBilling = state.subscriptionBilling.filter(billing => billing.user_id === state.currentUser?.id);
     const userTransactions: Transaction[] = userBilling.map((billing) => ({
       id: billing.id,
       amount: billing.amount,
@@ -127,15 +127,6 @@ const PaymentPage: React.FC = () => {
     ));
   }, [state.currentUser, state.subscriptionBilling, state.bookings]);
 
-  const handleAddPaymentMethod = async () => {
-    setIsProcessing(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsProcessing(false);
-      setShowAddPayment(false);
-    }, 2000);
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -148,6 +139,81 @@ const PaymentPage: React.FC = () => {
         return <AlertCircle className="w-5 h-5 text-red-500" />;
       default:
         return null;
+    }
+  };
+
+  // Replace simulated add method with Paystack inline widget
+  const handleAddPaymentMethod = async () => {
+    if (!state.currentUser?.email) {
+      alert('Please update your profile with a valid email before adding a card.');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      initializeAddCard({
+        onSuccess: async (reference: any) => {
+          try {
+            // Log a small authorization payment
+            await createPayment({
+              amount: 100,
+              status: 'paid',
+              reference: reference?.reference,
+              method: 'paystack_card_add'
+            });
+            // Notify user
+            await createNotification({
+              user_id: state.authUser!.id,
+              title: 'Card added successfully',
+              message: `Your card was securely added via Paystack (Ref: ${reference?.reference}).`,
+              type: 'payment',
+              status: 'unread',
+              priority: 'normal',
+              metadata: { action: 'add_card', reference: reference?.reference }
+            });
+            // Create a pending payment method in the database
+            await createUserPaymentMethod({
+              user_id: state.currentUser!.id,
+              payment_type: 'card',
+              card_brand: reference?.authorization?.card_type || 'Card',
+              card_last4: reference?.authorization?.last4,
+              card_exp_month: reference?.authorization?.exp_month,
+              card_exp_year: reference?.authorization?.exp_year,
+              paystack_authorization_code: reference?.authorization?.authorization_code,
+              paystack_customer_code: reference?.customer?.customer_code,
+              is_default: state.userPaymentMethods.length === 0,
+              is_active: true
+            });
+            setIsProcessing(false);
+            setShowAddPayment(false);
+            alert('Card added securely!');
+          } catch (e) {
+            console.error('Error saving payment/card:', e);
+            setIsProcessing(false);
+          }
+        },
+        onClose: async () => {
+          setIsProcessing(false);
+          try {
+            await createPayment({ amount: 100, status: 'failed', reference: paystackAddCardConfig.reference, method: 'paystack_card_add' });
+            await createNotification({
+              user_id: state.authUser!.id,
+              title: 'Card addition cancelled',
+              message: 'You closed the Paystack widget before completing card addition.',
+              type: 'payment',
+              status: 'unread',
+              priority: 'normal',
+              metadata: { action: 'add_card', reference: paystackAddCardConfig.reference }
+            });
+          } catch (err) {
+            console.error('Failed to record cancellation notification', err);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Paystack init error:', error);
+      setIsProcessing(false);
+      alert('Could not launch Paystack. Please try again.');
     }
   };
 
@@ -212,14 +278,14 @@ const PaymentPage: React.FC = () => {
             </button>
           </div>
 
-          {paymentMethods.length === 0 ? (
+          {state.userPaymentMethods.length === 0 ? (
             <div className="border border-gray-200 rounded-lg p-4 sm:p-6 bg-gray-50">
               <p className="text-sm sm:text-base text-gray-700">No saved payment methods.</p>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">Click “Add Payment Method” to add your first method.</p>
             </div>
           ) : (
             <div className="grid gap-3 sm:gap-4">
-              {paymentMethods.map((method) => (
+              {state.userPaymentMethods.map((method) => (
                 <div key={method.id} className="border border-gray-200 rounded-lg p-4 sm:p-4">
                   <div className="flex items-start sm:items-center justify-between gap-3">
                     <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
@@ -228,13 +294,12 @@ const PaymentPage: React.FC = () => {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="font-medium text-gray-900 text-sm sm:text-base truncate">
-                          {method.type === 'card' && `${method.brand} ****${method.last4}`}
-                          {method.type === 'paypal' && `PayPal - ${method.email}`}
-                          {method.type === 'bank' && `${method.bankName} - ****${method.last4}`}
+                          {method.payment_type === 'card' && `${method.card_brand ?? 'Card'} ${method.card_last4 ? `****${method.card_last4}` : ''}`}
+                          {method.payment_type === 'bank' && `${method.bank_name ?? 'Bank Account'}`}
                         </div>
                         <div className="text-xs sm:text-sm text-gray-500 flex flex-wrap items-center gap-2 mt-1">
-                          {method.type === 'card' && `Expires ${method.expiryMonth}/${method.expiryYear}`}
-                          {method.isDefault && (
+                          {method.payment_type === 'card' && method.card_exp_month && method.card_exp_year && `Expires ${method.card_exp_month}/${method.card_exp_year}`}
+                          {method.is_default && (
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                               Default
                             </span>
@@ -242,9 +307,22 @@ const PaymentPage: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <button className="text-red-600 hover:text-red-800 p-2 sm:p-1 flex-shrink-0 min-h-[44px] min-w-[44px] sm:min-h-auto sm:min-w-auto flex items-center justify-center">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {!method.is_default && (
+                        <button
+                          onClick={() => setDefaultPaymentMethod(method.id)}
+                          className="text-blue-600 hover:text-blue-800 p-2 sm:p-1 flex-shrink-0 min-h-[44px] min-w-[44px] sm:min-h-auto sm:min-w-auto flex items-center justify-center"
+                        >
+                          Set as Default
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteUserPaymentMethod(method.id)}
+                        className="text-red-600 hover:text-red-800 p-2 sm:p-1 flex-shrink-0 min-h-[44px] min-w-[44px] sm:min-h-auto sm:min-w-auto flex items-center justify-center"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

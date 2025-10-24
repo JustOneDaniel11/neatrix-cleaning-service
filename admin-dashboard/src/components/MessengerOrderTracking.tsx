@@ -19,7 +19,7 @@ interface RawOrderData {
     id: string;
     email: string;
     full_name: string | null;
-  }[] | null;
+  } | null;
 }
 
 interface Order {
@@ -121,7 +121,7 @@ const MessengerOrderTracking: React.FC = () => {
           total_amount,
           created_at,
           updated_at,
-          users (
+          users:user_id (
             id,
             email,
             full_name
@@ -137,7 +137,8 @@ const MessengerOrderTracking: React.FC = () => {
       console.log(`📦 Fetched ${data?.length || 0} orders from Supabase`);
       
       // Map the data to add customer_name and customer_email for backward compatibility
-      const ordersWithCustomerInfo: Order[] = (data as RawOrderData[] || []).map(order => ({
+      const rawData = ((data ?? []) as unknown as RawOrderData[]);
+      const ordersWithCustomerInfo: Order[] = rawData.map(order => ({
         id: order.id,
         user_id: order.user_id,
         service_name: order.service_name,
@@ -148,10 +149,10 @@ const MessengerOrderTracking: React.FC = () => {
         total_amount: order.total_amount,
         created_at: order.created_at,
         updated_at: order.updated_at,
-        customer_name: order.users?.[0]?.full_name || 
-                      (order.users?.[0]?.email ? order.users[0].email.split('@')[0] : 
+        customer_name: order.users?.full_name || 
+                      (order.users?.email ? order.users.email.split('@')[0] : 
                        `Customer #${order.id.slice(-6).toUpperCase()}`),
-        customer_email: order.users?.[0]?.email || 'No email'
+        customer_email: order.users?.email || 'Unknown Email'
       }));
       
       setOrders(ordersWithCustomerInfo);

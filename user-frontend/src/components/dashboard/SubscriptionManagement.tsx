@@ -82,10 +82,11 @@ export default function SubscriptionManagement({ className }: SubscriptionManage
         case 'monthly':
           nextBilling.setMonth(now.getMonth() + 1);
           break;
-        case 'custom':
+        case 'custom': {
           const customDays = parseInt(customization.custom_frequency_days) || 30;
           nextBilling.setDate(now.getDate() + customDays);
           break;
+        }
       }
 
       const cycleEnd = new Date(nextBilling);

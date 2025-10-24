@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Bell, 
   Calendar, 
@@ -10,9 +11,14 @@ import {
   Shirt, 
   Activity, 
   CheckCircle, 
-  Trash2 
+  Trash2,
+  X,
+  ExternalLink,
+  Eye,
+  MarkAsRead
 } from 'lucide-react';
 import { formatDate } from '../lib/utils';
+import { useToast } from '../hooks/use-toast';
 
 interface Notification {
   id: string;
@@ -22,6 +28,8 @@ interface Notification {
   created_at: string;
   type?: string;
   priority?: string;
+  action_url?: string;
+  action_label?: string;
 }
 
 interface NotificationsPageProps {
@@ -39,6 +47,94 @@ export default function NotificationsPage({
   onDeleteNotification,
   onMarkAsRead
 }: NotificationsPageProps) {
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleNotificationClick = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setShowModal(true);
+    onNotificationClick(notification);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedNotification(null);
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    onMarkAsRead(id);
+    if (selectedNotification?.id === id) {
+      setSelectedNotification({ ...selectedNotification, status: 'read' });
+    }
+  };
+
+  const getContextualActionText = (type: string) => {
+    switch (type) {
+      case 'booking': return { text: 'View Booking Details', icon: Calendar };
+      case 'payment': return { text: 'View Payment Details', icon: CreditCard };
+      case 'user': return { text: 'View User Profile', icon: Users };
+      case 'complaint': 
+      case 'support': return { text: 'View Support Ticket', icon: AlertTriangle };
+      case 'review': return { text: 'View Review Details', icon: Star };
+      case 'delivery': return { text: 'View Delivery Details', icon: Truck };
+      case 'laundry': return { text: 'View Laundry Order', icon: Shirt };
+      default: return { text: 'View Details', icon: Eye };
+    }
+  };
+
+  const handleActionClick = (actionUrl?: string, notificationType?: string) => {
+    const actionText = getContextualActionText(notificationType || 'general');
+    
+    if (actionUrl) {
+      // Check if it's an internal admin route
+      if (actionUrl.startsWith('/admin/')) {
+        navigate(actionUrl);
+        toast({
+          title: "Redirecting...",
+          description: `Opening ${actionText.text.toLowerCase()}`,
+        });
+      } else if (actionUrl.startsWith('http://') || actionUrl.startsWith('https://')) {
+        // External URL - open in new tab
+        window.open(actionUrl, '_blank');
+        toast({
+          title: "Opening External Link",
+          description: `${actionText.text} opened in new tab`,
+        });
+      } else {
+        // Assume it's an internal route and prepend /admin/
+        navigate(`/admin/${actionUrl}`);
+        toast({
+          title: "Redirecting...",
+          description: `Opening ${actionText.text.toLowerCase()}`,
+        });
+      }
+      // Close modal after action
+      handleCloseModal();
+    } else {
+      // Fallback to type-based routing when no action_url is provided
+      const routeMap: Record<string, string> = {
+        'booking': '/admin/orders',
+        'payment': '/admin/payments',
+        'user': '/admin/users',
+        'complaint': '/admin/contact-message',
+        'support': '/admin/contact-message',
+        'review': '/admin/reviews',
+        'delivery': '/admin/delivery',
+        'laundry': '/admin/laundry',
+      };
+      
+      const route = routeMap[notificationType || 'general'] || '/admin/dashboard';
+      navigate(route);
+      toast({
+        title: "Redirecting...",
+        description: `Opening ${actionText.text.toLowerCase()}`,
+      });
+      handleCloseModal();
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'booking': return <Calendar className="w-5 h-5" />;
@@ -136,7 +232,7 @@ export default function NotificationsPage({
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  onClick={() => onNotificationClick(notification)}
+                  onClick={() => handleNotificationClick(notification)}
                   className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${
                     getNotificationColor(notification.priority || 'low')
                   } ${notification.status === 'unread' ? 'ring-2 ring-blue-500/20' : ''}`}
@@ -174,15 +270,50 @@ export default function NotificationsPage({
                         }`}>
                           {notification.priority || 'Low'} Priority
                         </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteNotification(notification.id);
-                          }}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNotificationClick(notification);
+                            }}
+                            className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300"
+                            title="View details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleActionClick(notification.action_url, notification.type);
+                            }}
+                            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                            title={getContextualActionText(notification.type || 'general').text}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                          {notification.status === 'unread' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(notification.id);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                              title="Mark as read"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteNotification(notification.id);
+                            }}
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            title="Delete notification"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -198,6 +329,92 @@ export default function NotificationsPage({
           )}
         </div>
       </div>
+
+      {/* Notification Details Modal */}
+      {showModal && selectedNotification && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className={`p-2 rounded-lg ${
+                    selectedNotification.priority === 'high' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
+                    selectedNotification.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
+                    'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {getNotificationIcon(selectedNotification.type || 'general')}
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {selectedNotification.title}
+                  </h3>
+                </div>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {selectedNotification.message}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    selectedNotification.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                    selectedNotification.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                  }`}>
+                    {selectedNotification.priority || 'Low'} Priority
+                  </span>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {formatDate(selectedNotification.created_at)}
+                  </span>
+                </div>
+
+                <div className="flex space-x-2 pt-4">
+                  {selectedNotification.status === 'unread' && (
+                    <button
+                      onClick={() => handleMarkAsRead(selectedNotification.id)}
+                      className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>Mark as Read</span>
+                    </button>
+                  )}
+                  {(() => {
+                      const actionInfo = getContextualActionText(selectedNotification.type || 'general');
+                      const ActionIcon = actionInfo.icon;
+                      return (
+                        <button
+                          onClick={() => handleActionClick(selectedNotification.action_url, selectedNotification.type)}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          <ActionIcon className="w-4 h-4" />
+                          {actionInfo.text}
+                        </button>
+                      );
+                    })()}
+                  <button
+                    onClick={() => {
+                      onDeleteNotification(selectedNotification.id);
+                      handleCloseModal();
+                    }}
+                    className="flex items-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

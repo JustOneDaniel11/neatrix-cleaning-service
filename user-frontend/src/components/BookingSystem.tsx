@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, User, Phone, Mail, Calculator, CheckCircle, ArrowRight, Home, Building, Shirt, Zap, Waves, GraduationCap, HardHat, Sofa, Grid3X3 } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Phone, Mail, Calculator, CheckCircle, ArrowRight, Home, Building, Shirt, Zap, Waves, GraduationCap, HardHat, Sofa, Grid3X3, Truck } from 'lucide-react';
 import { useSupabaseData } from '@/contexts/SupabaseDataContext';
 
 interface Service {
@@ -24,6 +24,7 @@ interface BookingData {
   frequency: string;
   addOns: string[];
   specialRequests: string;
+  deliveryPreference: '' | 'pickup' | 'delivery';
   customerInfo: {
     name: string;
     phone: string;
@@ -52,6 +53,7 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
     frequency: 'one-time',
     addOns: [],
     specialRequests: '',
+    deliveryPreference: '',
     customerInfo: {
       name: '',
       phone: '',
@@ -234,7 +236,8 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
         phone: bookingData.customerInfo.phone,
         special_instructions: bookingData.specialRequests,
         status: 'pending' as const,
-        total_amount: totalPrice
+        total_amount: totalPrice,
+        pickup_option: bookingData.deliveryPreference || undefined
       };
 
       await createBooking(newBookingData);
@@ -255,6 +258,7 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
         frequency: 'one-time',
         addOns: [],
         specialRequests: '',
+        deliveryPreference: '',
         customerInfo: {
           name: '',
           phone: '',
@@ -483,6 +487,23 @@ const BookingSystem: React.FC<BookingSystemProps> = ({ onBookingSuccess }) => {
           <option value="yaba">Yaba</option>
           <option value="gbagada">Gbagada</option>
           <option value="maryland">Maryland</option>
+        </select>
+      </div>
+
+      {/* Delivery Preference */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          <Truck className="w-4 h-4 inline mr-2" />
+          How would you like to receive your laundry?
+        </label>
+        <select
+          value={bookingData.deliveryPreference}
+          onChange={(e) => setBookingData(prev => ({ ...prev, deliveryPreference: (e.target.value as '' | 'pickup' | 'delivery') }))}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base min-h-[48px] transition-all duration-200 bg-white"
+        >
+          <option value="">Select delivery preference</option>
+          <option value="pickup">I will pick it up myself</option>
+          <option value="delivery">Deliver it to my location</option>
         </select>
       </div>
     </div>

@@ -1,32 +1,29 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useSupabaseData } from "@/contexts/SupabaseDataContext";
+import { Card, CardContent } from "@/components/ui/card";
 import { CreditCard, Plus, X, Shield, AlertCircle, CheckCircle } from "lucide-react";
+import { usePaystackPayment } from 'react-paystack';
 
-interface PaymentMethod {
-  id: string;
-  type: string;
-  last4: string;
-  expiryMonth: string;
-  expiryYear: string;
-  isDefault: boolean;
-  autoBilling: boolean;
-}
 
-interface PaymentManagementProps {
-  paymentMethods: PaymentMethod[];
-  onSetDefault: (methodId: string) => void;
-  onToggleAutoBilling: (methodId: string) => void;
-  onDeletePayment: (methodId: string) => void;
-  onAddPayment: (paymentMethod: any) => void;
-}
 
-const PaymentManagement = ({
-  paymentMethods,
-  onSetDefault,
-  onToggleAutoBilling,
-  onDeletePayment,
-  onAddPayment
-}: PaymentManagementProps) => {
+const PaymentManagement = () => {
+  const { state, fetchUserPaymentMethods, setDefaultPaymentMethod, deleteUserPaymentMethod, createUserPaymentMethod } = useSupabaseData();
+  useEffect(() => { fetchUserPaymentMethods(); }, []);
+
+  const paystackAddCardConfig = {
+    reference: `card_${Date.now()}`,
+    email: state.currentUser?.email || '',
+    amount: 100 * 100, // ₦100 in kobo
+    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_your_paystack_public_key_here',
+    currency: 'NGN',
+    metadata: {
+      custom_fields: [
+        { display_name: 'Action', variable_name: 'action', value: 'add_card' },
+        { display_name: 'User', variable_name: 'user_id', value: state.currentUser?.id || 'anonymous' }
+      ]
+    }
+  };
+  const initializeAddCard = usePaystackPayment(paystackAddCardConfig);
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -38,7 +35,7 @@ const PaymentManagement = ({
     cardholderName: '',
     billingAddress: '',
     isDefault: false,
-    autoBilling: false
+    autoBilling: false,
   });
 
   // Card validation functions
@@ -128,49 +125,53 @@ const PaymentManagement = ({
   };
 
   const handleAddPaymentMethod = async () => {
-    if (!validateForm()) return;
-    
     setIsProcessing(true);
-    
     try {
-      // Simulate secure payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const paymentMethod = {
-        id: Date.now().toString(),
-        type: getCardType(newPaymentMethod.cardNumber),
-        last4: newPaymentMethod.cardNumber.replace(/\s/g, '').slice(-4),
-        expiryMonth: newPaymentMethod.expiryMonth,
-        expiryYear: newPaymentMethod.expiryYear,
-        isDefault: newPaymentMethod.isDefault || paymentMethods.length === 0,
-        autoBilling: newPaymentMethod.autoBilling
-      };
-
-      onAddPayment(paymentMethod);
-      setShowAddPaymentModal(false);
-      setNewPaymentMethod({
-        cardNumber: '',
-        expiryMonth: '',
-        expiryYear: '',
-        cvv: '',
-        cardholderName: '',
-        billingAddress: '',
-        isDefault: false,
-        autoBilling: false
+      initializeAddCard({
+        onSuccess: async (reference: any) => {
+          try {
+            await createUserPaymentMethod({
+              user_id: state.currentUser!.id,
+              payment_type: 'card',
+              card_brand: reference?.authorization?.card_type || 'Card',
+              card_last4: reference?.authorization?.last4,
+              card_exp_month: reference?.authorization?.exp_month,
+              card_exp_year: reference?.authorization?.exp_year,
+              paystack_authorization_code: reference?.authorization?.authorization_code,
+              paystack_customer_code: reference?.customer?.customer_code,
+              is_default: state.userPaymentMethods.length === 0 || newPaymentMethod.isDefault,
+              is_active: true
+            });
+            await fetchUserPaymentMethods();
+            setIsProcessing(false);
+            setShowAddPaymentModal(false);
+            setNewPaymentMethod({
+              cardNumber: '',
+              expiryMonth: '',
+              expiryYear: '',
+              cvv: '',
+              cardholderName: '',
+              billingAddress: '',
+              isDefault: false,
+              autoBilling: false
+            });
+            setErrors({});
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2';
+            successDiv.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>Payment method added securely!';
+            document.body.appendChild(successDiv);
+            setTimeout(() => document.body.removeChild(successDiv), 3000);
+          } catch (e) {
+            console.error('Error saving payment/card:', e);
+            setIsProcessing(false);
+          }
+        },
+        onClose: () => {
+          setIsProcessing(false);
+        }
       });
-      setErrors({});
-      
-      // Show success message
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2';
-      successDiv.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>Payment method added securely!';
-      document.body.appendChild(successDiv);
-      setTimeout(() => document.body.removeChild(successDiv), 3000);
-      
     } catch (error) {
-      console.error('Error adding payment method:', error);
-      setErrors({ general: 'Failed to add payment method. Please try again.' });
-    } finally {
+      console.error('Paystack init error:', error);
       setIsProcessing(false);
     }
   };
@@ -189,7 +190,7 @@ const PaymentManagement = ({
       </div>
 
       <div className="space-y-4">
-        {paymentMethods.map((method) => (
+        {state.userPaymentMethods.map((method) => (
           <Card key={method.id}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -199,12 +200,13 @@ const PaymentManagement = ({
                   </div>
                   <div>
                     <div className="font-medium">
-                      {method.type.charAt(0).toUpperCase() + method.type.slice(1)} •••• {method.last4}
+                      {method.payment_type === 'card' && `${method.card_brand ?? 'Card'} ${method.card_last4 ? '•••• ' + method.card_last4 : ''}`}
+                      {method.payment_type === 'bank' && `${method.bank_name ?? 'Bank Account'}`}
                     </div>
                     <div className="text-sm text-gray-600">
-                      Expires {method.expiryMonth}/{method.expiryYear}
+                      {method.payment_type === 'card' && method.card_exp_month && method.card_exp_year ? `Expires ${method.card_exp_month}/${method.card_exp_year}` : ''}
                     </div>
-                    {method.isDefault && (
+                    {method.is_default && (
                       <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-1">
                         Default
                       </span>
@@ -212,26 +214,17 @@ const PaymentManagement = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {!method.isDefault && (
+                  {!method.is_default && (
                     <button
-                      onClick={() => onSetDefault(method.id)}
+                      onClick={() => setDefaultPaymentMethod(method.id)}
                       className="text-sm text-blue-600 hover:text-blue-800"
                     >
                       Set as Default
                     </button>
                   )}
+
                   <button
-                    onClick={() => onToggleAutoBilling(method.id)}
-                    className={`text-sm px-3 py-1 rounded-full ${
-                      method.autoBilling 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {method.autoBilling ? 'Auto-billing ON' : 'Auto-billing OFF'}
-                  </button>
-                  <button
-                    onClick={() => onDeletePayment(method.id)}
+                    onClick={() => deleteUserPaymentMethod(method.id)}
                     className="text-red-600 hover:text-red-800"
                   >
                     Delete
@@ -265,7 +258,7 @@ const PaymentManagement = ({
                       cardholderName: '',
                       billingAddress: '',
                       isDefault: false,
-                      autoBilling: false
+                      autoBilling: false,
                     });
                   }}
                   className="text-gray-400 hover:text-gray-600"
@@ -470,14 +463,14 @@ const PaymentManagement = ({
                     <input
                       type="checkbox"
                       id="defaultPayment"
-                      checked={newPaymentMethod.isDefault || paymentMethods.length === 0}
+                      checked={newPaymentMethod.isDefault || state.userPaymentMethods.length === 0}
                       onChange={(e) => setNewPaymentMethod(prev => ({ ...prev, isDefault: e.target.checked }))}
                       className="rounded"
-                      disabled={isProcessing || paymentMethods.length === 0}
+                      disabled={isProcessing || state.userPaymentMethods.length === 0}
                     />
                     <label htmlFor="defaultPayment" className="text-sm">
                       Set as default payment method
-                      {paymentMethods.length === 0 && (
+                      {state.userPaymentMethods.length === 0 && (
                         <span className="text-gray-500 ml-1">(automatically set for first card)</span>
                       )}
                     </label>
@@ -507,9 +500,9 @@ const PaymentManagement = ({
                 </button>
                 <button
                   onClick={handleAddPaymentMethod}
-                  disabled={isProcessing || !isFormValid()}
+                  disabled={isProcessing}
                   className={`flex-1 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${
-                    isProcessing || !isFormValid()
+                    isProcessing
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-primary text-primary-foreground hover:bg-primary/90'
                   }`}

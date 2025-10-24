@@ -397,6 +397,58 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
         'delivered': 'Delivered'
       };
 
+      // Create a user notification for key stage transitions
+      try {
+        const updatedBooking = Array.isArray(data) ? (data[0] || order) : order;
+        const userId = updatedBooking?.user_id || order?.user_id;
+
+        const notificationTemplates: Record<string, { title: string; message: string }> = {
+          stain_removing: {
+            title: 'Your dry cleaning is now ready for tracking',
+            message: `Your order ${orderId.slice(-6)} has entered processing and tracking has started.`
+          },
+          ready_for_pickup: {
+            title: 'Your dry cleaning is ready for pickup',
+            message: `Your laundry order #${orderId.slice(-6)} has been completed and is ready for pickup.`
+          },
+          out_for_delivery: {
+            title: 'Your dry cleaning is on the way',
+            message: `Your order #${orderId.slice(-6)} is out for delivery.`
+          },
+          delivered: {
+            title: 'Your dry cleaning has been delivered',
+            message: `Your order #${orderId.slice(-6)} has been delivered. Thank you for choosing us!`
+          }
+        };
+
+        if (userId && nextStage in notificationTemplates) {
+          const template = notificationTemplates[nextStage];
+          const newNotification = {
+            user_id: userId,
+            title: template.title,
+            message: template.message,
+            type: 'dry_cleaning' as const,
+            status: 'unread' as const,
+            priority: 'normal' as const,
+            action_url: '/dashboard/dry-cleaning'
+          };
+
+          const { error: notificationError } = await supabase
+            .from('notifications')
+            .insert(newNotification);
+
+          if (notificationError) {
+            console.error('❌ Failed to create notification:', notificationError);
+            showToast('error', '⚠️ Stage updated, but notification failed');
+          } else {
+            console.log('✅ Notification created successfully for user:', userId.slice(-6));
+          }
+        }
+      } catch (e) {
+        console.error('Notification creation error:', e);
+        showToast('error', '⚠️ Error creating user notification');
+      }
+
       showToast('success', `🚀 Order moved to next stage: ${stageLabels[nextStage]}`);
       
       updateOrderState(orderId, { updatingStage: false });

@@ -40,6 +40,12 @@ interface Order {
   updated_at: string;
   stage_timestamps?: { [key: string]: string };
   stages?: string[];
+  users?: {
+    id: string;
+    email: string;
+    full_name: string;
+    phone?: string;
+  };
 }
 
 interface OrderDetailsProps {
@@ -157,7 +163,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
       const updates: any = {};
 
       if (isEditingPrice && tempPrice !== order.total_amount.toString()) {
-        updates.total_amount = parseFloat(tempPrice);
+        // Use Math.round to avoid floating-point precision errors
+        updates.total_amount = Math.round(parseFloat(tempPrice) * 100) / 100;
       }
 
       if (isEditingDelivery && tempDeliveryType !== order.pickup_option) {
@@ -375,15 +382,52 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
             <div className="grid grid-cols-1 gap-3 sm:gap-4">
               <div>
                 <label className="block text-xs sm:text-sm text-gray-600 mb-1">Customer Name</label>
-                <div className="px-2 sm:px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-900">
-                  {order.customer_name}
+                <div className="px-2 sm:px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-900 break-words">
+                  {order.customer_name || 'Unknown User'}
                 </div>
               </div>
               
               <div>
                 <label className="block text-xs sm:text-sm text-gray-600 mb-1">Email</label>
-                <div className="px-2 sm:px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-900">
-                  {order.customer_email}
+                <div className="px-2 sm:px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-900 break-words flex items-center">
+                  <Mail className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-gray-500" />
+                  {order.customer_email || 'Unknown Email'}
+                </div>
+              </div>
+
+              {(order.users?.phone || order.phone) && (
+                <div>
+                  <label className="block text-xs sm:text-sm text-gray-600 mb-1">Phone Number</label>
+                  <div className="px-2 sm:px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-900 break-words flex items-center">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    {order.users?.phone || order.phone}
+                  </div>
+                </div>
+              )}
+
+              {order.address && (
+                <div>
+                  <label className="block text-xs sm:text-sm text-gray-600 mb-1">Address</label>
+                  <div className="px-2 sm:px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-900 break-words flex items-start">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-2 mt-0.5 text-gray-500 flex-shrink-0" />
+                    <span>{order.address}</span>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs sm:text-sm text-gray-600 mb-1">Order Date</label>
+                <div className="px-2 sm:px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-900 break-words flex items-center">
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-gray-500" />
+                  {new Date(order.created_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
                 </div>
               </div>
             </div>

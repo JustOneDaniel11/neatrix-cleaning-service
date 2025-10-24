@@ -195,7 +195,7 @@ function dataReducer(state: AppState, action: Action): AppState {
         )
       };
 
-    case 'UPDATE_STATS':
+    case 'UPDATE_STATS': {
       const today = new Date().toISOString().split('T')[0];
       return {
         ...state,
@@ -213,6 +213,7 @@ function dataReducer(state: AppState, action: Action): AppState {
           todayBookings: state.bookings.filter(b => b.date === today).length
         }
       };
+    }
 
     default:
       return state;

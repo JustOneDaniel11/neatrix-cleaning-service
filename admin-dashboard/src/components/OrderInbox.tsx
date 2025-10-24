@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Package, Clock, User, Filter, MapPin, Truck } from 'lucide-react';
+import { Search, Package, Clock, User, Mail, Filter, MapPin, Truck } from 'lucide-react';
 
 interface Order {
   id: string;
@@ -180,15 +180,21 @@ const OrderInbox: React.FC<OrderInboxProps> = ({
                 } ${isOrderCompleted(order.tracking_stage) ? 'opacity-75' : ''}`}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     {getStatusDot(order.tracking_stage)}
-                    <div className="flex flex-col">
-                      <h3 className="font-semibold text-gray-900 text-base">
-                        {order.customer_name}
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {order.customer_email}
-                      </p>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-1">
+                        <User className="w-3.5 h-3.5 text-gray-400" />
+                        <h3 className="font-semibold text-gray-900 text-base truncate">
+                          {order.customer_name || 'Unknown User'}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Mail className="w-3.5 h-3.5 text-gray-400" />
+                        <p className="text-xs text-gray-500 truncate">
+                          {order.customer_email || 'No email'}
+                        </p>
+                      </div>
                     </div>
                     {isOrderCompleted(order.tracking_stage) && (
                       <span className="text-green-600 text-sm ml-2">✅</span>
@@ -202,7 +208,7 @@ const OrderInbox: React.FC<OrderInboxProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Package className="w-4 h-4" />
-                    <span className="font-mono">#{order.id.slice(-8)}</span>
+                    <span className="font-mono">Ref: #{order.id.slice(-8)}</span>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -211,7 +217,7 @@ const OrderInbox: React.FC<OrderInboxProps> = ({
                     ) : (
                       <MapPin className="w-4 h-4" />
                     )}
-                    <span>{order.service_name} - {order.pickup_option}</span>
+                    <span className="truncate">{order.service_name} - {order.pickup_option}</span>
                   </div>
 
                   <div className="flex items-center justify-between mt-2">

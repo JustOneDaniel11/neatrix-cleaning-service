@@ -20,7 +20,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 8081,
+    port: 5174,
     open: '/admin.html',
     fs: {
       // Allow importing files from the project root and shared directory

@@ -92,6 +92,7 @@ export interface Booking {
   address: string
   phone: string
   special_instructions?: string
+  pickup_option?: 'pickup' | 'delivery'
   status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
   total_amount: number
   created_at: string

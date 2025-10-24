@@ -11,7 +11,8 @@ const QuickBookingForm = () => {
     date: '',
     time: '',
     address: '',
-    notes: ''
+    notes: '',
+    deliveryPreference: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,8 +49,9 @@ const QuickBookingForm = () => {
         phone: state.currentUser.phone || '',
         special_instructions: formData.notes,
         status: 'pending' as const,
-        total_amount: getServicePrice(formData.service)
-      };
+        total_amount: getServicePrice(formData.service),
+         pickup_option: (formData.deliveryPreference === 'delivery' ? 'delivery' : 'pickup') as 'delivery' | 'pickup'
+        };
 
       await createBooking(bookingData);
 
@@ -59,7 +61,8 @@ const QuickBookingForm = () => {
         date: '',
         time: '',
         address: '',
-        notes: ''
+        notes: '',
+        deliveryPreference: ''
       });
 
       alert('Booking created successfully!');
@@ -177,6 +180,20 @@ const QuickBookingForm = () => {
               className="w-full px-4 py-3 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 min-h-[48px]"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-3">How would you like to receive your laundry?</label>
+            <select
+              value={formData.deliveryPreference}
+              onChange={(e) => handleInputChange('deliveryPreference', e.target.value)}
+              className="w-full px-4 py-3 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 min-h-[48px]"
+              required
+            >
+              <option value="">Select preference</option>
+              <option value="pickup">I will pick it up myself</option>
+              <option value="delivery">Deliver it to my location</option>
+            </select>
           </div>
 
           <div>

@@ -57,7 +57,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
   // Mobile bottom navigation with Payment and Notifications
   const mobileNavItems = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'dry-cleaning', label: 'Services', icon: Shirt },
+    { id: 'dry-cleaning', label: 'Drycleaning', icon: Shirt },
     { id: 'inspection', label: 'Book', icon: ClipboardCheck },
     { id: 'payment', label: 'Payment', icon: CreditCard },
     { id: 'notifications', label: 'Notifications', icon: Bell }

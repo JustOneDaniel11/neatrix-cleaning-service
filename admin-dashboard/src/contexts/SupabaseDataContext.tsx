@@ -31,6 +31,7 @@ interface Booking {
     id: string;
     email: string;
     full_name: string;
+    phone?: string;
   };
   // Computed properties for backward compatibility
   customer_name?: string;
@@ -71,6 +72,67 @@ interface Complaint {
   priority?: string;
 }
 interface Payment { id: string; user_id: string; amount: number; status: string; created_at: string }
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  base_price: number;
+  billing_cycle: 'weekly' | 'bi_weekly' | 'monthly' | 'custom';
+  features: string[];
+  max_services_per_cycle: number;
+  discount_percentage: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface UserSubscription {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: 'active' | 'paused' | 'cancelled' | 'expired';
+  start_date: string;
+  end_date?: string;
+  next_billing_date: string;
+  auto_renew: boolean;
+  services_used_this_cycle: number;
+  current_cycle_start: string;
+  current_cycle_end: string;
+  created_at: string;
+  updated_at: string;
+  plan?: SubscriptionPlan;
+  customerName?: string;
+  customerEmail?: string;
+}
+
+interface SubscriptionBilling {
+  id: string;
+  subscription_id: string;
+  user_id: string;
+  amount: number;
+  billing_date: string;
+  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  payment_method?: string;
+  transaction_id?: string;
+  invoice_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface SubscriptionCustomization {
+  id: string;
+  subscription_id: string;
+  user_id: string;
+  custom_frequency_days?: number;
+  preferred_service_days: string[];
+  special_instructions?: string;
+  preferred_cleaner_id?: string;
+  custom_pricing?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Legacy interface for backward compatibility
 interface Subscription { 
   id: string; 
   user_id: string; 
@@ -95,8 +157,19 @@ interface LaundryOrder {
   order_number?: string;
   customer_name?: string;
   customer_phone?: string;
+  customer_email?: string;
   service_type?: string;
+  service_name?: string;
   item_count?: number;
+  date?: string;
+  time?: string;
+  address?: string;
+  special_instructions?: string;
+  tracking_stage?: string;
+  pickup_option?: string;
+  stage_timestamps?: { [key: string]: string };
+  stage_notes?: { [key: string]: string };
+  tracking_history?: any[];
 }
 interface AdminNotification { 
   id: string; 
@@ -106,6 +179,8 @@ interface AdminNotification {
   created_at: string;
   type?: string;
   priority?: string;
+  action_url?: string;
+  action_label?: string;
 }
 interface Review { 
   id: string; 
@@ -127,7 +202,11 @@ type AppState = {
   pickupDeliveries: PickupDelivery[];
   userComplaints: Complaint[];
   payments: Payment[];
-  subscriptions: Subscription[];
+  subscriptions: Subscription[]; // Legacy
+  subscriptionPlans: SubscriptionPlan[];
+  userSubscriptions: UserSubscription[];
+  subscriptionBilling: SubscriptionBilling[];
+  subscriptionCustomizations: SubscriptionCustomization[];
   laundryOrders: LaundryOrder[];
   adminNotifications: AdminNotification[];
   reviews: Review[];
@@ -162,11 +241,22 @@ type Action =
   | { type: 'SET_USER_COMPLAINTS'; payload: Complaint[] }
   | { type: 'SET_PAYMENTS'; payload: Payment[] }
   | { type: 'SET_SUBSCRIPTIONS'; payload: Subscription[] }
+  | { type: 'SET_SUBSCRIPTION_PLANS'; payload: SubscriptionPlan[] }
+  | { type: 'SET_USER_SUBSCRIPTIONS'; payload: UserSubscription[] }
+  | { type: 'ADD_USER_SUBSCRIPTION'; payload: UserSubscription }
+  | { type: 'UPDATE_USER_SUBSCRIPTION'; payload: { id: string; updates: Partial<UserSubscription> } }
+  | { type: 'DELETE_USER_SUBSCRIPTION'; payload: string }
+  | { type: 'SET_SUBSCRIPTION_BILLING'; payload: SubscriptionBilling[] }
+  | { type: 'ADD_SUBSCRIPTION_BILLING'; payload: SubscriptionBilling }
+  | { type: 'SET_SUBSCRIPTION_CUSTOMIZATIONS'; payload: SubscriptionCustomization[] }
+  | { type: 'ADD_SUBSCRIPTION_CUSTOMIZATION'; payload: SubscriptionCustomization }
+  | { type: 'UPDATE_SUBSCRIPTION_CUSTOMIZATION'; payload: { id: string; updates: Partial<SubscriptionCustomization> } }
   | { type: 'SET_LAUNDRY_ORDERS'; payload: LaundryOrder[] }
   | { type: 'SET_ADMIN_NOTIFICATIONS'; payload: AdminNotification[] }
   | { type: 'SET_REVIEWS'; payload: Review[] }
   | { type: 'SET_SUPPORT_TICKETS'; payload: SupportTicket[] }
   | { type: 'SET_SUPPORT_MESSAGES'; payload: SupportMessage[] }
+  | { type: 'ADD_SUPPORT_MESSAGE'; payload: SupportMessage }
   | { type: 'SET_AUTH_USER'; payload: SupabaseUser | null }
   | { type: 'SET_CURRENT_USER'; payload: User | null }
   | { type: 'SET_LOADING'; payload: boolean }
@@ -181,6 +271,10 @@ const initialState: AppState = {
   userComplaints: [],
   payments: [],
   subscriptions: [],
+  subscriptionPlans: [],
+  userSubscriptions: [],
+  subscriptionBilling: [],
+  subscriptionCustomizations: [],
   laundryOrders: [],
   adminNotifications: [],
   reviews: [],
@@ -253,6 +347,49 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_SUBSCRIPTIONS': 
       newState = { ...state, subscriptions: action.payload };
       break;
+    case 'SET_SUBSCRIPTION_PLANS':
+      newState = { ...state, subscriptionPlans: action.payload };
+      break;
+    case 'SET_USER_SUBSCRIPTIONS':
+      newState = { ...state, userSubscriptions: action.payload };
+      break;
+    case 'ADD_USER_SUBSCRIPTION':
+      newState = { ...state, userSubscriptions: [...state.userSubscriptions, action.payload] };
+      break;
+    case 'UPDATE_USER_SUBSCRIPTION':
+      newState = {
+        ...state,
+        userSubscriptions: state.userSubscriptions.map(sub =>
+          sub.id === action.payload.id ? { ...sub, ...action.payload.updates } : sub
+        )
+      };
+      break;
+    case 'DELETE_USER_SUBSCRIPTION':
+      newState = {
+        ...state,
+        userSubscriptions: state.userSubscriptions.filter(sub => sub.id !== action.payload)
+      };
+      break;
+    case 'SET_SUBSCRIPTION_BILLING':
+      newState = { ...state, subscriptionBilling: action.payload };
+      break;
+    case 'ADD_SUBSCRIPTION_BILLING':
+      newState = { ...state, subscriptionBilling: [...state.subscriptionBilling, action.payload] };
+      break;
+    case 'SET_SUBSCRIPTION_CUSTOMIZATIONS':
+      newState = { ...state, subscriptionCustomizations: action.payload };
+      break;
+    case 'ADD_SUBSCRIPTION_CUSTOMIZATION':
+      newState = { ...state, subscriptionCustomizations: [...state.subscriptionCustomizations, action.payload] };
+      break;
+    case 'UPDATE_SUBSCRIPTION_CUSTOMIZATION':
+      newState = {
+        ...state,
+        subscriptionCustomizations: state.subscriptionCustomizations.map(custom =>
+          custom.id === action.payload.id ? { ...custom, ...action.payload.updates } : custom
+        )
+      };
+      break;
     case 'SET_LAUNDRY_ORDERS': 
       newState = { ...state, laundryOrders: action.payload };
       break;
@@ -267,6 +404,9 @@ function reducer(state: AppState, action: Action): AppState {
       break;
     case 'SET_SUPPORT_MESSAGES': 
       newState = { ...state, supportMessages: action.payload };
+      break;
+    case 'ADD_SUPPORT_MESSAGE':
+      newState = { ...state, supportMessages: [...state.supportMessages, action.payload] };
       break;
     case 'SET_AUTH_USER': 
       return { ...state, authUser: action.payload, isAuthenticated: !!action.payload };
@@ -297,6 +437,15 @@ interface SupabaseDataContextType {
   fetchUserComplaints: () => Promise<void>;
   fetchPayments: () => Promise<void>;
   fetchSubscriptions: () => Promise<void>;
+  fetchSubscriptionPlans: () => Promise<void>;
+  fetchUserSubscriptions: () => Promise<void>;
+  fetchSubscriptionBilling: () => Promise<void>;
+  fetchSubscriptionCustomizations: () => Promise<void>;
+  updateUserSubscription: (id: string, updates: Partial<UserSubscription>) => Promise<void>;
+  cancelUserSubscription: (id: string) => Promise<void>;
+  pauseUserSubscription: (id: string) => Promise<void>;
+  resumeUserSubscription: (id: string) => Promise<void>;
+  createSubscriptionBilling: (payload: Omit<SubscriptionBilling, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   fetchLaundryOrders: () => Promise<void>;
   fetchAdminNotifications: () => Promise<void>;
   fetchReviews: () => Promise<void>;
@@ -314,7 +463,9 @@ interface SupabaseDataContextType {
   createUserComplaint: (payload: any) => Promise<void>;
   updateUserComplaint: (id: string, updates: any) => Promise<void>;
   updateAdminNotification: (id: string, updates: any) => Promise<void>;
+  deleteAdminNotification: (id: string) => Promise<void>;
   markNotificationAsRead: (id: string) => Promise<void>;
+  createAdminNotification: (payload: { title: string; message: string; type?: string; priority?: string; action_url?: string; action_label?: string }) => Promise<void>;
   updateSupportTicket: (id: string, updates: any) => Promise<void>;
   sendSupportMessage: (payload: any) => Promise<void>;
   markMessageAsRead: (id: string) => Promise<void>;
@@ -360,18 +511,62 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       const channel = supabase
         .channel('admin-live')
         // Bookings changes
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, () => {
-          if (mounted) debounceFetch('bookings', fetchAllBookings);
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('bookings', fetchAllBookings);
+            debounceFetch('laundry_orders', fetchLaundryOrders); // Also refresh laundry orders
+            
+            // Create admin notification for new booking
+            try {
+              const newBooking = payload.new as any;
+              const isLaundryOrder = newBooking.service_type === 'laundry' || newBooking.service_type === 'dry_cleaning';
+              
+              await createAdminNotification({
+                title: isLaundryOrder ? 'New Laundry Order' : 'New Booking Received',
+                message: isLaundryOrder 
+                  ? `New ${newBooking.service_type} order from ${newBooking.customer_name || 'customer'}`
+                  : `New booking for ${newBooking.service_name || 'service'} from ${newBooking.customer_name || 'customer'}`,
+                type: isLaundryOrder ? 'laundry' : 'booking',
+                priority: 'medium',
+                action_url: isLaundryOrder ? '/admin/laundry' : '/admin/orders'
+              });
+            } catch (error) {
+              console.error('Failed to create booking notification:', error);
+            }
+          }
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings' }, () => {
-          if (mounted) debounceFetch('bookings', fetchAllBookings);
+          if (mounted) {
+            debounceFetch('bookings', fetchAllBookings);
+            debounceFetch('laundry_orders', fetchLaundryOrders); // Also refresh laundry orders
+          }
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'bookings' }, () => {
-          if (mounted) debounceFetch('bookings', fetchAllBookings);
+          if (mounted) {
+            debounceFetch('bookings', fetchAllBookings);
+            debounceFetch('laundry_orders', fetchLaundryOrders); // Also refresh laundry orders
+          }
         })
         // Support tickets
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_tickets' }, () => {
-          if (mounted) debounceFetch('support_tickets', fetchSupportTickets);
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_tickets' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('support_tickets', fetchSupportTickets);
+            
+            // Create admin notification for new support ticket
+            try {
+              const newTicket = payload.new as any;
+              const priority = newTicket.priority === 'urgent' ? 'high' : newTicket.priority === 'high' ? 'high' : 'medium';
+              await createAdminNotification({
+                title: 'New Support Ticket',
+                message: `New ${newTicket.priority || 'normal'} priority ticket: ${newTicket.subject || 'No subject'}`,
+                type: 'support',
+                priority: priority,
+                action_url: '/admin/support'
+              });
+            } catch (error) {
+              console.error('Failed to create support ticket notification:', error);
+            }
+          }
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'support_tickets' }, () => {
           if (mounted) debounceFetch('support_tickets', fetchSupportTickets);
@@ -389,16 +584,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'support_messages' }, () => {
           if (mounted) debounceFetch('support_messages', fetchSupportMessages);
         })
-        // Laundry orders
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'laundry_orders' }, () => {
-          if (mounted) debounceFetch('laundry_orders', fetchLaundryOrders);
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'laundry_orders' }, () => {
-          if (mounted) debounceFetch('laundry_orders', fetchLaundryOrders);
-        })
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'laundry_orders' }, () => {
-          if (mounted) debounceFetch('laundry_orders', fetchLaundryOrders);
-        })
+        // Laundry orders are now handled through bookings table real-time subscription
         // Admin notifications
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_notifications' }, () => {
           if (mounted) debounceFetch('admin_notifications', fetchAdminNotifications);
@@ -409,9 +595,144 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'admin_notifications' }, () => {
           if (mounted) debounceFetch('admin_notifications', fetchAdminNotifications);
         })
+        // Subscription plans
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'subscription_plans' }, () => {
+          if (mounted) debounceFetch('subscription_plans', fetchSubscriptionPlans);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'subscription_plans' }, () => {
+          if (mounted) debounceFetch('subscription_plans', fetchSubscriptionPlans);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'subscription_plans' }, () => {
+          if (mounted) debounceFetch('subscription_plans', fetchSubscriptionPlans);
+        })
+        // User subscriptions
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_subscriptions' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('user_subscriptions', fetchUserSubscriptions);
+            
+            // Create admin notification for new subscription
+            try {
+              const newSubscription = payload.new as any;
+              await createAdminNotification({
+                title: 'New Subscription',
+                message: `New subscription created for user ${newSubscription.user_id.slice(-6).toUpperCase()}`,
+                type: 'subscription',
+                priority: 'medium',
+                action_url: '/admin/subscriptions'
+              });
+            } catch (error) {
+              console.error('Failed to create subscription notification:', error);
+            }
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user_subscriptions' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('user_subscriptions', fetchUserSubscriptions);
+            
+            // Create admin notification for subscription status changes
+            try {
+              const updatedSubscription = payload.new as any;
+              const oldSubscription = payload.old as any;
+              
+              if (oldSubscription.status !== updatedSubscription.status) {
+                const statusMessages = {
+                  'active': 'activated',
+                  'paused': 'paused',
+                  'cancelled': 'cancelled',
+                  'expired': 'expired'
+                };
+                
+                await createAdminNotification({
+                  title: 'Subscription Status Changed',
+                  message: `Subscription ${updatedSubscription.id.slice(-6).toUpperCase()} has been ${statusMessages[updatedSubscription.status] || 'updated'}`,
+                  type: 'subscription',
+                  priority: updatedSubscription.status === 'cancelled' ? 'medium' : 'low',
+                  action_url: '/admin/subscriptions'
+                });
+              }
+            } catch (error) {
+              console.error('Failed to create subscription update notification:', error);
+            }
+          }
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'user_subscriptions' }, () => {
+          if (mounted) debounceFetch('user_subscriptions', fetchUserSubscriptions);
+        })
+        // Subscription billing
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'subscription_billing' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('subscription_billing', fetchSubscriptionBilling);
+            
+            // Create admin notification for new billing record
+            try {
+              const newBilling = payload.new as any;
+              await createAdminNotification({
+                title: 'New Subscription Billing',
+                message: `New billing record created for subscription ${newBilling.subscription_id.slice(-6).toUpperCase()} - $${newBilling.amount}`,
+                type: 'billing',
+                priority: 'low',
+                action_url: '/admin/subscriptions'
+              });
+            } catch (error) {
+              console.error('Failed to create billing notification:', error);
+            }
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'subscription_billing' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('subscription_billing', fetchSubscriptionBilling);
+            
+            // Create admin notification for billing status changes
+            try {
+              const updatedBilling = payload.new as any;
+              const oldBilling = payload.old as any;
+              
+              if (oldBilling.status !== updatedBilling.status && updatedBilling.status === 'failed') {
+                await createAdminNotification({
+                  title: 'Payment Failed',
+                  message: `Payment failed for subscription ${updatedBilling.subscription_id.slice(-6).toUpperCase()} - $${updatedBilling.amount}`,
+                  type: 'billing',
+                  priority: 'high',
+                  action_url: '/admin/subscriptions'
+                });
+              }
+            } catch (error) {
+              console.error('Failed to create billing update notification:', error);
+            }
+          }
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'subscription_billing' }, () => {
+          if (mounted) debounceFetch('subscription_billing', fetchSubscriptionBilling);
+        })
+        // Subscription customizations
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'subscription_customizations' }, () => {
+          if (mounted) debounceFetch('subscription_customizations', fetchSubscriptionCustomizations);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'subscription_customizations' }, () => {
+          if (mounted) debounceFetch('subscription_customizations', fetchSubscriptionCustomizations);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'subscription_customizations' }, () => {
+          if (mounted) debounceFetch('subscription_customizations', fetchSubscriptionCustomizations);
+        })
         // Contact messages
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'contact_messages' }, () => {
-          if (mounted) debounceFetch('contact_messages', fetchContactMessages);
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'contact_messages' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('contact_messages', fetchContactMessages);
+            
+            // Create admin notification for new contact message
+            try {
+              const newMessage = payload.new as any;
+              await createAdminNotification({
+                title: 'New Contact Message',
+                message: `New message from ${newMessage.name || 'customer'}: ${newMessage.subject || 'No subject'}`,
+                type: 'contact',
+                priority: 'medium',
+                action_url: '/admin/contact-message'
+              });
+            } catch (error) {
+              console.error('Failed to create contact message notification:', error);
+            }
+          }
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'contact_messages' }, () => {
           if (mounted) debounceFetch('contact_messages', fetchContactMessages);
@@ -484,10 +805,11 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         .from('bookings')
         .select(`
           *,
-          users (
+          users:user_id (
             id,
             email,
-            full_name
+            full_name,
+            phone
           )
         `)
         .order('created_at', { ascending: false });
@@ -582,9 +904,211 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.from('subscriptions').select('*').order('created_at', { ascending: false });
     if (!error) dispatch({ type: 'SET_SUBSCRIPTIONS', payload: data || [] });
   };
+
+  // Enhanced subscription functions
+  const fetchSubscriptionPlans = async () => {
+    const { data, error } = await supabase
+      .from('subscription_plans')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error) dispatch({ type: 'SET_SUBSCRIPTION_PLANS', payload: data || [] });
+  };
+
+  const fetchUserSubscriptions = async () => {
+    const { data, error } = await supabase
+      .from('user_subscriptions')
+      .select(`
+        *,
+        plan:subscription_plans(*),
+        users:user_id(id, email, full_name)
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (!error) {
+      const userSubscriptions = (data || []).map(sub => ({
+        ...sub,
+        customerName: sub.users?.full_name || `Customer #${sub.user_id.slice(-6).toUpperCase()}`,
+        customerEmail: sub.users?.email
+      }));
+      dispatch({ type: 'SET_USER_SUBSCRIPTIONS', payload: userSubscriptions });
+    }
+  };
+
+  const fetchSubscriptionBilling = async () => {
+    const { data, error } = await supabase
+      .from('subscription_billing')
+      .select('*')
+      .order('billing_date', { ascending: false });
+    if (!error) dispatch({ type: 'SET_SUBSCRIPTION_BILLING', payload: data || [] });
+  };
+
+  const fetchSubscriptionCustomizations = async () => {
+    const { data, error } = await supabase
+      .from('subscription_customizations')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error) dispatch({ type: 'SET_SUBSCRIPTION_CUSTOMIZATIONS', payload: data || [] });
+  };
+
+  // Subscription management functions
+  const updateUserSubscription = async (id: string, updates: Partial<UserSubscription>) => {
+    const { data, error } = await supabase
+      .from('user_subscriptions')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (!error && data) {
+      dispatch({ type: 'UPDATE_USER_SUBSCRIPTION', payload: { id, updates: data } });
+      
+      // Create admin notification for subscription update
+      await createAdminNotification({
+        title: 'Subscription Updated',
+        message: `Subscription ${id.slice(-6).toUpperCase()} has been updated`,
+        type: 'subscription',
+        priority: 'low'
+      });
+    }
+  };
+
+  const cancelUserSubscription = async (id: string) => {
+    const updates = {
+      status: 'cancelled' as const,
+      end_date: new Date().toISOString(),
+      auto_renew: false,
+      updated_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('user_subscriptions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (!error && data) {
+      dispatch({ type: 'UPDATE_USER_SUBSCRIPTION', payload: { id, updates: data } });
+      
+      // Create admin notification for cancellation
+      await createAdminNotification({
+        title: 'Subscription Cancelled',
+        message: `Subscription ${id.slice(-6).toUpperCase()} has been cancelled`,
+        type: 'subscription',
+        priority: 'medium'
+      });
+    }
+  };
+
+  const pauseUserSubscription = async (id: string) => {
+    const updates = {
+      status: 'paused' as const,
+      updated_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('user_subscriptions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (!error && data) {
+      dispatch({ type: 'UPDATE_USER_SUBSCRIPTION', payload: { id, updates: data } });
+      
+      // Create admin notification for pause
+      await createAdminNotification({
+        title: 'Subscription Paused',
+        message: `Subscription ${id.slice(-6).toUpperCase()} has been paused`,
+        type: 'subscription',
+        priority: 'low'
+      });
+    }
+  };
+
+  const resumeUserSubscription = async (id: string) => {
+    const updates = {
+      status: 'active' as const,
+      updated_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('user_subscriptions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (!error && data) {
+      dispatch({ type: 'UPDATE_USER_SUBSCRIPTION', payload: { id, updates: data } });
+      
+      // Create admin notification for resume
+      await createAdminNotification({
+        title: 'Subscription Resumed',
+        message: `Subscription ${id.slice(-6).toUpperCase()} has been resumed`,
+        type: 'subscription',
+        priority: 'low'
+      });
+    }
+  };
+
+  const createSubscriptionBilling = async (payload: Omit<SubscriptionBilling, 'id' | 'created_at' | 'updated_at'>) => {
+    const { data, error } = await supabase
+      .from('subscription_billing')
+      .insert({
+        ...payload,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (!error && data) {
+      dispatch({ type: 'ADD_SUBSCRIPTION_BILLING', payload: data });
+    }
+  };
   const fetchLaundryOrders = async () => {
-    const { data, error } = await supabase.from('laundry_orders').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_LAUNDRY_ORDERS', payload: data || [] });
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        users:user_id (
+          id,
+          email,
+          full_name
+        )
+      `)
+      .in('service_type', ['laundry', 'dry_cleaning'])
+      .order('created_at', { ascending: false });
+    
+    if (!error) {
+      // Transform bookings data to match LaundryOrder interface
+      const laundryOrders = (data || []).map(booking => ({
+        id: booking.id,
+        user_id: booking.user_id,
+        status: booking.status,
+        created_at: booking.created_at,
+        updated_at: booking.updated_at,
+        total_amount: booking.total_amount,
+        service_type: booking.service_type,
+        customer_name: booking.users?.full_name || `Customer #${booking.id.slice(-6).toUpperCase()}`,
+        customer_phone: booking.phone,
+        // Add additional fields from booking
+        service_name: booking.service_name,
+        date: booking.date,
+        time: booking.time,
+        address: booking.address,
+        special_instructions: booking.special_instructions,
+        tracking_stage: booking.tracking_stage,
+        pickup_option: booking.pickup_option,
+        stage_timestamps: booking.stage_timestamps,
+        stage_notes: booking.stage_notes,
+        tracking_history: booking.tracking_history,
+        customer_email: booking.users?.email
+      }));
+      
+      dispatch({ type: 'SET_LAUNDRY_ORDERS', payload: laundryOrders });
+    }
   };
   const fetchAdminNotifications = async () => {
     const { data, error } = await supabase.from('admin_notifications').select('*').order('created_at', { ascending: false });
@@ -611,8 +1135,67 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateBooking = async (id: string, updates: any) => {
+    // Get the current booking to compare status changes
+    const { data: currentBooking } = await supabase
+      .from('bookings')
+      .select('*, users(full_name, email)')
+      .eq('id', id)
+      .single();
+
     const { error } = await supabase.from('bookings').update(updates).eq('id', id);
-    if (!error) await fetchAllBookings();
+    
+    if (!error) {
+      // Create admin notification for important status changes
+      if (updates.status && currentBooking && updates.status !== currentBooking.status) {
+        const customerName = currentBooking.users?.full_name || currentBooking.customer_name || 'Unknown Customer';
+        const serviceName = currentBooking.service_name || 'Service';
+        
+        let notificationTitle = '';
+        let notificationMessage = '';
+        let notificationType = 'booking';
+        let priority = 'medium';
+        let actionUrl = `/admin/orders`;
+
+        switch (updates.status) {
+          case 'confirmed':
+            notificationTitle = 'Booking Confirmed';
+            notificationMessage = `Booking for ${serviceName} by ${customerName} has been confirmed`;
+            priority = 'low';
+            break;
+          case 'completed':
+            notificationTitle = 'Booking Completed';
+            notificationMessage = `Booking for ${serviceName} by ${customerName} has been completed`;
+            priority = 'medium';
+            break;
+          case 'cancelled':
+            notificationTitle = 'Booking Cancelled';
+            notificationMessage = `Booking for ${serviceName} by ${customerName} has been cancelled`;
+            priority = 'high';
+            break;
+          case 'in_progress':
+            notificationTitle = 'Booking In Progress';
+            notificationMessage = `Booking for ${serviceName} by ${customerName} is now in progress`;
+            priority = 'low';
+            break;
+        }
+
+        if (notificationTitle) {
+          try {
+            await createAdminNotification({
+              title: notificationTitle,
+              message: notificationMessage,
+              type: notificationType,
+              priority: priority,
+              action_url: actionUrl
+            });
+          } catch (notificationError) {
+            console.error('Failed to create admin notification:', notificationError);
+          }
+        }
+      }
+      
+      await fetchAllBookings();
+    }
   };
   const deleteBooking = async (id: string) => {
     const { error } = await supabase.from('bookings').delete().eq('id', id);
@@ -659,9 +1242,34 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.from('admin_notifications').update(updates).eq('id', id);
     if (!error) await fetchAdminNotifications();
   };
+  const deleteAdminNotification = async (id: string) => {
+    const { error } = await supabase.from('admin_notifications').delete().eq('id', id);
+    if (!error) await fetchAdminNotifications();
+  };
   const markNotificationAsRead = async (id: string) => {
     const { error } = await supabase.from('admin_notifications').update({ status: 'read' }).eq('id', id);
     if (!error) await fetchAdminNotifications();
+  };
+
+  const createAdminNotification = async (payload: { title: string; message: string; type?: string; priority?: string; action_url?: string; action_label?: string }) => {
+    const { error } = await supabase
+      .from('admin_notifications')
+      .insert([{
+        title: payload.title,
+        message: payload.message,
+        type: payload.type || 'general',
+        priority: payload.priority || 'medium',
+        action_url: payload.action_url,
+        action_label: payload.action_label,
+        status: 'unread'
+      }]);
+    
+    if (error) {
+      console.error('Error creating admin notification:', error);
+      throw error;
+    }
+    
+    // Real-time subscription will handle the update automatically
   };
 
   // Support ticket management
@@ -670,8 +1278,25 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     if (!error) await fetchSupportTickets();
   };
   const sendSupportMessage = async (payload: any) => {
-    const { error } = await supabase.from('support_messages').insert(payload);
-    if (!error) await fetchSupportMessages();
+    // Ensure proper admin identification
+    const messageWithAdminInfo = {
+      ...payload,
+      sender_id: payload.sender_id || state.authUser?.id,
+      sender_type: 'admin'
+    };
+
+    const { data, error } = await supabase
+      .from('support_messages')
+      .insert([messageWithAdminInfo])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    // Real-time subscription will handle the update, but we can also manually update for immediate feedback
+    dispatch({ type: 'ADD_SUPPORT_MESSAGE', payload: data });
+    
+    return data;
   };
   const markMessageAsRead = async (id: string) => {
     const { error } = await supabase.from('support_messages').update({ is_read: true }).eq('id', id);
@@ -688,6 +1313,15 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     fetchUserComplaints,
     fetchPayments,
     fetchSubscriptions,
+    fetchSubscriptionPlans,
+    fetchUserSubscriptions,
+    fetchSubscriptionBilling,
+    fetchSubscriptionCustomizations,
+    updateUserSubscription,
+    cancelUserSubscription,
+    pauseUserSubscription,
+    resumeUserSubscription,
+    createSubscriptionBilling,
     fetchLaundryOrders,
     fetchAdminNotifications,
     fetchReviews,
@@ -705,7 +1339,9 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     createUserComplaint,
     updateUserComplaint,
     updateAdminNotification,
+    deleteAdminNotification,
     markNotificationAsRead,
+    createAdminNotification,
     updateSupportTicket,
     sendSupportMessage,
     markMessageAsRead,

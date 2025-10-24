@@ -12,12 +12,17 @@ import {
   Droplets,
   Shirt,
   Gift,
-  Home
+  Home,
+  Waves,
+  Navigation
 } from 'lucide-react';
 import { useSupabaseData } from '../../contexts/SupabaseDataContext';
 import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import type { Booking } from '../../contexts/SupabaseDataContext';
+import DeliveryTracker from './DeliveryTracker';
+
+const formatCurrencyNGN = (amount: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(Number(amount) || 0);
 
 interface TrackingStage {
   stage_name: string;
@@ -36,6 +41,14 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  // Add context and review modal state
+  const { state, createReview } = useSupabaseData();
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [reviewText, setReviewText] = useState('');
+  const [rating, setRating] = useState<number | ''>('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  // Delivery tracking modal state
+  const [showDeliveryTracking, setShowDeliveryTracking] = useState(false);
 
   // Fetch tracking progress for this booking
   const fetchTrackingProgress = async () => {
@@ -74,21 +87,38 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
 
   // Create tracking stages array from booking data
   const createTrackingStagesFromData = (data: any): TrackingStage[] => {
-    const currentStage = data.tracking_stage || 'sorting';
+    let currentStage = data.tracking_stage;
     const pickupOption = data.pickup_option || 'pickup';
     const stageTimestamps = data.stage_timestamps || {};
     const stageNotes = data.stage_notes || {};
+    // Choose sensible default stage based on booking status
+    if (!currentStage) {
+      const status = (booking.status || '').toLowerCase();
+      if (status === 'completed') {
+        currentStage = pickupOption === 'pickup' ? 'picked_up' : 'delivered';
+      } else if (status === 'in_progress' || status === 'confirmed') {
+        currentStage = 'sorting';
+      } else {
+        currentStage = 'sorting';
+      }
+    }
     
-    // Define the standard stages
+    // Intake stage (Picked Up / Dropped Off)
+    const intakeStage = [
+      { name: 'intake', label: 'Picked Up / Dropped Off' }
+    ];
+
+    // Define the standard processing stages
     const standardStages = [
       { name: 'sorting', label: 'Sorting' },
-      { name: 'stain_removing', label: 'Stain Removing' },
+      { name: 'stain_removing', label: 'Stain Removal' },
       { name: 'washing', label: 'Washing' },
+      { name: 'drying', label: 'Drying' },
       { name: 'ironing', label: 'Ironing' },
       { name: 'packing', label: 'Packing' }
     ];
     
-    // Define final stages based on pickup option
+    // Define final stages based on delivery preference
     const finalStages = pickupOption === 'pickup' 
       ? [
           { name: 'ready_for_pickup', label: 'Ready for Pickup' },
@@ -96,11 +126,10 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
         ]
       : [
           { name: 'ready_for_delivery', label: 'Ready for Delivery' },
-          { name: 'out_for_delivery', label: 'Out for Delivery' },
           { name: 'delivered', label: 'Delivered' }
         ];
     
-    const allStages = [...standardStages, ...finalStages];
+    const allStages = [...intakeStage, ...standardStages, ...finalStages];
     
     // Find current stage index
     const currentStageIndex = allStages.findIndex(stage => stage.name === currentStage);
@@ -110,31 +139,52 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
       stage_name: stage.name,
       stage_label: stage.label,
       completed: index <= currentStageIndex,
-      timestamp: stageTimestamps[stage.name] || null,
+      timestamp: stage.name === 'intake' 
+        ? (stageTimestamps['picked_up'] || stageTimestamps['dropped_off'] || null)
+        : (stageTimestamps[stage.name] || null),
       notes: stageNotes[stage.name] || ''
     }));
   };
 
   // Create fallback tracking stages when database function is not available
   const createFallbackTrackingStages = (): TrackingStage[] => {
-    const standardStages = [
+    // Intake + processing stages
+    const intakeAndProcessing = [
+      { name: 'intake', label: 'Picked Up / Dropped Off' },
       { name: 'sorting', label: 'Sorting' },
-      { name: 'stain_removing', label: 'Stain Removing' },
+      { name: 'stain_removing', label: 'Stain Removal' },
       { name: 'washing', label: 'Washing' },
+      { name: 'drying', label: 'Drying' },
       { name: 'ironing', label: 'Ironing' },
-      { name: 'packing', label: 'Packing' },
-      { name: 'ready_for_delivery', label: 'Ready for Delivery' },
-      { name: 'out_for_delivery', label: 'Out for Delivery' },
-      { name: 'delivered', label: 'Delivered' }
+      { name: 'packing', label: 'Packing' }
     ];
+
+    // Choose branch based on pickup_option (if available on booking)
+    const pickupOption = (booking as any).pickup_option || 'pickup';
+    const branch = pickupOption === 'pickup'
+      ? [
+          { name: 'ready_for_pickup', label: 'Ready for Pickup' },
+          { name: 'picked_up', label: 'Picked Up' }
+        ]
+      : [
+          { name: 'ready_for_delivery', label: 'Ready for Delivery' },
+          { name: 'delivered', label: 'Delivered' }
+        ];
+
+    const allStages = [...intakeAndProcessing, ...branch];
     
     // For fallback, show first stage as current and rest as pending
-    return standardStages.map((stage, index) => ({
+    const isCompleted = (booking.status || '').toLowerCase() === 'completed';
+    return allStages.map((stage, index) => ({
       stage_name: stage.name,
       stage_label: stage.label,
-      completed: index === 0, // Only first stage completed
-      timestamp: index === 0 ? booking.created_at : null,
-      notes: index === 0 ? 'Order received and processing started' : ''
+      completed: isCompleted ? true : index === 0,
+      timestamp: isCompleted && index === allStages.length - 1
+        ? (booking as any).updated_at || booking.created_at
+        : (index === 0 ? booking.created_at : null),
+      notes: isCompleted && index === allStages.length - 1
+        ? 'Order completed'
+        : (index === 0 ? 'Order received and processing started' : '')
     }));
   };
 
@@ -168,14 +218,15 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
 
   const getStageIcon = (stage: TrackingStage, index: number) => {
     const iconMap: { [key: string]: React.ReactNode } = {
+      'intake': <Package className="w-4 h-4" />,
       'sorting': <Package className="w-4 h-4" />,
       'stain_removing': <Droplets className="w-4 h-4" />,
       'washing': <Loader2 className="w-4 h-4" />,
+      'drying': <Waves className="w-4 h-4" />,
       'ironing': <Shirt className="w-4 h-4" />,
       'packing': <Gift className="w-4 h-4" />,
       'ready_for_delivery': <Truck className="w-4 h-4" />,
       'ready_for_pickup': <MapPin className="w-4 h-4" />,
-      'out_for_delivery': <Truck className="w-4 h-4" />,
       'picked_up': <CheckCircle className="w-4 h-4" />,
       'delivered': <Home className="w-4 h-4" />
     };
@@ -206,14 +257,15 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
     
     const currentStage = trackingStages[currentStageIndex];
     const descriptions: { [key: string]: string } = {
+      'intake': 'Items received — picked up or dropped off',
       'sorting': 'Your items are being sorted and cataloged',
       'stain_removing': 'Stains are being treated with specialized solutions',
       'washing': 'Your items are being carefully cleaned',
+      'drying': 'Items are being dried to optimal levels',
       'ironing': 'Your items are being pressed and finished',
       'packing': 'Your items are being packaged for delivery/pickup',
       'ready_for_delivery': 'Your order is ready and will be delivered soon',
       'ready_for_pickup': 'Your order is ready for pickup at our location',
-      'out_for_delivery': 'Your order is on its way to you',
       'picked_up': 'Order has been picked up',
       'delivered': 'Order has been delivered'
     };
@@ -246,9 +298,73 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
     );
   }
 
+  // Gate tracking visibility: only show after confirmation or when in progress
+  const allowTracking = ['confirmed', 'in_progress', 'completed'].includes(booking.status || '');
+  if (!allowTracking) {
+    return (
+      <div className="bg-white rounded-lg p-6 border border-amber-200">
+        <div className="flex items-center text-amber-700">
+          <AlertCircle className="w-5 h-5 mr-2" />
+          <span>Tracking is unavailable while the order is pending confirmation.</span>
+        </div>
+        <p className="mt-2 text-sm text-gray-600">You’ll be able to track progress once the booking is confirmed by admin or marked as In Progress.</p>
+      </div>
+    );
+  }
+
   const currentStage = getCurrentStageInfo();
   const progressPercentage = getProgressPercentage();
   const currentStageIndex = trackingStages.findIndex(s => !s.completed);
+  const isFinalStageCompleted = progressPercentage === 100 || (
+    trackingStages.length > 0 && trackingStages[trackingStages.length - 1].completed
+  );
+
+  const handleOpenReview = () => setIsReviewOpen(true);
+  const handleCloseReview = () => {
+    setIsReviewOpen(false);
+    setReviewText('');
+    setRating('');
+  };
+
+  const handleSubmitReview = async () => {
+    if (!state?.authUser) {
+      alert('Please log in to submit a review');
+      return;
+    }
+    if (!reviewText.trim()) {
+      alert('Please write a short review');
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      await createReview({
+        user_id: state.authUser.id,
+        booking_id: booking.id,
+        rating: typeof rating === 'number' ? rating : 5,
+        comment: reviewText.trim(),
+        service_type: booking.service_type
+      });
+      handleCloseReview();
+      alert('Thanks! Your review has been submitted for approval.');
+    } catch (e) {
+      console.error('Error submitting review', e);
+      alert('Failed to submit review. Please try again later.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  // Check if Track Delivery button should be shown
+  const shouldShowTrackDelivery = () => {
+    const status = booking.status?.toLowerCase() || '';
+    return (booking as any).pickup_option === 'delivery' && 
+           (status === 'completed' || status === 'ready for delivery');
+  };
+
+  // Handle Track Delivery button click
+  const handleTrackDelivery = () => {
+    setShowDeliveryTracking(true);
+  };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -456,7 +572,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
             <div className="space-y-1 text-sm text-gray-600">
               <p>Items: {booking.item_count || 1} pieces</p>
               <p>Service: {booking.service_name}</p>
-              <p>Total: ${booking.total_amount}</p>
+              <p>Total: {formatCurrencyNGN(booking.total_amount)}</p>
             </div>
           </div>
           
@@ -480,6 +596,17 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-gray-200">
+          {/* Track Delivery Button - Only show for delivery orders that are completed or ready */}
+          {shouldShowTrackDelivery() && (
+            <button 
+              onClick={handleTrackDelivery}
+              className="flex items-center justify-center px-6 py-3 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors min-h-[44px] touch-manipulation shadow-sm"
+            >
+              <Navigation className="w-5 h-5 mr-2" />
+              Track Delivery
+            </button>
+          )}
+          
           <button 
              onClick={() => window.open('tel:+2349034842430', '_self')}
              className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors min-h-[44px] touch-manipulation"
@@ -496,6 +623,13 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
           </button>
         </div>
       </div>
+
+      {/* Delivery Tracking Modal */}
+       <DeliveryTracker 
+         booking={booking}
+         isOpen={showDeliveryTracking}
+         onClose={() => setShowDeliveryTracking(false)}
+       />
     </div>
   );
 };
