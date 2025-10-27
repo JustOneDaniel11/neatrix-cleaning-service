@@ -36,12 +36,13 @@ interface Review {
 const SupportPage: React.FC = () => {
   const { state, createSupportMessage, createSupportTicket, getOrCreateSupportTicket, fetchSupportTickets, fetchSupportMessages, fetchReviews, createReview, deleteDefaultAdminMessagesForUser } = useSupabaseData();
   const { currentUser, supportMessages, error } = state as any;
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  // Prefer ticket-specific subscription when available; fallback to sender_id
   const { data: realtimeMessages } = useRealtimeData('support_messages', '*', 
-    currentUser ? { column: 'sender_id', value: currentUser.id } : undefined
+    ticketId ? { column: 'ticket_id', value: ticketId } : (currentUser ? { column: 'sender_id', value: currentUser.id } : undefined)
   );
 
   const [activeTab, setActiveTab] = useState<'chat' | 'reviews' | 'faq' | 'contact'>('chat');
-  const [ticketId, setTicketId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -137,14 +138,6 @@ const SupportPage: React.FC = () => {
         message: newMessage.trim(),
         message_type: 'text',
         is_read: false
-      });
-
-      // Also create a contact message for admin dashboard visibility
-      await createContactMessage({
-        name: currentUser.full_name || currentUser.email,
-        email: currentUser.email,
-        phone: currentUser.phone || '',
-        message: `Support Chat Message: ${newMessage.trim()}`
       });
       
       setNewMessage('');

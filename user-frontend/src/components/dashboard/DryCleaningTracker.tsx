@@ -17,7 +17,8 @@ import {
   AlertCircle,
   RefreshCw
 } from "lucide-react";
-import { useSupabaseData, formatDate, formatCurrency } from "@/contexts/SupabaseDataContext";
+import { useSupabaseData, formatDate } from "@/contexts/SupabaseDataContext";
+import { formatCurrency } from "@/utils/helpers";
 
 interface DryCleaningOrder {
   id: string;

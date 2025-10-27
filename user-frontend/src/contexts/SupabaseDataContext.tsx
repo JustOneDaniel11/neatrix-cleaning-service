@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -317,6 +317,7 @@ export interface AppState {
   currentUser: User | null;
   authUser: SupabaseUser | null;
   isAuthenticated: boolean;
+  isInitializing: boolean;
   loading: boolean;
   loadingCounter: number;
   error: string | null;
@@ -336,6 +337,7 @@ type Action =
   | { type: 'INCREMENT_LOADING' }
   | { type: 'DECREMENT_LOADING' }
   | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_INITIALIZING'; payload: boolean }
   | { type: 'SET_AUTH_USER'; payload: SupabaseUser | null }
   | { type: 'SET_CURRENT_USER'; payload: User | null }
   | { type: 'SET_USERS'; payload: User[] }
@@ -420,6 +422,7 @@ const initialState: AppState = {
   currentUser: null,
   authUser: null,
   isAuthenticated: false,
+  isInitializing: true,
   loading: false,
   loadingCounter: 0,
   error: null,
@@ -459,6 +462,9 @@ function dataReducer(state: AppState, action: Action): AppState {
 
     case 'SET_ERROR':
       return { ...state, error: action.payload };
+
+    case 'SET_INITIALIZING':
+      return { ...state, isInitializing: action.payload };
 
     case 'SET_AUTH_USER':
       return { 
@@ -921,25 +927,34 @@ const SupabaseDataContext = createContext<{
 // Provider
 export function SupabaseDataProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(dataReducer, initialState);
+  const isInitializedRef = useRef(false);
+  
+  console.log('SupabaseDataProvider - current state:', {
+    loading: state.loading,
+    isAuthenticated: state.isAuthenticated,
+    authUser: state.authUser,
+    currentUser: state.currentUser,
+    error: state.error
+  });
 
   // Initialize auth state
   useEffect(() => {
-    let isInitialized = false;
 
     const initializeAuth = async () => {
+      console.log('🔄 Starting authentication initialization...');
       dispatch({ type: 'SET_LOADING', payload: true });
       
       try {
         // Check for existing session
         const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('📋 Session check result:', { session: !!session, error: !!error });
         
         if (error) {
-          console.error('Error getting session:', error);
-          dispatch({ type: 'SET_AUTH_USER', payload: null });
-          dispatch({ type: 'SET_CURRENT_USER', payload: null });
+          console.error('❌ Error getting session:', error);
+          dispatch({ type: 'LOGOUT' });
         } else if (session?.user) {
           // User is already authenticated
-          dispatch({ type: 'SET_AUTH_USER', payload: session.user });
+          console.log('✅ User authenticated, setting auth user:', session.user.email);
           
           // Fetch user profile
           const { data: userProfile } = await supabase
@@ -949,21 +964,28 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             .single();
           
           if (userProfile) {
-            dispatch({ type: 'SET_CURRENT_USER', payload: userProfile });
+            console.log('👤 User profile loaded, dispatching LOGIN action:', userProfile.email);
+            // Use LOGIN action to ensure proper authentication state synchronization
+            dispatch({ type: 'LOGIN', payload: { authUser: session.user, user: userProfile } });
+          } else {
+            console.log('⚠️ User profile not found, setting auth user only');
+            dispatch({ type: 'SET_AUTH_USER', payload: session.user });
           }
         } else {
           // No session found
-          dispatch({ type: 'SET_AUTH_USER', payload: null });
-          dispatch({ type: 'SET_CURRENT_USER', payload: null });
+          console.log('🚫 No session found, user not authenticated');
+          dispatch({ type: 'LOGOUT' });
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('💥 Error initializing auth:', error);
         dispatch({ type: 'SET_ERROR', payload: 'Failed to initialize authentication' });
         dispatch({ type: 'SET_AUTH_USER', payload: null });
         dispatch({ type: 'SET_CURRENT_USER', payload: null });
       } finally {
         dispatch({ type: 'SET_LOADING', payload: false });
-        isInitialized = true;
+        dispatch({ type: 'SET_INITIALIZING', payload: false });
+        isInitializedRef.current = true;
+        console.log('🏁 Authentication initialization complete, isInitialized:', isInitializedRef.current);
       }
     };
 
@@ -971,11 +993,16 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth changes - only after initialization is complete
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔔 Auth state change event:', event, 'isInitialized:', isInitializedRef.current);
+      
       // Skip auth state changes during initialization to prevent race conditions
-      if (!isInitialized) return;
+      if (!isInitializedRef.current) {
+        console.log('⏭️ Skipping auth state change during initialization');
+        return;
+      }
 
       if (event === 'SIGNED_IN' && session?.user) {
-        dispatch({ type: 'SET_AUTH_USER', payload: session.user });
+        console.log('🔑 User signed in:', session.user.email);
         
         // Fetch user profile
         const { data: userProfile } = await supabase
@@ -985,9 +1012,15 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           .single();
         
         if (userProfile) {
-          dispatch({ type: 'SET_CURRENT_USER', payload: userProfile });
+          console.log('👤 User profile loaded after sign in, dispatching LOGIN action:', userProfile.email);
+          // Use LOGIN action to ensure proper authentication state synchronization
+          dispatch({ type: 'LOGIN', payload: { authUser: session.user, user: userProfile } });
+        } else {
+          console.log('⚠️ User profile not found after sign in, setting auth user only');
+          dispatch({ type: 'SET_AUTH_USER', payload: session.user });
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('🚪 User signed out');
         dispatch({ type: 'LOGOUT' });
       }
     });
@@ -2975,19 +3008,7 @@ export function useSupabaseData() {
   return context;
 }
 
-// Helper functions (keeping for compatibility)
-export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
 
-export function formatCurrency(amount: number): string {
-  const n = Number(amount);
-  const safe = Number.isFinite(n) ? n : 0;
-  return new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN'
-  }).format(safe);
-}
 
 export function formatDate(date: string): string {
   return new Date(date).toLocaleDateString('en-US', {

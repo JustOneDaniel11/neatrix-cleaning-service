@@ -9,6 +9,7 @@ import MessengerOrderTracking from '../components/MessengerOrderTracking';
 import NotificationsPage from '../components/NotificationsPage';
 import AdminLiveChat from './AdminLiveChat';
 import LaundryPage from '../components/LaundryPage';
+import IntegratedLiveChat from '../components/IntegratedLiveChat';
 
 import LiveSupportChat from './LiveSupportChat';
 import { 
@@ -87,6 +88,7 @@ const PATH_TO_TAB: Record<string, string> = {
   '/users': 'users',
   '/contacts': 'contacts',
   '/support': 'contacts',
+  '/livechat': 'livechat',
   '/notifications': 'notifications',
   '/payments': 'payments',
   '/subscriptions': 'subscriptions',
@@ -134,7 +136,8 @@ export default function AdminDashboard() {
     updateUserSubscription,
     pauseUserSubscription,
     resumeUserSubscription,
-    cancelUserSubscription
+    cancelUserSubscription,
+    updateReview
   } = useSupabaseData();
   
   console.log('AdminDashboard state:', { 
@@ -154,6 +157,7 @@ export default function AdminDashboard() {
     bookings: '/bookings',
     users: '/users',
     contacts: '/support',
+    livechat: '/livechat',
     notifications: '/notifications',
     payments: '/payments',
     subscriptions: '/subscriptions',
@@ -858,7 +862,42 @@ export default function AdminDashboard() {
     });
   };
 
+  // Review management handlers
+  const handleApproveReview = async (reviewId: string) => {
+    try {
+      await updateReview(reviewId, { status: 'approved' });
+      toast({
+        title: "Review Approved",
+        description: "The review has been approved and is now visible to customers.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error approving review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve review. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
+  const handleRejectReview = async (reviewId: string) => {
+    try {
+      await updateReview(reviewId, { status: 'rejected' });
+      toast({
+        title: "Review Rejected",
+        description: "The review has been rejected and will not be visible to customers.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error rejecting review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject review. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const StatCard = ({ title, value, icon: Icon, trend, color }: {
     title: string;
@@ -3152,11 +3191,17 @@ export default function AdminDashboard() {
                       <div className="flex space-x-2">
                         {review.status === 'pending' && (
                           <>
-                            <button className="flex items-center space-x-1 text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 text-xs">
+                            <button 
+                              onClick={() => handleApproveReview(review.id)}
+                              className="flex items-center space-x-1 text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 text-xs transition-colors"
+                            >
                               <ThumbsUp className="w-3 h-3" />
                               <span>Approve</span>
                             </button>
-                            <button className="flex items-center space-x-1 text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 text-xs">
+                            <button 
+                              onClick={() => handleRejectReview(review.id)}
+                              className="flex items-center space-x-1 text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 text-xs transition-colors"
+                            >
                               <ThumbsDown className="w-3 h-3" />
                               <span>Reject</span>
                             </button>
@@ -3242,8 +3287,9 @@ export default function AdminDashboard() {
                     { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
                     { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
                     { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
-                    { id: 'contacts', label: 'Live Chat', icon: MessageSquare, color: 'from-orange-500 to-orange-600' },
-                    { id: 'notifications', label: 'Alerts', icon: Bell, color: 'from-red-500 to-red-600', badge: (state.unreadNotifications || 0) + unreadSupportMessagesCount },
+                    { id: 'contacts', label: 'Support', icon: Mail, color: 'from-orange-500 to-orange-600' },
+                    { id: 'livechat', label: 'Live Chat', icon: MessageCircle, color: 'from-pink-500 to-pink-600' },
+                    { id: 'notifications', label: 'Alerts', icon: Bell, color: 'from-red-500 to-red-600' },
                     { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
                     { id: 'subscriptions', label: 'Subs', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
                     { id: 'laundry', label: 'Laundry', icon: Shirt, color: 'from-teal-500 to-teal-600' },
@@ -3286,8 +3332,9 @@ export default function AdminDashboard() {
                   { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
                   { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
                   { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
-                  { id: 'contacts', label: 'Live Chat', icon: MessageSquare, color: 'from-orange-500 to-orange-600' },
-                  { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-red-500 to-red-600', badge: (state.unreadNotifications || 0) + unreadSupportMessagesCount },
+                  { id: 'contacts', label: 'Support', icon: Mail, color: 'from-orange-500 to-orange-600' },
+                  { id: 'livechat', label: 'Live Chat', icon: MessageCircle, color: 'from-pink-500 to-pink-600' },
+                  { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-red-500 to-red-600' },
                   { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
                   { id: 'subscriptions', label: 'Subscriptions', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
                   { id: 'laundry', label: 'Laundry Orders', icon: Shirt, color: 'from-teal-500 to-teal-600' },
@@ -3333,6 +3380,7 @@ export default function AdminDashboard() {
         {activeTab === 'bookings' && renderBookings()}
         {activeTab === 'users' && renderUsers()}
         {activeTab === 'contacts' && renderContactMessages()}
+        {activeTab === 'livechat' && <IntegratedLiveChat />}
         {activeTab === 'notifications' && renderNotifications()}
         {activeTab === 'payments' && renderPayments()}
         {activeTab === 'subscriptions' && renderSubscriptions()}

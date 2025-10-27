@@ -111,6 +111,16 @@ const DryCleaningPage = () => {
   ];
 
   const handleSubmitRequest = async () => {
+    console.log('Submit Request button clicked!');
+    console.log('Form data:', {
+      serviceType,
+      selectedAddress,
+      selectedDate,
+      selectedTime,
+      returnPreference,
+      currentUser: currentUser?.id
+    });
+    
     // For drop-off service, we don't need address validation
     if (serviceType === 'pickup' && (!selectedAddress || !selectedDate || !selectedTime)) {
       alert('Please fill in all required fields');
@@ -452,7 +462,7 @@ const DryCleaningPage = () => {
                 onClick={handleSubmitRequest}
                 className="w-full bg-blue-600 text-white py-3 sm:py-4 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base touch-manipulation min-h-[48px]"
               >
-                Schedule {serviceType === 'pickup' ? 'Pickup' : 'Drop-off'}
+                Submit Request
               </button>
                 </>
               )}

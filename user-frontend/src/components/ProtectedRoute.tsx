@@ -11,16 +11,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { state } = useSupabaseData();
   const location = useLocation();
 
-  // Only gate when we don't yet know auth status. If we have an
-  // authUser value (including null after initialization), proceed.
-  // Avoid blocking on general data loading to keep pages responsive.
-  const isAuthUnknown = state.isAuthenticated === false && state.authUser === null && state.currentUser === null && state.loading;
-  if (isAuthUnknown) {
-    return <FullScreenLoader text="Authenticating..." />;
+  // Show loading while initializing authentication
+  if (state.isInitializing) {
+    return <FullScreenLoader />;
   }
 
   if (!state.isAuthenticated) {
-    return <Navigate to="/login" replace state={{ redirectTo: location.pathname + location.search }} />;
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;

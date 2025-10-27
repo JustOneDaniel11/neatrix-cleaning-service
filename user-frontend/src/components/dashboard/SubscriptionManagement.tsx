@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Textarea } from '../ui/textarea';
 import { useSupabaseData } from '../../contexts/SupabaseDataContext';
-import { formatCurrency, formatDate } from '../../contexts/SupabaseDataContext';
+import { formatCurrency } from '../../utils/helpers';
+import { formatDate } from '../../contexts/SupabaseDataContext';
 import { 
   Calendar, 
   CreditCard, 

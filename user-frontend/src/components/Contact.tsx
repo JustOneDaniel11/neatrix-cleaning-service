@@ -64,7 +64,7 @@ const Contact = () => {
           <div className="space-y-6 md:space-y-8">
             <div className="space-y-3 md:space-y-4">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-                Ready to Get <span className="bg-gradient-hero text-primary sm:bg-clip-text sm:text-transparent">Started?</span>
+                Ready to Get <span className="bg-gradient-hero bg-clip-text text-transparent">Started?</span>
               </h2>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
                 Contact us today for a free consultation and quote. We're here to make your space 

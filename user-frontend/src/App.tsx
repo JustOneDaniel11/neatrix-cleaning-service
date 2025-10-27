@@ -22,6 +22,7 @@ import DashboardPage from "./pages/DashboardPage";
 import SupportPage from "./pages/SupportPage";
 import BookingPage from "./pages/BookingPage";
 import NotFound from "./pages/NotFound";
+import TestPage from "./pages/TestPage";
 // Removed AdminDashboardWrapper; /admin routes are not served by main app
 import { SupabaseDataProvider, useSupabaseData } from "./contexts/SupabaseDataContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -31,47 +32,68 @@ const queryClient = new QueryClient();
 
 const StatusBannerHost = () => {
   const { state } = useSupabaseData();
-  return <ServiceStatusBanner errorMessage={state.error} />;
+  console.log('StatusBannerHost - state:', state);
+  return <ServiceStatusBanner isOnline={!state.error} />;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <SupabaseDataProvider>
-        <Toaster />
-        <Sonner />
-        <StatusBannerHost />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/services" element={<ServicesPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/gallery" element={<GalleryPage />} />
-            <Route path="/faq" element={<FAQPage />} />
-            <Route path="/blog" element={<BlogPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/email-verification" element={<EmailVerificationPage />} />
-            <Route path="/email-verification-success" element={<EmailVerificationSuccessPage />} />
-            <Route path="/email-preview" element={<EmailPreview />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/book-service" element={<BookingPage />} />
-            <Route path="/support" element={<SupportPage />} />
-            <Route path="/dashboard/*" element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            } />
-            {/* Admin routes removed from main app to avoid conflicts with real dashboard in /neatrixadmin */}
-            {/* Catch all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </SupabaseDataProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  try {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <SupabaseDataProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <StatusBannerHost />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/services" element={<ServicesPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/gallery" element={<GalleryPage />} />
+                <Route path="/faq" element={<FAQPage />} />
+                <Route path="/blog" element={<BlogPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/email-verification" element={<EmailVerificationPage />} />
+                <Route path="/email-verification-success" element={<EmailVerificationSuccessPage />} />
+                <Route path="/email-preview" element={<EmailPreview />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/book-service" element={<BookingPage />} />
+                <Route path="/support" element={<SupportPage />} />
+                <Route path="/dashboard/*" element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/test" element={<TestPage />} />
+                {/* Admin routes removed from main app to avoid conflicts with real dashboard in /neatrixadmin */}
+                {/* Catch all route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </SupabaseDataProvider>
+      </QueryClientProvider>
+    );
+  } catch (error) {
+    console.error('App render error:', error);
+    return (
+      <div style={{ 
+        backgroundColor: 'red', 
+        color: 'white', 
+        padding: '20px', 
+        fontSize: '18px',
+        minHeight: '100vh'
+      }}>
+        <h1>Application Error</h1>
+        <p>Error: {error instanceof Error ? error.message : 'Unknown error'}</p>
+        <p>Check the console for more details.</p>
+      </div>
+    );
+  }
+};
 
 export default App;

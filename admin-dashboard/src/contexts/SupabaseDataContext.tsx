@@ -492,6 +492,7 @@ interface SupabaseDataContextType {
   updateSupportTicket: (id: string, updates: Partial<SupportTicket>) => Promise<void>;
   sendSupportMessage: (payload: Omit<SupportMessage, 'id' | 'created_at'>) => Promise<void>;
   markMessageAsRead: (id: string) => Promise<void>;
+  updateReview: (id: string, updates: Partial<Review>) => Promise<void>;
 }
 
 const SupabaseDataContext = createContext<SupabaseDataContextType | null>(null);
@@ -955,6 +956,32 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'pickup_deliveries' }, () => {
           if (mounted) debounceFetch('pickup_deliveries', fetchPickupDeliveries);
+        })
+        // Reviews
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reviews' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('reviews', fetchReviews);
+            
+            // Create admin notification for new review
+            try {
+              const newReview = payload.new as Review;
+              await createAdminNotification({
+                title: 'New Review Submitted',
+                message: `New ${newReview.rating}-star review from ${newReview.customerName || 'customer'}`,
+                type: 'review',
+                priority: newReview.rating <= 2 ? 'high' : 'medium',
+                action_url: '/admin/reviews'
+              });
+            } catch (error) {
+              console.error('Failed to create review notification:', error);
+            }
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'reviews' }, () => {
+          if (mounted) debounceFetch('reviews', fetchReviews);
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reviews' }, () => {
+          if (mounted) debounceFetch('reviews', fetchReviews);
         })
         .subscribe((status) => {
           if (!mounted) return;
@@ -1919,6 +1946,12 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     debounceFetch('admin_notifications', fetchAdminNotifications);
   };
 
+  // Review management
+  const updateReview = async (id: string, updates: Partial<Review>) => {
+    const { error } = await supabase.from('reviews').update(updates).eq('id', id);
+    if (!error) await fetchReviews();
+  };
+
   // Support ticket management
   const updateSupportTicket = async (id: string, updates: Partial<SupportTicket>) => {
     const { error } = await supabase.from('support_tickets').update(updates).eq('id', id);
@@ -1992,6 +2025,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     updateSupportTicket,
     sendSupportMessage,
     markMessageAsRead,
+    updateReview,
   };
 
   return (
