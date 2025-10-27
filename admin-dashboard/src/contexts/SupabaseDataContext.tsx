@@ -2,13 +2,13 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode, use
 import { supabase } from '@/lib/supabase';
 
 interface SupabaseUser { id: string; email?: string | null }
-interface User { id: string; email?: string | null; full_name?: string | null; phone?: string; created_at?: string }
+export interface User { id: string; email?: string | null; full_name?: string | null; phone?: string; created_at?: string }
 interface CustomerWithStats extends User {
   totalSpent: number;
   totalBookings: number;
   status: string;
 }
-interface Booking { 
+export interface Booking { 
   id: string; 
   user_id: string; 
   service_name?: string; 
@@ -26,7 +26,11 @@ interface Booking {
   pickup_option?: string; 
   stage_timestamps?: { [key: string]: string };
   stage_notes?: { [key: string]: string };
-  tracking_history?: any[];
+  tracking_history?: Array<{
+    stage: string;
+    timestamp: string;
+    notes?: string;
+  }>;
   users?: {
     id: string;
     email: string;
@@ -41,6 +45,11 @@ interface Booking {
   userEmail?: string;
   service?: string;
   amount?: number;
+  delivery_status?: string;
+  customerName?: string;
+  customerEmail?: string;
+  // Index signature to allow additional properties
+  [key: string]: unknown;
 }
 interface ContactMessage { id: string; name: string; email: string; subject: string; message: string; status: "new" | "in_progress" | "resolved"; created_at: string }
 interface PickupDelivery { 
@@ -133,7 +142,7 @@ interface SubscriptionCustomization {
 }
 
 // Legacy interface for backward compatibility
-interface Subscription { 
+export interface Subscription { 
   id: string; 
   user_id: string; 
   plan_name?: string; 
@@ -144,6 +153,12 @@ interface Subscription {
   customerName?: string;
   customerEmail?: string;
   billing_cycle?: string;
+  customer_email?: string;
+  customer_phone?: string;
+  frequency?: string;
+  customer_name?: string;
+  // Index signature to allow additional properties
+  [key: string]: unknown;
 }
 interface LaundryOrder { 
   id: string; 
@@ -169,9 +184,13 @@ interface LaundryOrder {
   pickup_option?: string;
   stage_timestamps?: { [key: string]: string };
   stage_notes?: { [key: string]: string };
-  tracking_history?: any[];
+  tracking_history?: Array<{
+    stage: string;
+    timestamp: string;
+    notes?: string;
+  }>;
 }
-interface AdminNotification { 
+export interface AdminNotification { 
   id: string; 
   title: string; 
   message: string; 
@@ -283,7 +302,7 @@ const initialState: AppState = {
   authUser: null,
   currentUser: null,
   isAuthenticated: false,
-  loading: false,
+  loading: true, // Start with loading true to check session
   error: null,
   realTimeConnected: false,
   stats: { 
@@ -305,9 +324,13 @@ const initialState: AppState = {
 function calculateStats(state: AppState): AppState['stats'] {
   const today = new Date().toISOString().split('T')[0];
   
+  // Calculate total revenue from both regular bookings and laundry orders
+  const bookingsRevenue = state.bookings.reduce((sum, booking) => sum + (booking.total_amount || 0), 0);
+  const laundryRevenue = state.laundryOrders.reduce((sum, order) => sum + (order.total_amount || order.amount || 0), 0);
+  
   return {
     totalBookings: state.bookings.length,
-    totalRevenue: state.bookings.reduce((sum, booking) => sum + (booking.total_amount || 0), 0),
+    totalRevenue: bookingsRevenue + laundryRevenue,
     activeUsers: state.users.length,
     pendingBookings: state.bookings.filter(booking => booking.status === 'pending').length,
     completedBookings: state.bookings.filter(booking => booking.status === 'completed').length,
@@ -452,22 +475,22 @@ interface SupabaseDataContextType {
   fetchSupportTickets: () => Promise<void>;
   fetchSupportMessages: () => Promise<void>;
   signOut: () => Promise<void>;
-  updateBooking: (id: string, updates: any) => Promise<void>;
+  updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>;
   deleteBooking: (id: string) => Promise<void>;
-  updateUser: (id: string, updates: any) => Promise<void>;
+  updateUser: (id: string, updates: Partial<User>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
-  updateContactMessage: (id: string, updates: any) => Promise<void>;
+  updateContactMessage: (id: string, updates: Partial<ContactMessage>) => Promise<void>;
   deleteContactMessage: (id: string) => Promise<void>;
-  createPickupDelivery: (payload: any) => Promise<void>;
-  updatePickupDelivery: (id: string, updates: any) => Promise<void>;
-  createUserComplaint: (payload: any) => Promise<void>;
-  updateUserComplaint: (id: string, updates: any) => Promise<void>;
-  updateAdminNotification: (id: string, updates: any) => Promise<void>;
+  createPickupDelivery: (payload: Omit<PickupDelivery, 'id' | 'created_at'>) => Promise<void>;
+  updatePickupDelivery: (id: string, updates: Partial<PickupDelivery>) => Promise<void>;
+  createUserComplaint: (payload: Omit<Complaint, 'id' | 'created_at'>) => Promise<void>;
+  updateUserComplaint: (id: string, updates: Partial<Complaint>) => Promise<void>;
+  updateAdminNotification: (id: string, updates: Partial<AdminNotification>) => Promise<void>;
   deleteAdminNotification: (id: string) => Promise<void>;
   markNotificationAsRead: (id: string) => Promise<void>;
   createAdminNotification: (payload: { title: string; message: string; type?: string; priority?: string; action_url?: string; action_label?: string }) => Promise<void>;
-  updateSupportTicket: (id: string, updates: any) => Promise<void>;
-  sendSupportMessage: (payload: any) => Promise<void>;
+  updateSupportTicket: (id: string, updates: Partial<SupportTicket>) => Promise<void>;
+  sendSupportMessage: (payload: Omit<SupportMessage, 'id' | 'created_at'>) => Promise<void>;
   markMessageAsRead: (id: string) => Promise<void>;
 }
 
@@ -476,33 +499,214 @@ const SupabaseDataContext = createContext<SupabaseDataContextType | null>(null);
 export function SupabaseDataProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const debounceTimers = useRef<Record<string, number>>({});
-  const debounceFetch = (key: string, fn: () => Promise<void>, delay = 300) => {
+  const debounceInProgress = useRef<Record<string, boolean>>({});
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+  const initializingRef = useRef(false);
+  const usersAbortControllerRef = useRef<AbortController | null>(null);
+  const bookingsAbortControllerRef = useRef<AbortController | null>(null);
+  const contactMessagesAbortControllerRef = useRef<AbortController | null>(null);
+  const pickupDeliveriesAbortControllerRef = useRef<AbortController | null>(null);
+  const userComplaintsAbortControllerRef = useRef<AbortController | null>(null);
+  const paymentsAbortControllerRef = useRef<AbortController | null>(null);
+  const subscriptionsAbortControllerRef = useRef<AbortController | null>(null);
+  const subscriptionPlansAbortControllerRef = useRef<AbortController | null>(null);
+  const userSubscriptionsAbortControllerRef = useRef<AbortController | null>(null);
+  const subscriptionBillingAbortControllerRef = useRef<AbortController | null>(null);
+  const subscriptionCustomizationsAbortControllerRef = useRef<AbortController | null>(null);
+  const laundryOrdersAbortControllerRef = useRef<AbortController | null>(null);
+  const adminNotificationsAbortControllerRef = useRef<AbortController | null>(null);
+  const reviewsAbortControllerRef = useRef<AbortController | null>(null);
+  const supportTicketsAbortControllerRef = useRef<AbortController | null>(null);
+  const supportMessagesAbortControllerRef = useRef<AbortController | null>(null);
+  
+  const debounceFetch = (
+    key: string,
+    fn: () => Promise<void>,
+    delay = 1000 // Increased delay to reduce API calls
+  ) => {
+    // Clear any existing timer for this key
     const prev = debounceTimers.current[key];
     if (prev) {
       window.clearTimeout(prev);
+      delete debounceTimers.current[key];
     }
-    debounceTimers.current[key] = window.setTimeout(() => {
-      fn();
+    
+    // Check if a request is already in progress
+    if (debounceInProgress.current[key]) {
+      console.log(`⚠️ Skipping ${key} fetch - request already in progress`);
+      return;
+    }
+    
+    debounceTimers.current[key] = window.setTimeout(async () => {
+      // Remove the timer reference
+      delete debounceTimers.current[key];
+      
+      // Set in-progress flag
+      debounceInProgress.current[key] = true;
+      
+      try {
+        await fn();
+      } catch (error) {
+        console.error(`Error in debounced fetch for ${key}:`, error);
+      } finally {
+        // Clear in-progress flag
+        delete debounceInProgress.current[key];
+      }
     }, delay);
   };
 
+  // Initialize auth state and session persistence
   useEffect(() => {
-    (async () => {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        dispatch({ type: 'SET_AUTH_USER', payload: session?.user || null });
-        if (session?.user?.id) {
-          const { data: user } = await supabase.from('users').select('*').eq('id', session.user.id).single();
-          if (user) dispatch({ type: 'SET_CURRENT_USER', payload: user });
-        }
-      } catch (e: any) {
-        dispatch({ type: 'SET_ERROR', payload: e.message });
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      // Prevent duplicate initialization
+      if (initializingRef.current) {
+        console.log("🔄 Auth initialization already in progress...");
+        return;
       }
-    })();
+
+      initializingRef.current = true;
+      console.log("🔄 Starting auth initialization...");
+
+      try {
+        // Check for existing session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("❌ Session error:", sessionError);
+          throw sessionError;
+        }
+
+        if (session?.user) {
+          console.log("🔑 Found existing session:", session.user.id);
+          if (mounted) {
+            dispatch({ type: "SET_AUTH_USER", payload: session.user });
+            
+            // Fetch user profile
+            const { data: profile, error: profileError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profileError) {
+              console.error("❌ Profile fetch error:", profileError);
+              // Check if it's a transient AbortError that can be ignored
+              if (profileError.message.includes('AbortError') || profileError.message.includes('signal is aborted')) {
+                console.log('⚠️ Transient AbortError in initial profile fetch, ignoring...');
+                // Don't set current user to null for AbortErrors
+              } else {
+                // Keep user authenticated even if profile fetch fails
+                dispatch({ type: "SET_CURRENT_USER", payload: null });
+              }
+            } else if (profile) {
+              console.log("👤 Loaded user profile:", profile.email);
+              dispatch({ type: "SET_CURRENT_USER", payload: profile });
+            }
+          }
+        } else {
+          console.log("ℹ️ No existing session found");
+          if (mounted) {
+            dispatch({ type: "SET_AUTH_USER", payload: null });
+            dispatch({ type: "SET_CURRENT_USER", payload: null });
+          }
+        }
+
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (!mounted) return;
+          
+          console.log("🔔 Auth state changed:", event, session?.user?.id);
+          
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            if (session?.user) {
+              console.log("✅ User authenticated:", session.user.id);
+              dispatch({ type: "SET_AUTH_USER", payload: session.user });
+              
+              try {
+                const { data: profile, error: profileError } = await supabase
+                  .from('users')
+                  .select('*')
+                  .eq('id', session.user.id)
+                  .single();
+                
+                if (profileError) throw profileError;
+                
+                if (profile) {
+                  console.log("👤 User profile loaded:", profile.email);
+                  dispatch({ type: "SET_CURRENT_USER", payload: profile });
+                }
+              } catch (err) {
+                console.error("❌ Profile fetch error:", err);
+                // Check if it's a transient AbortError that can be ignored
+                if (err instanceof Error && (err.message.includes('AbortError') || err.message.includes('signal is aborted'))) {
+                  console.log('⚠️ Transient AbortError in profile fetch, ignoring...');
+                  // Don't dispatch error for AbortErrors
+                  return;
+                } else {
+                  dispatch({ type: "SET_ERROR", payload: "Failed to load user profile" });
+                }
+              }
+            }
+          } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+            console.log("👋 User signed out");
+            dispatch({ type: "SET_AUTH_USER", payload: null });
+            dispatch({ type: "SET_CURRENT_USER", payload: null });
+          }
+        });
+
+        if (mounted) {
+          subscriptionRef.current = subscription;
+        }
+
+      } catch (err) {
+        console.error("❌ Auth initialization error:", err);
+        if (mounted) {
+          if (err instanceof Error) {
+            // Check if it's a transient AbortError that can be ignored
+            if (err.message.includes('AbortError') || err.message.includes('signal is aborted')) {
+              console.log('⚠️ Transient AbortError in auth initialization, ignoring...');
+              // Don't dispatch error or reset auth state for AbortErrors
+              return;
+            } else {
+              dispatch({ type: "SET_ERROR", payload: err.message });
+            }
+          }
+          dispatch({ type: "SET_AUTH_USER", payload: null });
+          dispatch({ type: "SET_CURRENT_USER", payload: null });
+        }
+      } finally {
+        if (mounted) {
+          console.log("✨ Auth initialization complete, setting loading to false");
+          dispatch({ type: "SET_LOADING", payload: false });
+          initializingRef.current = false;
+        }
+      }
+    };
+
+    // Start initialization
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+      // Clean up subscription
+      if (subscriptionRef.current) {
+        console.log("🧹 Cleaning up auth subscription");
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+      // Clean up debounce timers
+      Object.values(debounceTimers.current).forEach(timerId => {
+        window.clearTimeout(timerId);
+      });
+      debounceTimers.current = {};
+      // Reset initialization flag
+      initializingRef.current = false;
+    };
   }, []);
+
+
 
   // Realtime + probe to set live connectivity state
   useEffect(() => {
@@ -518,7 +722,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             
             // Create admin notification for new booking
             try {
-              const newBooking = payload.new as any;
+              const newBooking = payload.new as Booking;
               const isLaundryOrder = newBooking.service_type === 'laundry' || newBooking.service_type === 'dry_cleaning';
               
               await createAdminNotification({
@@ -554,7 +758,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             
             // Create admin notification for new support ticket
             try {
-              const newTicket = payload.new as any;
+              const newTicket = payload.new as SupportTicket;
               const priority = newTicket.priority === 'urgent' ? 'high' : newTicket.priority === 'high' ? 'high' : 'medium';
               await createAdminNotification({
                 title: 'New Support Ticket',
@@ -575,8 +779,13 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           if (mounted) debounceFetch('support_tickets', fetchSupportTickets);
         })
         // Support messages
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, () => {
-          if (mounted) debounceFetch('support_messages', fetchSupportMessages);
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
+          if (mounted && payload.new) {
+            // Immediate UI update for new messages
+            dispatch({ type: 'ADD_SUPPORT_MESSAGE', payload: payload.new as SupportMessage });
+            // Also trigger a debounced fetch to ensure consistency
+            debounceFetch('support_messages', fetchSupportMessages);
+          }
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'support_messages' }, () => {
           if (mounted) debounceFetch('support_messages', fetchSupportMessages);
@@ -585,10 +794,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           if (mounted) debounceFetch('support_messages', fetchSupportMessages);
         })
         // Laundry orders are now handled through bookings table real-time subscription
-        // Admin notifications
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_notifications' }, () => {
-          if (mounted) debounceFetch('admin_notifications', fetchAdminNotifications);
-        })
+        // Admin notifications - only listen to external changes, not our own creates
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'admin_notifications' }, () => {
           if (mounted) debounceFetch('admin_notifications', fetchAdminNotifications);
         })
@@ -612,7 +818,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             
             // Create admin notification for new subscription
             try {
-              const newSubscription = payload.new as any;
+              const newSubscription = payload.new as UserSubscription;
               await createAdminNotification({
                 title: 'New Subscription',
                 message: `New subscription created for user ${newSubscription.user_id.slice(-6).toUpperCase()}`,
@@ -631,8 +837,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             
             // Create admin notification for subscription status changes
             try {
-              const updatedSubscription = payload.new as any;
-              const oldSubscription = payload.old as any;
+              const updatedSubscription = payload.new as UserSubscription;
+              const oldSubscription = payload.old as UserSubscription;
               
               if (oldSubscription.status !== updatedSubscription.status) {
                 const statusMessages = {
@@ -665,7 +871,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             
             // Create admin notification for new billing record
             try {
-              const newBilling = payload.new as any;
+              const newBilling = payload.new as SubscriptionBilling;
               await createAdminNotification({
                 title: 'New Subscription Billing',
                 message: `New billing record created for subscription ${newBilling.subscription_id.slice(-6).toUpperCase()} - $${newBilling.amount}`,
@@ -684,8 +890,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             
             // Create admin notification for billing status changes
             try {
-              const updatedBilling = payload.new as any;
-              const oldBilling = payload.old as any;
+              const updatedBilling = payload.new as SubscriptionBilling;
+              const oldBilling = payload.old as SubscriptionBilling;
               
               if (oldBilling.status !== updatedBilling.status && updatedBilling.status === 'failed') {
                 await createAdminNotification({
@@ -721,7 +927,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             
             // Create admin notification for new contact message
             try {
-              const newMessage = payload.new as any;
+              const newMessage = payload.new as ContactMessage;
               await createAdminNotification({
                 title: 'New Contact Message',
                 message: `New message from ${newMessage.name || 'customer'}: ${newMessage.subject || 'No subject'}`,
@@ -772,20 +978,152 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         mounted = false;
         supabase.removeChannel(channel);
         dispatch({ type: 'SET_REALTIME_CONNECTED', payload: false });
+        
+        // Cleanup all AbortController references to prevent memory leaks
+        if (usersAbortControllerRef.current) {
+          usersAbortControllerRef.current.abort();
+          usersAbortControllerRef.current = null;
+        }
+        if (bookingsAbortControllerRef.current) {
+          bookingsAbortControllerRef.current.abort();
+          bookingsAbortControllerRef.current = null;
+        }
+        if (contactMessagesAbortControllerRef.current) {
+          contactMessagesAbortControllerRef.current.abort();
+          contactMessagesAbortControllerRef.current = null;
+        }
+        if (pickupDeliveriesAbortControllerRef.current) {
+          pickupDeliveriesAbortControllerRef.current.abort();
+          pickupDeliveriesAbortControllerRef.current = null;
+        }
+        if (userComplaintsAbortControllerRef.current) {
+          userComplaintsAbortControllerRef.current.abort();
+          userComplaintsAbortControllerRef.current = null;
+        }
+        if (paymentsAbortControllerRef.current) {
+          paymentsAbortControllerRef.current.abort();
+          paymentsAbortControllerRef.current = null;
+        }
+        if (subscriptionsAbortControllerRef.current) {
+          subscriptionsAbortControllerRef.current.abort();
+          subscriptionsAbortControllerRef.current = null;
+        }
+        if (subscriptionPlansAbortControllerRef.current) {
+          subscriptionPlansAbortControllerRef.current.abort();
+          subscriptionPlansAbortControllerRef.current = null;
+        }
+        if (userSubscriptionsAbortControllerRef.current) {
+          userSubscriptionsAbortControllerRef.current.abort();
+          userSubscriptionsAbortControllerRef.current = null;
+        }
+        if (subscriptionBillingAbortControllerRef.current) {
+          subscriptionBillingAbortControllerRef.current.abort();
+          subscriptionBillingAbortControllerRef.current = null;
+        }
+        if (subscriptionCustomizationsAbortControllerRef.current) {
+          subscriptionCustomizationsAbortControllerRef.current.abort();
+          subscriptionCustomizationsAbortControllerRef.current = null;
+        }
+        if (laundryOrdersAbortControllerRef.current) {
+          laundryOrdersAbortControllerRef.current.abort();
+          laundryOrdersAbortControllerRef.current = null;
+        }
+        if (adminNotificationsAbortControllerRef.current) {
+          adminNotificationsAbortControllerRef.current.abort();
+          adminNotificationsAbortControllerRef.current = null;
+        }
+        if (reviewsAbortControllerRef.current) {
+          reviewsAbortControllerRef.current.abort();
+          reviewsAbortControllerRef.current = null;
+        }
+        if (supportTicketsAbortControllerRef.current) {
+          supportTicketsAbortControllerRef.current.abort();
+          supportTicketsAbortControllerRef.current = null;
+        }
+        if (supportMessagesAbortControllerRef.current) {
+          supportMessagesAbortControllerRef.current.abort();
+          supportMessagesAbortControllerRef.current = null;
+        }
+        
+        // Clear debounce timers
+        Object.keys(debounceTimers.current).forEach(key => {
+          if (debounceTimers.current[key]) {
+            window.clearTimeout(debounceTimers.current[key]);
+            delete debounceTimers.current[key];
+          }
+        });
+        
+        // Clear in-progress flags
+        Object.keys(debounceInProgress.current).forEach(key => {
+          delete debounceInProgress.current[key];
+        });
       };
     } catch {
       // keep offline if client fails to init
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAllUsers = async () => {
-    const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_USERS', payload: data || [] });
+    // Cancel any ongoing request
+    if (usersAbortControllerRef.current) {
+      usersAbortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this request
+    usersAbortControllerRef.current = new AbortController();
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(usersAbortControllerRef.current.signal);
+      
+      if (error) {
+        // Check if it's a transient AbortError that can be ignored
+        if (error.message.includes('AbortError') || error.message.includes('signal is aborted')) {
+          console.log('⚠️ Transient AbortError detected in fetchAllUsers, ignoring...');
+          return;
+        }
+        console.error('❌ Error fetching users:', error);
+        dispatch({ type: 'SET_ERROR', payload: `Failed to load users: ${error.message}` });
+        return;
+      }
+      
+      dispatch({ type: 'SET_USERS', payload: data || [] });
+    } catch (error: any) {
+      // Check if it's a transient AbortError that can be ignored
+      if (error.message?.includes('AbortError') || error.message?.includes('signal is aborted')) {
+        console.log('⚠️ Transient AbortError detected in fetchAllUsers catch, ignoring...');
+        return;
+      }
+      console.error('❌ Unexpected error in fetchAllUsers:', error);
+      dispatch({ type: 'SET_ERROR', payload: `Failed to load users: ${error.message}` });
+    }
   };
   const fetchAllBookings = async (retryCount = 0) => {
     const maxRetries = 3;
     
+    // Only cancel ongoing request if it's not the same retry attempt
+    if (bookingsAbortControllerRef.current && retryCount === 0) {
+      bookingsAbortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this request only if needed
+    if (!bookingsAbortControllerRef.current || bookingsAbortControllerRef.current.signal.aborted) {
+      bookingsAbortControllerRef.current = new AbortController();
+    }
+    
+    const signal = bookingsAbortControllerRef.current.signal;
+    
     try {
+      // Check if request was aborted before starting
+      if (signal.aborted) {
+        console.log('⚠️ Request aborted before starting');
+        return;
+      }
+      
       // Check if Supabase is properly configured
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -812,10 +1150,17 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             phone
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .abortSignal(bookingsAbortControllerRef.current?.signal);
       
       if (error) {
         console.error('❌ Supabase error fetching bookings:', error);
+        
+        // Check if it's a transient AbortError that can be ignored
+        if (error.message.includes('AbortError') || error.message.includes('signal is aborted')) {
+          console.log('⚠️ Transient AbortError detected, ignoring...');
+          return;
+        }
         
         // Check if it's a network error and we can retry
         if (error.message.includes('Failed to fetch') || error.message.includes('TypeError: fetch failed')) {
@@ -829,6 +1174,11 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           }
         }
         
+        // Don't show AbortErrors to users as they're transient
+        if (error.message.includes('AbortError') || error.message.includes('signal is aborted')) {
+          console.log('⚠️ Transient AbortError in fetchAllBookings, ignoring...');
+          return;
+        }
         dispatch({ type: 'SET_ERROR', payload: `Database error: ${error.message}` });
         return;
       }
@@ -866,9 +1216,15 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('❌ Unexpected error fetching bookings:', error);
       
+      // Check if it's a transient AbortError that can be ignored
+      if (error instanceof Error && (error.message.includes('AbortError') || error.message.includes('signal is aborted'))) {
+        console.log('⚠️ Transient AbortError detected, ignoring...');
+        return;
+      }
+      
       // Check if it's a network error and we can retry
       if ((error instanceof TypeError && error.message.includes('fetch failed')) || 
-          error.message.includes('Failed to fetch')) {
+          (error instanceof Error && error.message.includes('Failed to fetch'))) {
         if (retryCount < maxRetries) {
           console.log(`⏳ Network error detected, retrying in 2 seconds... (${retryCount + 1}/${maxRetries})`);
           setTimeout(() => fetchAllBookings(retryCount + 1), 2000);
@@ -883,71 +1239,229 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     }
   };
   const fetchContactMessages = async () => {
-    const { data, error } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_CONTACT_MESSAGES', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (contactMessagesAbortControllerRef.current) {
+        contactMessagesAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      contactMessagesAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(contactMessagesAbortControllerRef.current.signal);
+        
+      if (!error) dispatch({ type: 'SET_CONTACT_MESSAGES', payload: data || [] });
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching contact messages:', error);
+      }
+    }
   };
   const fetchPickupDeliveries = async () => {
-    const { data, error } = await supabase.from('pickup_deliveries').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_PICKUP_DELIVERIES', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (pickupDeliveriesAbortControllerRef.current) {
+        pickupDeliveriesAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      pickupDeliveriesAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('pickup_deliveries')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(pickupDeliveriesAbortControllerRef.current.signal);
+        
+      if (!error) dispatch({ type: 'SET_PICKUP_DELIVERIES', payload: data || [] });
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching pickup deliveries:', error);
+      }
+    }
   };
   const fetchUserComplaints = async () => {
-    const { data, error } = await supabase.from('user_complaints').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_USER_COMPLAINTS', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (userComplaintsAbortControllerRef.current) {
+        userComplaintsAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      userComplaintsAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('user_complaints')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(userComplaintsAbortControllerRef.current.signal);
+        
+      if (!error) dispatch({ type: 'SET_USER_COMPLAINTS', payload: data || [] });
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching user complaints:', error);
+      }
+    }
   };
 
   // Additional admin fetchers
   const fetchPayments = async () => {
-    const { data, error } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_PAYMENTS', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (paymentsAbortControllerRef.current) {
+        paymentsAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      paymentsAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(paymentsAbortControllerRef.current.signal);
+        
+      if (!error) dispatch({ type: 'SET_PAYMENTS', payload: data || [] });
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching payments:', error);
+      }
+    }
   };
   const fetchSubscriptions = async () => {
-    const { data, error } = await supabase.from('subscriptions').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_SUBSCRIPTIONS', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (subscriptionsAbortControllerRef.current) {
+        subscriptionsAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      subscriptionsAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(subscriptionsAbortControllerRef.current.signal);
+      
+      if (!error) dispatch({ type: 'SET_SUBSCRIPTIONS', payload: data || [] });
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching subscriptions:', error);
+      }
+    }
   };
 
   // Enhanced subscription functions
   const fetchSubscriptionPlans = async () => {
-    const { data, error } = await supabase
-      .from('subscription_plans')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_SUBSCRIPTION_PLANS', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (subscriptionPlansAbortControllerRef.current) {
+        subscriptionPlansAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      subscriptionPlansAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(subscriptionPlansAbortControllerRef.current.signal);
+      
+      if (!error) dispatch({ type: 'SET_SUBSCRIPTION_PLANS', payload: data || [] });
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching subscription plans:', error);
+      }
+    }
   };
 
   const fetchUserSubscriptions = async () => {
-    const { data, error } = await supabase
-      .from('user_subscriptions')
-      .select(`
-        *,
-        plan:subscription_plans(*),
-        users:user_id(id, email, full_name)
-      `)
-      .order('created_at', { ascending: false });
-    
-    if (!error) {
-      const userSubscriptions = (data || []).map(sub => ({
-        ...sub,
-        customerName: sub.users?.full_name || `Customer #${sub.user_id.slice(-6).toUpperCase()}`,
-        customerEmail: sub.users?.email
-      }));
-      dispatch({ type: 'SET_USER_SUBSCRIPTIONS', payload: userSubscriptions });
+    try {
+      // Cancel any ongoing request
+      if (userSubscriptionsAbortControllerRef.current) {
+        userSubscriptionsAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      userSubscriptionsAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          *,
+          plan:subscription_plans(*),
+          users:user_id(id, email, full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .abortSignal(userSubscriptionsAbortControllerRef.current.signal);
+      
+      if (!error) {
+        const userSubscriptions = (data || []).map(sub => ({
+          ...sub,
+          customerName: sub.users?.full_name || `Customer #${sub.user_id.slice(-6).toUpperCase()}`,
+          customerEmail: sub.users?.email
+        }));
+        dispatch({ type: 'SET_USER_SUBSCRIPTIONS', payload: userSubscriptions });
+      }
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching user subscriptions:', error);
+      }
     }
   };
 
   const fetchSubscriptionBilling = async () => {
-    const { data, error } = await supabase
-      .from('subscription_billing')
-      .select('*')
-      .order('billing_date', { ascending: false });
-    if (!error) dispatch({ type: 'SET_SUBSCRIPTION_BILLING', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (subscriptionBillingAbortControllerRef.current) {
+        subscriptionBillingAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      subscriptionBillingAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('subscription_billing')
+        .select('*')
+        .order('billing_date', { ascending: false })
+        .abortSignal(subscriptionBillingAbortControllerRef.current.signal);
+      
+      if (!error) dispatch({ type: 'SET_SUBSCRIPTION_BILLING', payload: data || [] });
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching subscription billing:', error);
+      }
+    }
   };
 
   const fetchSubscriptionCustomizations = async () => {
-    const { data, error } = await supabase
-      .from('subscription_customizations')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_SUBSCRIPTION_CUSTOMIZATIONS', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (subscriptionCustomizationsAbortControllerRef.current) {
+        subscriptionCustomizationsAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      subscriptionCustomizationsAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('subscription_customizations')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(subscriptionCustomizationsAbortControllerRef.current.signal);
+      
+      if (!error) dispatch({ type: 'SET_SUBSCRIPTION_CUSTOMIZATIONS', payload: data || [] });
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching subscription customizations:', error);
+      }
+    }
   };
 
   // Subscription management functions
@@ -1068,63 +1582,165 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     }
   };
   const fetchLaundryOrders = async () => {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        users:user_id (
-          id,
-          email,
-          full_name
-        )
-      `)
-      .in('service_type', ['laundry', 'dry_cleaning'])
-      .order('created_at', { ascending: false });
-    
-    if (!error) {
-      // Transform bookings data to match LaundryOrder interface
-      const laundryOrders = (data || []).map(booking => ({
-        id: booking.id,
-        user_id: booking.user_id,
-        status: booking.status,
-        created_at: booking.created_at,
-        updated_at: booking.updated_at,
-        total_amount: booking.total_amount,
-        service_type: booking.service_type,
-        customer_name: booking.users?.full_name || `Customer #${booking.id.slice(-6).toUpperCase()}`,
-        customer_phone: booking.phone,
-        // Add additional fields from booking
-        service_name: booking.service_name,
-        date: booking.date,
-        time: booking.time,
-        address: booking.address,
-        special_instructions: booking.special_instructions,
-        tracking_stage: booking.tracking_stage,
-        pickup_option: booking.pickup_option,
-        stage_timestamps: booking.stage_timestamps,
-        stage_notes: booking.stage_notes,
-        tracking_history: booking.tracking_history,
-        customer_email: booking.users?.email
-      }));
+    try {
+      // Cancel any ongoing request
+      if (laundryOrdersAbortControllerRef.current) {
+        laundryOrdersAbortControllerRef.current.abort();
+      }
       
-      dispatch({ type: 'SET_LAUNDRY_ORDERS', payload: laundryOrders });
+      // Create new AbortController
+      laundryOrdersAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          users:user_id (
+            id,
+            email,
+            full_name
+          )
+        `)
+        .in('service_type', ['laundry', 'dry_cleaning'])
+        .order('created_at', { ascending: false })
+        .abortSignal(laundryOrdersAbortControllerRef.current.signal);
+      
+      if (!error) {
+        // Transform bookings data to match LaundryOrder interface
+        const laundryOrders = (data || []).map(booking => ({
+          id: booking.id,
+          user_id: booking.user_id,
+          status: booking.status,
+          created_at: booking.created_at,
+          updated_at: booking.updated_at,
+          total_amount: booking.total_amount,
+          service_type: booking.service_type,
+          customer_name: booking.users?.full_name || `Customer #${booking.id.slice(-6).toUpperCase()}`,
+          customer_phone: booking.phone,
+          // Add additional fields from booking
+          service_name: booking.service_name,
+          date: booking.date,
+          time: booking.time,
+          address: booking.address,
+          special_instructions: booking.special_instructions,
+          tracking_stage: booking.tracking_stage,
+          pickup_option: booking.pickup_option,
+          stage_timestamps: booking.stage_timestamps,
+          stage_notes: booking.stage_notes,
+          tracking_history: booking.tracking_history,
+          customer_email: booking.users?.email
+        }));
+        
+        dispatch({ type: 'SET_LAUNDRY_ORDERS', payload: laundryOrders });
+      }
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching laundry orders:', error);
+      }
     }
   };
   const fetchAdminNotifications = async () => {
-    const { data, error } = await supabase.from('admin_notifications').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_ADMIN_NOTIFICATIONS', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (adminNotificationsAbortControllerRef.current) {
+        adminNotificationsAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      adminNotificationsAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('admin_notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(adminNotificationsAbortControllerRef.current.signal);
+      
+      if (!error) {
+        dispatch({ type: 'SET_ADMIN_NOTIFICATIONS', payload: data || [] });
+      }
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching admin notifications:', error);
+      }
+    }
   };
+  
   const fetchReviews = async () => {
-    const { data, error } = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_REVIEWS', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (reviewsAbortControllerRef.current) {
+        reviewsAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      reviewsAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(reviewsAbortControllerRef.current.signal);
+      
+      if (!error) {
+        dispatch({ type: 'SET_REVIEWS', payload: data || [] });
+      }
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching reviews:', error);
+      }
+    }
   };
+  
   const fetchSupportTickets = async () => {
-    const { data, error } = await supabase.from('support_tickets').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_SUPPORT_TICKETS', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (supportTicketsAbortControllerRef.current) {
+        supportTicketsAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      supportTicketsAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(supportTicketsAbortControllerRef.current.signal);
+      
+      if (!error) {
+        dispatch({ type: 'SET_SUPPORT_TICKETS', payload: data || [] });
+      }
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching support tickets:', error);
+      }
+    }
   };
+  
   const fetchSupportMessages = async () => {
-    const { data, error } = await supabase.from('support_messages').select('*').order('created_at', { ascending: false });
-    if (!error) dispatch({ type: 'SET_SUPPORT_MESSAGES', payload: data || [] });
+    try {
+      // Cancel any ongoing request
+      if (supportMessagesAbortControllerRef.current) {
+        supportMessagesAbortControllerRef.current.abort();
+      }
+      
+      // Create new AbortController
+      supportMessagesAbortControllerRef.current = new AbortController();
+      
+      const { data, error } = await supabase
+        .from('support_messages')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .abortSignal(supportMessagesAbortControllerRef.current.signal);
+      
+      if (!error) {
+        dispatch({ type: 'SET_SUPPORT_MESSAGES', payload: data || [] });
+      }
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Error fetching support messages:', error);
+      }
+    }
   };
 
   // Admin mutations
@@ -1134,7 +1750,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_CURRENT_USER', payload: null });
   };
 
-  const updateBooking = async (id: string, updates: any) => {
+  const updateBooking = async (id: string, updates: Partial<Booking>) => {
     // Get the current booking to compare status changes
     const { data: currentBooking } = await supabase
       .from('bookings')
@@ -1152,9 +1768,9 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         
         let notificationTitle = '';
         let notificationMessage = '';
-        let notificationType = 'booking';
+        const notificationType = 'booking';
         let priority = 'medium';
-        let actionUrl = `/admin/orders`;
+        const actionUrl = `/admin/orders`;
 
         switch (updates.status) {
           case 'confirmed':
@@ -1202,16 +1818,46 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     if (!error) await fetchAllBookings();
   };
 
-  const updateUser = async (id: string, updates: any) => {
+  const updateUser = async (id: string, updates: Partial<User>) => {
     const { error } = await supabase.from('users').update(updates).eq('id', id);
     if (!error) await fetchAllUsers();
   };
   const deleteUser = async (id: string) => {
-    const { error } = await supabase.from('users').delete().eq('id', id);
-    if (!error) await fetchAllUsers();
+    console.log('Attempting to delete user with ID:', id);
+    try {
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (error) {
+        console.error('Error deleting user:', error);
+        throw error;
+      }
+      console.log('User deleted successfully, refreshing user list...');
+      
+      // Fetch users without using the shared AbortController to avoid conflicts
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (fetchError) {
+          console.error('Error fetching users after deletion:', fetchError);
+          dispatch({ type: 'SET_ERROR', payload: `Failed to refresh users: ${fetchError.message}` });
+          return;
+        }
+        
+        dispatch({ type: 'SET_USERS', payload: data || [] });
+        console.log('User list refreshed after deletion');
+      } catch (fetchError: any) {
+        console.error('Unexpected error refreshing users:', fetchError);
+        dispatch({ type: 'SET_ERROR', payload: `Failed to refresh users: ${fetchError.message}` });
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      throw error;
+    }
   };
 
-  const updateContactMessage = async (id: string, updates: any) => {
+  const updateContactMessage = async (id: string, updates: Partial<ContactMessage>) => {
     const { error } = await supabase.from('contact_messages').update(updates).eq('id', id);
     if (!error) await fetchContactMessages();
   };
@@ -1220,25 +1866,25 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     if (!error) await fetchContactMessages();
   };
 
-  const createPickupDelivery = async (payload: any) => {
+  const createPickupDelivery = async (payload: Omit<PickupDelivery, 'id' | 'created_at'>) => {
     const { error } = await supabase.from('pickup_deliveries').insert(payload);
     if (!error) await fetchPickupDeliveries();
   };
-  const updatePickupDelivery = async (id: string, updates: any) => {
+  const updatePickupDelivery = async (id: string, updates: Partial<PickupDelivery>) => {
     const { error } = await supabase.from('pickup_deliveries').update(updates).eq('id', id);
     if (!error) await fetchPickupDeliveries();
   };
 
-  const createUserComplaint = async (payload: any) => {
+  const createUserComplaint = async (payload: Omit<Complaint, 'id' | 'created_at'>) => {
     const { error } = await supabase.from('user_complaints').insert(payload);
     if (!error) await fetchUserComplaints();
   };
-  const updateUserComplaint = async (id: string, updates: any) => {
+  const updateUserComplaint = async (id: string, updates: Partial<Complaint>) => {
     const { error } = await supabase.from('user_complaints').update(updates).eq('id', id);
     if (!error) await fetchUserComplaints();
   };
 
-  const updateAdminNotification = async (id: string, updates: any) => {
+  const updateAdminNotification = async (id: string, updates: Partial<AdminNotification>) => {
     const { error } = await supabase.from('admin_notifications').update(updates).eq('id', id);
     if (!error) await fetchAdminNotifications();
   };
@@ -1269,15 +1915,16 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       throw error;
     }
     
-    // Real-time subscription will handle the update automatically
+    // Manually refresh notifications since we don't listen to INSERT events to avoid loops
+    debounceFetch('admin_notifications', fetchAdminNotifications);
   };
 
   // Support ticket management
-  const updateSupportTicket = async (id: string, updates: any) => {
+  const updateSupportTicket = async (id: string, updates: Partial<SupportTicket>) => {
     const { error } = await supabase.from('support_tickets').update(updates).eq('id', id);
     if (!error) await fetchSupportTickets();
   };
-  const sendSupportMessage = async (payload: any) => {
+  const sendSupportMessage = async (payload: Omit<SupportMessage, 'id' | 'created_at'>) => {
     // Ensure proper admin identification
     const messageWithAdminInfo = {
       ...payload,
@@ -1354,6 +2001,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSupabaseData(): SupabaseDataContextType {
   const ctx = useContext(SupabaseDataContext);
   if (!ctx) throw new Error('useSupabaseData must be used within a SupabaseDataProvider');

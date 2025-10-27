@@ -413,10 +413,11 @@ export default function LaundryPage() {
                       e.stopPropagation();
                       openOrderDetails(order);
                     }}
-                    className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium"
+                    className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors touch-manipulation"
                   >
                     <Eye className="w-4 h-4" />
-                    View Details
+                    <span className="hidden sm:inline">View Details</span>
+                    <span className="sm:hidden">View</span>
                   </button>
                   
                   {order.status === 'pending' && (
@@ -426,10 +427,10 @@ export default function LaundryPage() {
                         updateOrderStatus(order.id, 'approve');
                       }}
                       disabled={isUpdating}
-                      className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+                      className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
                     >
                       <Check className="w-4 h-4" />
-                      Approve
+                      Approve Order
                     </button>
                   )}
                   
@@ -442,7 +443,7 @@ export default function LaundryPage() {
                             updateOrderStatus(order.id, 'picked_up');
                           }}
                           disabled={isUpdating}
-                          className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+                          className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
                         >
                           <Check className="w-4 h-4" />
                           Picked Up
@@ -454,7 +455,7 @@ export default function LaundryPage() {
                             updateOrderStatus(order.id, 'dropped_off');
                           }}
                           disabled={isUpdating}
-                          className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+                          className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
                         >
                           <Home className="w-4 h-4" />
                           Dropped Off
@@ -471,24 +472,24 @@ export default function LaundryPage() {
 
       {/* Order Details Modal */}
       {showOrderModal && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate pr-2">
                 Order Details - {selectedOrder.order_number || `#${selectedOrder.id.slice(-6)}`}
               </h3>
               <button
                 onClick={closeOrderModal}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ml-2 flex-shrink-0"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <div className="space-y-6">
+            <div className="p-3 sm:p-4 lg:p-6 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-120px)]">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Status and Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
                     <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Order Status</h4>
                     <span className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${getStatusColor(selectedOrder.status)}`}>
@@ -584,7 +585,7 @@ export default function LaundryPage() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                   {selectedOrder.status === 'pending' && (
                     <button
                       onClick={() => {
@@ -592,10 +593,10 @@ export default function LaundryPage() {
                         closeOrderModal();
                       }}
                       disabled={isUpdating}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 touch-manipulation text-sm min-h-[44px]"
                     >
                       <Check className="w-4 h-4" />
-                      Approve Order
+                      <span className="truncate">Approve Order</span>
                     </button>
                   )}
                   
@@ -608,10 +609,10 @@ export default function LaundryPage() {
                             closeOrderModal();
                           }}
                           disabled={isUpdating}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 touch-manipulation text-sm min-h-[44px]"
                         >
                           <Check className="w-4 h-4" />
-                          Picked Up
+                          <span className="truncate">Picked Up</span>
                         </button>
                       ) : (
                         <button
@@ -620,10 +621,10 @@ export default function LaundryPage() {
                             closeOrderModal();
                           }}
                           disabled={isUpdating}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 touch-manipulation text-sm min-h-[44px]"
                         >
                           <Home className="w-4 h-4" />
-                          Dropped Off
+                          <span className="truncate">Dropped Off</span>
                         </button>
                       )}
                     </>
@@ -631,9 +632,9 @@ export default function LaundryPage() {
                   
                   <button
                     onClick={closeOrderModal}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium touch-manipulation text-sm min-h-[44px]"
                   >
-                    Close
+                    <span className="truncate">Close</span>
                   </button>
                 </div>
               </div>

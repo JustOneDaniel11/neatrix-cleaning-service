@@ -21,6 +21,7 @@ export default defineConfig({
   },
   server: {
     port: 5174,
+    strictPort: true,
     open: '/admin.html',
     fs: {
       // Allow importing files from the project root and shared directory
@@ -30,5 +31,13 @@ export default defineConfig({
       ]
     }
   },
-  root: '.'
+  clearScreen: false,
+  root: '.',
+  // Configure error overlay
+  hmr: {
+    overlay: {
+      errors: true,
+      warnings: false
+    }
+  }
 })

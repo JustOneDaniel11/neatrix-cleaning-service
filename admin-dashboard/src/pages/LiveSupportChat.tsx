@@ -106,7 +106,7 @@ export default function LiveSupportChat() {
   }, [selectedTicket]);
 
   // Helper function to get sender name
-  const getSenderName = (message: any) => {
+  const getSenderName = (message: { sender_type: string; sender_id: string }) => {
     if (message.sender_type === 'admin') {
       return 'Support Agent';
     } else {
@@ -156,7 +156,7 @@ export default function LiveSupportChat() {
       message_type: 'text',
       is_read: false,
       message: replyText.trim(),
-    } as any);
+    });
     setReplyText('');
     setAutoScrollByTicket(prev => ({ ...prev, [selectedTicketId!]: true }));
     // Ensure we snap to bottom on send

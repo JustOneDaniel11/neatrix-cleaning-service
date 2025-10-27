@@ -6,3 +6,111 @@
 html, body, #admin-root { height: 100%; }
 body { @apply bg-gray-50; }
 
+/* Security Loader Animations */
+.security-shield-glow {
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.6)) drop-shadow(0 0 20px rgba(34, 211, 238, 0.4));
+}
+
+.security-icons-rotate {
+  animation: spin 8s linear infinite;
+}
+
+.security-icon-glow-green {
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.8));
+  animation: glow-green 2s ease-in-out infinite alternate;
+}
+
+.security-icon-glow-yellow {
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8));
+  animation: glow-yellow 2s ease-in-out infinite alternate 0.5s;
+}
+
+.security-icon-glow-purple {
+  filter: drop-shadow(0 0 8px rgba(196, 181, 253, 0.8));
+  animation: glow-purple 2s ease-in-out infinite alternate 1s;
+}
+
+.security-icon-glow-pink {
+  filter: drop-shadow(0 0 8px rgba(244, 114, 182, 0.8));
+  animation: glow-pink 2s ease-in-out infinite alternate 1.5s;
+}
+
+.security-scan-line {
+  animation: scan 3s linear infinite;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.security-glow-ring {
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+}
+
+.security-dot {
+  animation: bounce 1.4s ease-in-out infinite both;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.6));
+}
+
+.security-dot-0 {
+  animation-delay: 0s;
+}
+
+.security-dot-1 {
+  animation-delay: 0.16s;
+}
+
+.security-dot-2 {
+  animation-delay: 0.32s;
+}
+
+/* Keyframes */
+@keyframes glow-green {
+  from {
+    filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.4));
+  }
+  to {
+    filter: drop-shadow(0 0 16px rgba(52, 211, 153, 0.8)) drop-shadow(0 0 24px rgba(52, 211, 153, 0.4));
+  }
+}
+
+@keyframes glow-yellow {
+  from {
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
+  }
+  to {
+    filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.8)) drop-shadow(0 0 24px rgba(251, 191, 36, 0.4));
+  }
+}
+
+@keyframes glow-purple {
+  from {
+    filter: drop-shadow(0 0 8px rgba(196, 181, 253, 0.4));
+  }
+  to {
+    filter: drop-shadow(0 0 16px rgba(196, 181, 253, 0.8)) drop-shadow(0 0 24px rgba(196, 181, 253, 0.4));
+  }
+}
+
+@keyframes glow-pink {
+  from {
+    filter: drop-shadow(0 0 8px rgba(244, 114, 182, 0.4));
+  }
+  to {
+    filter: drop-shadow(0 0 16px rgba(244, 114, 182, 0.8)) drop-shadow(0 0 24px rgba(244, 114, 182, 0.4));
+  }
+}
+
+@keyframes scan {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+

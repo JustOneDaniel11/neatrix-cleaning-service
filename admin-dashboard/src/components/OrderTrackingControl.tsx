@@ -32,7 +32,7 @@ interface OrderTrackingControlProps {
 
 interface OrderState {
   editingPrice: boolean;
-  tempPrice: number;
+  tempPrice: string;
   savingOrderInfo: boolean;
   updatingStage: boolean;
   editingDeliveryType: boolean;
@@ -111,7 +111,7 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
   const getOrderState = useCallback((orderId: string): OrderState => {
     return orderStates[orderId] || {
       editingPrice: false,
-      tempPrice: 0,
+      tempPrice: '',
       savingOrderInfo: false,
       updatingStage: false,
       editingDeliveryType: false,
@@ -227,19 +227,6 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
   };
 
   // Order info update functions (LEFT PANEL)
-  const startPriceEdit = (orderId: string, currentPrice: number) => {
-    updateOrderState(orderId, {
-      editingPrice: true,
-      tempPrice: currentPrice
-    });
-  };
-
-  const cancelPriceEdit = (orderId: string) => {
-    updateOrderState(orderId, {
-      editingPrice: false,
-      tempPrice: 0
-    });
-  };
 
   const startDeliveryTypeEdit = (orderId: string, currentType: string) => {
     updateOrderState(orderId, {
@@ -255,6 +242,20 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
     });
   };
 
+  const startPriceEdit = (orderId: string, currentPrice: number) => {
+    updateOrderState(orderId, {
+      editingPrice: true,
+      tempPrice: currentPrice.toString()
+    });
+  };
+
+  const cancelPriceEdit = (orderId: string) => {
+    updateOrderState(orderId, {
+      editingPrice: false,
+      tempPrice: ''
+    });
+  };
+
   const saveOrderInfo = async (orderId: string) => {
     const state = getOrderState(orderId);
     const order = dryCleaningOrders.find(o => o.id === orderId);
@@ -265,18 +266,26 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
     try {
       const updates: any = { updated_at: new Date().toISOString() };
       
-      if (state.editingPrice) {
-        updates.total_amount = state.tempPrice;
-      }
-      
       if (state.editingDeliveryType) {
         updates.pickup_option = state.tempDeliveryType;
       }
 
+      if (state.editingPrice) {
+        const newPrice = parseFloat(state.tempPrice);
+        if (isNaN(newPrice) || newPrice < 0) {
+          showToast('error', '❌ Please enter a valid price');
+          updateOrderState(orderId, { savingOrderInfo: false });
+          return;
+        }
+        updates.total_amount = newPrice;
+      }
+
+      // Only update if this is a laundry/dry cleaning order
       const { error } = await supabase
         .from('bookings')
         .update(updates)
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .in('service_type', ['laundry', 'dry_cleaning']);
 
       if (error) throw error;
 
@@ -285,7 +294,7 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
       // Reset editing states
       updateOrderState(orderId, {
         editingPrice: false,
-        tempPrice: 0,
+        tempPrice: '',
         editingDeliveryType: false,
         tempDeliveryType: '',
         savingOrderInfo: false
@@ -371,10 +380,12 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
         console.log('📝 Also setting pickup_option to:', pickupOption);
       }
 
+      // Only update if this is a laundry/dry cleaning order
       const { data, error } = await supabase
         .from('bookings')
         .update(updateData)
         .eq('id', orderId)
+        .in('service_type', ['laundry', 'dry_cleaning'])
         .select();
 
       if (error) {
@@ -612,33 +623,30 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
                     <label className="block text-sm text-gray-600 mb-1">Price</label>
                     {orderState.editingPrice ? (
                       <div className="flex items-center space-x-2">
-                        <div className="flex-1 relative">
-                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <input
-                            type="number"
-                            value={orderState.tempPrice}
-                            onChange={(e) => updateOrderState(selectedOrder.id, { tempPrice: parseFloat(e.target.value) || 0 })}
-                            className="w-full pl-10 pr-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="0.00"
-                            step="0.01"
-                            min="0"
-                          />
-                        </div>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={orderState.tempPrice}
+                          onChange={(e) => updateOrderState(selectedOrder.id, { tempPrice: e.target.value })}
+                          className="flex-1 px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Enter price"
+                        />
                         <button
                           onClick={() => cancelPriceEdit(selectedOrder.id)}
-                          className="p-2 text-gray-500 hover:text-gray-700"
+                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-                        <span className="text-sm text-gray-900 font-medium">
+                        <span className="text-sm text-gray-900">
                           {formatCurrency(selectedOrder.total_amount)}
                         </span>
                         <button
                           onClick={() => startPriceEdit(selectedOrder.id, selectedOrder.total_amount)}
-                          className="p-1 text-gray-400 hover:text-blue-500"
+                          className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
@@ -672,9 +680,9 @@ const OrderTrackingControl: React.FC<OrderTrackingControlProps> = ({
               <div className="pt-4 border-t border-gray-200">
                 <button
                   onClick={() => saveOrderInfo(selectedOrder.id)}
-                  disabled={orderState.savingOrderInfo || (!orderState.editingPrice && !orderState.editingDeliveryType)}
+                  disabled={orderState.savingOrderInfo || (!orderState.editingDeliveryType && !orderState.editingPrice)}
                   className={`w-full flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-                    orderState.savingOrderInfo || (!orderState.editingPrice && !orderState.editingDeliveryType)
+                    orderState.savingOrderInfo || (!orderState.editingDeliveryType && !orderState.editingPrice)
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       : 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 shadow-lg hover:shadow-xl'
                   }`}

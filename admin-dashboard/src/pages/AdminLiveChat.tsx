@@ -55,7 +55,7 @@ export default function AdminLiveChat({
   onContactMessageUpdate,
   onContactMessageDelete
 }: AdminLiveChatProps) {
-  const { state, fetchSupportTickets, fetchSupportMessages, fetchAllUsers, sendSupportMessage, updateSupportTicket } = useSupabaseData() as any;
+  const { state, fetchSupportTickets, fetchSupportMessages, fetchAllUsers, sendSupportMessage, updateSupportTicket } = useSupabaseData();
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [input, setInput] = useState("");
@@ -83,7 +83,7 @@ export default function AdminLiveChat({
         setLoading(false);
       }
     })();
-  }, []);
+  }, [fetchSupportTickets, fetchSupportMessages, fetchAllUsers]);
 
   // Realtime is handled centrally in SupabaseDataContext; no local channel needed
   useEffect(() => {
@@ -196,7 +196,7 @@ export default function AdminLiveChat({
     // Attempt to notify a registered user whose email matches the contact
     try {
       const contact = contactMessages.find(cm => cm.id === messageId);
-      const user = state?.users?.find((u: any) => u.email && contact?.email && u.email.toLowerCase() === contact.email.toLowerCase());
+      const user = state?.users?.find((u: { id?: string; email?: string }) => u.email && contact?.email && u.email.toLowerCase() === contact.email.toLowerCase());
       if (user?.id) {
         await supabase.from("notifications").insert({
           user_id: user.id,
@@ -511,8 +511,10 @@ export default function AdminLiveChat({
                       </button>
                       <button
                         onClick={async () => {
-                          const id = selectedContactId || selectedContactMessage?.id!;
-                          await handleContactStatusUpdate(id, "resolved");
+                          const id = selectedContactId || selectedContactMessage?.id;
+                          if (id) {
+                            await handleContactStatusUpdate(id, "resolved");
+                          }
                         }}
                         className="px-3 sm:px-4 py-3 sm:py-2.5 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 min-h-[44px]"
                       >
@@ -521,8 +523,15 @@ export default function AdminLiveChat({
                       {onContactMessageDelete && (
                         <button
                           onClick={() => {
-                            const cid = selectedContactId || selectedContactMessage!;
-                            onContactMessageDelete(typeof cid === 'string' ? contactMessages.find(cm => cm.id === cid)! : cid);
+                            const cid = selectedContactId || selectedContactMessage;
+                            if (cid) {
+                              const messageToDelete = typeof cid === 'string' 
+                                ? contactMessages.find(cm => cm.id === cid) 
+                                : cid;
+                              if (messageToDelete) {
+                                onContactMessageDelete(messageToDelete);
+                              }
+                            }
                           }}
                           className="px-3 sm:px-4 py-3 sm:py-2.5 border rounded-lg hover:bg-red-50 dark:hover:bg-gray-700 text-red-600 min-h-[44px] flex items-center gap-1"
                         >

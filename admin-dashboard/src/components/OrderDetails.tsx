@@ -172,10 +172,12 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
       }
 
       if (Object.keys(updates).length > 0) {
+        // Only update if this is a laundry/dry cleaning order
         const { error } = await supabase
           .from('bookings')
           .update(updates)
-          .eq('id', order.id);
+          .eq('id', order.id)
+          .in('service_type', ['laundry', 'dry_cleaning']);
 
         if (error) throw error;
 
@@ -185,6 +187,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
 
       setIsEditingPrice(false);
       setIsEditingDelivery(false);
+      setTempPrice('');
+      setTempDeliveryType('');
     } catch (error) {
       console.error('Error updating order:', error);
       showToast?.('Failed to update order details', 'error');
@@ -359,6 +363,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                 onClick={() => {
                   setIsEditingPrice(false);
                   setIsEditingDelivery(false);
+                  setTempPrice('');
+                  setTempDeliveryType('');
                 }}
                 className="px-4 py-2 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 flex items-center"
               >

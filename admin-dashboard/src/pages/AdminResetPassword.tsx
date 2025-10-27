@@ -24,7 +24,7 @@ export default function AdminResetPassword() {
         description: "This password reset link is invalid or has expired.",
         variant: "destructive",
       });
-      navigate("/admin/login");
+      navigate("/login");
     }
   }, [searchParams, navigate]);
 
@@ -64,14 +64,14 @@ export default function AdminResetPassword() {
       
       // Redirect to login after successful reset
       setTimeout(() => {
-        navigate("/admin/login");
+        navigate("/login");
       }, 2000);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Password reset error:", err);
       toast({
         title: "Reset failed",
-        description: err?.message || "Unable to reset password. Please try again.",
+        description: (err as { message?: string })?.message || "Unable to reset password. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -209,7 +209,7 @@ export default function AdminResetPassword() {
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => navigate("/admin/login")}
+                  onClick={() => navigate("/login")}
                   className="text-sm font-medium text-purple-700 hover:text-purple-800 hover:underline"
                 >
                   Back to Sign In

@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, LogIn, Loader2, ShieldCheck, Eye, EyeOff, CheckCircle, Shield } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
 import { useSupabaseData } from "@/contexts/SupabaseDataContext";
+import SecurityLoader from "@/components/SecurityLoader";
 
 export default function AdminLoginAdvanced() {
   const navigate = useNavigate();
-  const { dispatch } = useSupabaseData();
+  const { state, dispatch } = useSupabaseData();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -27,45 +28,119 @@ export default function AdminLoginAdvanced() {
     }
   }, [rememberedEmailKey]);
 
+  // Handle navigation when user is already authenticated
   useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        navigate("/admin/dashboard");
-      }
-    };
-    checkSession();
-  }, [navigate]);
+    console.log("🔍 Auth state check:", { loading: state.loading, isAuthenticated: state.isAuthenticated, localLoading: loading });
+    // Only auto-navigate if we're not in the middle of a login process
+    if (!state.loading && !loading && state.isAuthenticated) {
+      console.log("🎯 User already authenticated, navigating to /overview");
+      navigate("/overview", { replace: true });
+    }
+  }, [state.loading, state.isAuthenticated, navigate, loading]);
+
+
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
+    console.log("🔥 SIGN IN CLICKED - Starting authentication process");
+    
+    // Ensure we're not already loading
+    if (loading) {
+      console.log("⚠️ Already loading, ignoring duplicate request");
+      return;
+    }
 
+    // Basic input validation before starting network work
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    if (!trimmedEmail || !trimmedPassword) {
+      toast({
+        title: "Missing credentials",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Preflight environment configuration check
+    if (!isSupabaseConfigured) {
+      console.error("❌ Supabase not configured in environment");
+      toast({
+        title: "Configuration error",
+        description: "Supabase is not configured. Please check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Optional network status hint
+    if (!navigator.onLine) {
+      toast({
+        title: "You are offline",
+        description: "Please check your internet connection and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      console.log("📧 Attempting to sign in with email:", trimmedEmail);
+      
+      console.log("🔐 Attempting to sign in...");
+      const signInTask = supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: trimmedPassword,
+      });
+
+      // Guard against an indefinite hang: race with a soft timeout
+      const result = (await Promise.race([
+        signInTask,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Sign-in is taking longer than expected. Please try again.")), 20000)),
+      ])) as Awaited<typeof signInTask>;
+      const { data, error } = result;
+      
+      if (error) {
+        console.error("🚫 Authentication error:", error);
+        throw error;
+      }
+
+      if (!data?.user) {
+        console.error("🚫 No user data returned");
+        throw new Error("Authentication failed - no user data");
+      }
+
+      console.log("✅ Authentication successful!", data);
+
+      // Handle remember me
       if (remember) {
         localStorage.setItem(rememberedEmailKey, email);
       } else {
         localStorage.removeItem(rememberedEmailKey);
       }
 
+      console.log("🔄 Dispatching auth actions...");
       dispatch({ type: "SET_AUTH_USER", payload: data.user });
-      dispatch({ type: "SET_CURRENT_USER", payload: data.user });
-      navigate("/admin/dashboard");
-    } catch (err: any) {
+      // Do not set currentUser here – provider will fetch typed profile
+      
+      console.log("🚀 Navigating to /overview...");
+      navigate("/overview", { replace: true });
+      console.log("✨ Navigation call completed");
+      
+    } catch (err: unknown) {
+      console.error("❌ Sign in error:", err);
+      const errorMessage = (err as { message?: string })?.message || "Invalid credentials. Please try again.";
+      
       toast({
         title: "Sign in failed",
-        description: err?.message || "Invalid credentials. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
+      // Ensure loading is always reset
       setLoading(false);
+      console.log("🏁 Sign in process finished - loading state reset");
     }
   };
 
@@ -98,7 +173,7 @@ export default function AdminLoginAdvanced() {
     setForgotPasswordLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-        redirectTo: `${window.location.origin}/admin.html#/admin/reset-password`,
+        redirectTo: `${window.location.origin}/admin.html#/reset-password`,
       });
       if (error) throw error;
       
@@ -109,11 +184,11 @@ export default function AdminLoginAdvanced() {
       
       setShowForgotPasswordModal(false);
       setForgotPasswordEmail("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Password reset error:", err);
       toast({
         title: "Reset failed",
-        description: err?.message || "Unable to send reset email. Please try again later.",
+        description: (err as { message?: string })?.message || "Unable to send reset email. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -122,7 +197,15 @@ export default function AdminLoginAdvanced() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center px-4 py-10">
+    <>
+      {/* Security Loader Overlay - COMMENTED OUT FOR TESTING */}
+      {/* {loading && (
+        <div className="fixed inset-0 z-50">
+          <SecurityLoader message="Signing in securely" size="lg" />
+        </div>
+      )} */}
+      
+      <div className="min-h-screen relative flex items-center justify-center px-4 py-10">
       {/* Animated background */}
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-purple-600/40 via-purple-700/40 to-purple-800/40" />
       <div className="absolute -z-10 inset-0 overflow-hidden">
@@ -360,5 +443,6 @@ export default function AdminLoginAdvanced() {
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -55,10 +55,10 @@ export default function AdminLogin() {
       dispatch({ type: "SET_AUTH_USER", payload: data.user });
       dispatch({ type: "SET_CURRENT_USER", payload: data.user });
       navigate("/admin/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Sign in failed",
-        description: err?.message || "Invalid credentials. Please try again.",
+        description: (err as { message?: string })?.message || "Invalid credentials. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -81,10 +81,10 @@ export default function AdminLogin() {
         title: "Reset email sent",
         description: "Check your inbox for the reset link.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Reset failed",
-        description: err?.message || "Unable to send reset email.",
+        description: (err as { message?: string })?.message || "Unable to send reset email.",
         variant: "destructive",
       });
     }

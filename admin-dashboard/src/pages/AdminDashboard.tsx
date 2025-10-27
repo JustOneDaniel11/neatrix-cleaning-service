@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useSupabaseData } from '../contexts/SupabaseDataContext';
+import { useSupabaseData, Booking, User, AdminNotification } from '../contexts/SupabaseDataContext';
+import type { Subscription } from '../contexts/SupabaseDataContext';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { supabase } from '../lib/supabase';
@@ -57,6 +58,8 @@ import {
   Info
 } from 'lucide-react';
 import OrderDetails from '../components/OrderDetails';
+import PropertyInspectionDetails from '../components/PropertyInspectionDetails';
+import SecurityLoader from '../components/SecurityLoader';
 import { useToast } from '../hooks/use-toast';
 
 // Custom CSS for hiding scrollbars
@@ -76,6 +79,22 @@ if (typeof document !== 'undefined') {
   style.textContent = scrollbarHideStyle;
   document.head.appendChild(style);
 }
+
+const PATH_TO_TAB: Record<string, string> = {
+  '/overview': 'overview',
+  '/dashboard': 'overview',
+  '/bookings': 'bookings',
+  '/users': 'users',
+  '/contacts': 'contacts',
+  '/support': 'contacts',
+  '/notifications': 'notifications',
+  '/payments': 'payments',
+  '/subscriptions': 'subscriptions',
+  '/laundry': 'laundry',
+  '/tracking': 'tracking',
+  '/delivery': 'delivery',
+  '/reviews': 'reviews'
+};
 
 export default function AdminDashboard() {
   console.log('AdminDashboard component rendering...');
@@ -111,7 +130,11 @@ export default function AdminDashboard() {
     fetchSupportMessages,
     updateSupportTicket,
     sendSupportMessage,
-    markMessageAsRead
+    markMessageAsRead,
+    updateUserSubscription,
+    pauseUserSubscription,
+    resumeUserSubscription,
+    cancelUserSubscription
   } = useSupabaseData();
   
   console.log('AdminDashboard state:', { 
@@ -127,38 +150,27 @@ export default function AdminDashboard() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
   const TAB_ROUTES: Record<string, string> = {
-    overview: '/admin/dashboard',
-    bookings: '/admin/orders',
-    users: '/admin/users',
-    contacts: '/admin/contact-message',
-    notifications: '/admin/notifications',
-    payments: '/admin/payments',
-    subscriptions: '/admin/subscriptions',
-    laundry: '/admin/laundry',
-    tracking: '/admin/tracking',
-    delivery: '/admin/delivery',
-    reviews: '/admin/reviews',
-  };
-  const PATH_TO_TAB: Record<string, string> = {
-    '/admin/dashboard': 'overview',
-    '/admin/orders': 'bookings',
-    '/admin/users': 'users',
-    '/admin/contact-message': 'contacts',
-    '/admin/notifications': 'notifications',
-    '/admin/payments': 'payments',
-    '/admin/subscriptions': 'subscriptions',
-    '/admin/laundry': 'laundry',
-    '/admin/tracking': 'tracking',
-    '/admin/delivery': 'delivery',
-    '/admin/reviews': 'reviews',
-    '/dashboard': 'overview'
+    overview: '/overview',
+    bookings: '/bookings',
+    users: '/users',
+    contacts: '/support',
+    notifications: '/notifications',
+    payments: '/payments',
+    subscriptions: '/subscriptions',
+    laundry: '/laundry',
+    tracking: '/tracking',
+    delivery: '/delivery',
+    reviews: '/reviews',
   };
   useEffect(() => {
     const tab = PATH_TO_TAB[location.pathname];
     if (tab && tab !== activeTab) setActiveTab(tab);
-  }, [location.pathname]);
+  }, [location.pathname, activeTab]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showChatInterface, setShowChatInterface] = useState(false);
   const [selectedContactMessage, setSelectedContactMessage] = useState(null);
@@ -167,19 +179,19 @@ export default function AdminDashboard() {
   const [messageToDelete, setMessageToDelete] = useState(null);
   
   // Modal state for booking details
-  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   
   // User management state
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [userForm, setUserForm] = useState<{ full_name: string; email: string; phone: string }>({ full_name: '', email: '', phone: '' });
   const [showDeleteUserConfirm, setShowDeleteUserConfirm] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<any | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   // Subscription management state
-  const [selectedSubscription, setSelectedSubscription] = useState<any | null>(null);
+  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSubscriptionActions, setShowSubscriptionActions] = useState<string | null>(null);
   const [subscriptionAction, setSubscriptionAction] = useState<'pause' | 'resume' | 'cancel' | null>(null);
@@ -188,19 +200,19 @@ export default function AdminDashboard() {
   // Toast hook
   const { toast } = useToast();
   
-  // Settings state management
+  // Settings state management - using empty defaults instead of mock data
   const [settings, setSettings] = useState({
-    businessName: 'CleanPro Services',
-    contactEmail: 'admin@cleanpro.com',
-    phoneNumber: '+1 (555) 123-4567',
+    businessName: '',
+    contactEmail: '',
+    phoneNumber: '',
     emailNotifications: true,
-    smsNotifications: true,
+    smsNotifications: false,
     pushNotifications: false,
     defaultServiceDuration: 2,
     bookingLeadTime: 24,
     autoConfirmBookings: false,
     currency: 'USD',
-    timeZone: 'America/New_York',
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     maintenanceMode: false
   });
   
@@ -214,7 +226,7 @@ export default function AdminDashboard() {
   const [trackingMessage, setTrackingMessage] = useState({ type: '', text: '' });
 
   // Delivery management state
-  const [selectedDeliveryOrder, setSelectedDeliveryOrder] = useState<any | null>(null);
+  const [selectedDeliveryOrder, setSelectedDeliveryOrder] = useState<{ id: string; status: string; [key: string]: unknown } | null>(null);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [deliverySearchTerm, setDeliverySearchTerm] = useState('');
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('all');
@@ -228,12 +240,7 @@ export default function AdminDashboard() {
     ).length;
   }, [state.supportMessages]);
 
-  // Redirect to login if not authenticated
-  // useEffect(() => {
-  //   if (!state.isAuthenticated) {
-  //     navigate('/login');
-  //   }
-  // }, [state.isAuthenticated, navigate]);
+  // Authentication is now handled by AuthGuard component
 
   const handleLogout = async () => {
     try {
@@ -245,40 +252,168 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fetch all admin data on component mount (sequential to reduce burst)
+  // Fetch critical admin data immediately using Promise.allSettled for better error handling
   useEffect(() => {
-    const fetchAdminData = async () => {
+    // Only fetch data if user is authenticated
+    if (!state.isAuthenticated) {
+      return;
+    }
+
+    const fetchCriticalData = async () => {
       try {
-        await fetchAllUsers();
-        await fetchAllBookings();
-        await fetchContactMessages();
-        await fetchPayments();
-        await fetchSubscriptions();
-        await fetchLaundryOrders();
-        await fetchPickupDeliveries();
-        await fetchUserComplaints();
-        await fetchAdminNotifications();
-        await fetchReviews();
-        await fetchSupportTickets();
-        await fetchSupportMessages();
+        // Batch 1: Core data (users and bookings)
+        const batch1Results = await Promise.allSettled([
+          fetchAllUsers(),
+          fetchAllBookings()
+        ]);
+        
+        // Log any failures in batch 1
+        batch1Results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            const batchNames = ['fetchAllUsers', 'fetchAllBookings'];
+            console.error(`Error in ${batchNames[index]}:`, result.reason);
+          }
+        });
+        
+        // Small delay before next batch
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Batch 2: Admin notifications and support data
+        const batch2Results = await Promise.allSettled([
+          fetchAdminNotifications(),
+          fetchSupportTickets(),
+          fetchSupportMessages()
+        ]);
+        
+        // Log any failures in batch 2
+        batch2Results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            const batchNames = ['fetchAdminNotifications', 'fetchSupportTickets', 'fetchSupportMessages'];
+            console.error(`Error in ${batchNames[index]}:`, result.reason);
+          }
+        });
+        
       } catch (error) {
-        console.error('Error fetching admin data:', error);
+        console.error('Error fetching critical admin data:', error);
       }
     };
-    fetchAdminData();
+    fetchCriticalData();
+  }, [state.isAuthenticated]); // Remove fetch functions from dependencies to prevent endless re-renders
+
+  // Lazy load additional data based on active tab
+  useEffect(() => {
+    // Only load data if user is authenticated
+    if (!state.isAuthenticated) {
+      return;
+    }
+
+    const loadTabSpecificData = async () => {
+      try {
+        switch (activeTab) {
+          case 'contacts':
+            if (state.contactMessages.length === 0) {
+              await fetchContactMessages();
+            }
+            break;
+          case 'payments':
+            if (state.payments.length === 0) {
+              await fetchPayments();
+            }
+            break;
+          case 'subscriptions':
+            if (state.subscriptions.length === 0) {
+              await fetchSubscriptions();
+            }
+            break;
+          case 'laundry':
+            if (state.laundryOrders.length === 0) {
+              await fetchLaundryOrders();
+            }
+            break;
+          case 'delivery':
+            if (state.pickupDeliveries.length === 0) {
+              await fetchPickupDeliveries();
+            }
+            break;
+          case 'reviews':
+            if (state.reviews.length === 0) {
+              await fetchReviews();
+            }
+            break;
+          default:
+            // For overview tab, gradually load remaining data in background using Promise.allSettled
+            if (activeTab === 'overview') {
+              setTimeout(async () => {
+                try {
+                  // Batch 1: Contact and payment data
+                  const batch1Promises = [];
+                  if (state.contactMessages.length === 0) batch1Promises.push(fetchContactMessages());
+                  if (state.payments.length === 0) batch1Promises.push(fetchPayments());
+                  
+                  if (batch1Promises.length > 0) {
+                    const batch1Results = await Promise.allSettled(batch1Promises);
+                    batch1Results.forEach((result, index) => {
+                      if (result.status === 'rejected') {
+                        console.error(`Error in background batch 1, promise ${index}:`, result.reason);
+                      }
+                    });
+                    await new Promise(resolve => setTimeout(resolve, 400));
+                  }
+                  
+                  // Batch 2: Laundry and subscription data
+                  const batch2Promises = [];
+                  if (state.laundryOrders.length === 0) batch2Promises.push(fetchLaundryOrders());
+                  if (state.subscriptions.length === 0) batch2Promises.push(fetchSubscriptions());
+                  
+                  if (batch2Promises.length > 0) {
+                    const batch2Results = await Promise.allSettled(batch2Promises);
+                    batch2Results.forEach((result, index) => {
+                      if (result.status === 'rejected') {
+                        console.error(`Error in background batch 2, promise ${index}:`, result.reason);
+                      }
+                    });
+                    await new Promise(resolve => setTimeout(resolve, 400));
+                  }
+                  
+                  // Batch 3: Delivery, complaints, and reviews
+                  const batch3Promises = [];
+                  if (state.pickupDeliveries.length === 0) batch3Promises.push(fetchPickupDeliveries());
+                  if (state.userComplaints.length === 0) batch3Promises.push(fetchUserComplaints());
+                  if (state.reviews.length === 0) batch3Promises.push(fetchReviews());
+                  
+                  if (batch3Promises.length > 0) {
+                    const batch3Results = await Promise.allSettled(batch3Promises);
+                    batch3Results.forEach((result, index) => {
+                      if (result.status === 'rejected') {
+                        console.error(`Error in background batch 3, promise ${index}:`, result.reason);
+                      }
+                    });
+                  }
+                } catch (error) {
+                  console.error('Error in background data loading:', error);
+                }
+              }, 1000); // Wait 1 second before background loading
+            }
+            break;
+        }
+      } catch (error) {
+        console.error('Error loading tab-specific data:', error);
+      }
+    };
+    
+    loadTabSpecificData();
+    // Note: state.*.length dependencies are intentionally omitted to prevent infinite re-renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    state.isAuthenticated,
+    activeTab,
     fetchContactMessages,
-    fetchAllUsers,
-    fetchAllBookings,
-    fetchPickupDeliveries,
-    fetchUserComplaints,
-    fetchAdminNotifications,
     fetchPayments,
     fetchSubscriptions,
     fetchLaundryOrders,
-    fetchReviews,
-    fetchSupportTickets,
-    fetchSupportMessages
+    fetchPickupDeliveries,
+    fetchUserComplaints,
+    fetchReviews
   ]);
 
   // Handle notification actions
@@ -291,12 +426,12 @@ export default function AdminDashboard() {
   };
 
   // Contact message handlers
-  const handleContactMessageClick = (message: any) => {
+  const handleContactMessageClick = (message: { id: string; [key: string]: unknown }) => {
     setSelectedContactMessage(message);
     setShowContactChat(true);
   };
 
-  const handleDeleteContactMessage = (message: any) => {
+  const handleDeleteContactMessage = (message: { id: string; [key: string]: unknown }) => {
     setMessageToDelete(message);
     setShowDeleteConfirm(true);
   };
@@ -324,7 +459,7 @@ export default function AdminDashboard() {
   };
 
   // Settings handlers
-  const handleSettingsChange = (field: string, value: any) => {
+  const handleSettingsChange = (field: string, value: string | number | boolean) => {
     setSettings(prev => ({
       ...prev,
       [field]: value
@@ -406,57 +541,115 @@ export default function AdminDashboard() {
   // Filter bookings based on search and status
   const filteredBookings = state.bookings.filter(booking => {
     const serviceName = (booking.service_name || '').toLowerCase();
+    const customerName = (booking.customer_name || '').toLowerCase();
+    const customerEmail = (booking.customer_email || '').toLowerCase();
     const phone = (booking.phone || '').toLowerCase();
     const address = (booking.address || '').toLowerCase();
     const term = searchTerm.toLowerCase();
-    const matchesSearch = serviceName.includes(term) || phone.includes(term) || address.includes(term);
+    const matchesSearch = serviceName.includes(term) || 
+                         customerName.includes(term) || 
+                         customerEmail.includes(term) || 
+                         phone.includes(term) || 
+                         address.includes(term);
+    
     const normalizedFilter = filterStatus === 'in-progress' ? 'in_progress' : filterStatus;
     const matchesStatus = normalizedFilter === 'all' || booking.status === normalizedFilter;
-    return matchesSearch && matchesStatus;
+    
+    // Date filtering
+    const bookingDate = new Date(booking.created_at);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const lastMonth = new Date(today);
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    
+    let matchesDate = true;
+    if (dateFilter === 'today') {
+      matchesDate = bookingDate.toDateString() === today.toDateString();
+    } else if (dateFilter === 'yesterday') {
+      matchesDate = bookingDate.toDateString() === yesterday.toDateString();
+    } else if (dateFilter === 'last7days') {
+      matchesDate = bookingDate >= lastWeek;
+    } else if (dateFilter === 'last30days') {
+      matchesDate = bookingDate >= lastMonth;
+    } else if (dateFilter === 'custom' && customStartDate && customEndDate) {
+      const startDate = new Date(customStartDate);
+      const endDate = new Date(customEndDate);
+      endDate.setHours(23, 59, 59, 999); // Include the entire end date
+      matchesDate = bookingDate >= startDate && bookingDate <= endDate;
+    }
+    
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
-  // Get recent activities
-  const recentActivities = [
-    ...state.bookings.slice(-3).map(booking => ({
-      id: booking.id,
-      type: 'booking' as const,
-      message: `New booking for ${booking.service_name}`,
-      time: booking.created_at,
-      status: booking.status
-    })),
-    ...state.contactMessages.slice(-2).map(message => ({
-      id: message.id,
-      type: 'contact' as const,
-      message: `New contact message from ${message.name}`,
-      time: message.created_at,
-      status: message.status
-    })),
-    ...state.payments.slice(-2).map(payment => ({
-      id: payment.id,
-      type: 'payment' as const,
-      message: `Payment received: ${formatCurrency(payment.amount)}`,
-      time: payment.created_at,
-      status: payment.status
-    })),
-    ...state.laundryOrders.slice(-2).map(order => ({
-      id: order.id,
-      type: 'laundry' as const,
-      message: `New laundry order from ${order.customer_name}`,
-      time: order.created_at,
-      status: order.status
-    })),
-    ...state.reviews.slice(-1).map(review => ({
-      id: review.id,
-      type: 'review' as const,
-      message: `New review: ${review.rating} stars from ${review.customer_name}`,
-      time: review.created_at,
-      status: 'completed'
-    }))
-  ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
+  // Get recent activities - only show if there's actual data
+  const recentActivities = React.useMemo(() => {
+    const activities = [];
+    
+    // Only include activities if there's real data
+    if (state.bookings.length > 0) {
+      activities.push(...state.bookings.slice(-3).map(booking => ({
+        id: `booking-${booking.id}`,
+        originalId: booking.id,
+        type: 'booking' as const,
+        message: `New booking for ${booking.service_name}`,
+        time: booking.created_at,
+        status: booking.status
+      })));
+    }
+    
+    if (state.contactMessages.length > 0) {
+      activities.push(...state.contactMessages.slice(-2).map(message => ({
+        id: `contact-${message.id}`,
+        originalId: message.id,
+        type: 'contact' as const,
+        message: `New contact message from ${message.name}`,
+        time: message.created_at,
+        status: message.status
+      })));
+    }
+    
+    if (state.payments.length > 0) {
+      activities.push(...state.payments.slice(-2).map(payment => ({
+        id: `payment-${payment.id}`,
+        originalId: payment.id,
+        type: 'payment' as const,
+        message: `Payment received: ${formatCurrency(payment.amount)}`,
+        time: payment.created_at,
+        status: payment.status
+      })));
+    }
+    
+    if (state.laundryOrders.length > 0) {
+      activities.push(...state.laundryOrders.slice(-2).map(order => ({
+        id: `laundry-${order.id}`,
+        originalId: order.id,
+        type: 'laundry' as const,
+        message: `New laundry order from ${order.customer_name || 'Customer'}`,
+        time: order.created_at,
+        status: order.status
+      })));
+    }
+    
+    if (state.reviews.length > 0) {
+      activities.push(...state.reviews.slice(-1).map(review => ({
+        id: `review-${review.id}`,
+        originalId: review.id,
+        type: 'review' as const,
+        message: `New review: ${review.rating} stars from ${review.customerName || 'Customer'}`,
+        time: review.created_at,
+        status: 'completed'
+      })));
+    }
+    
+    return activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
+  }, [state.bookings, state.contactMessages, state.payments, state.laundryOrders, state.reviews]);
 
   const updateBookingStatus = async (bookingId: string, newStatus: string) => {
     try {
-      await updateBooking(bookingId, { status: newStatus as any });
+      await updateBooking(bookingId, { status: newStatus as 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' });
     } catch (error) {
       console.error('Error updating booking:', error);
     }
@@ -473,7 +666,7 @@ export default function AdminDashboard() {
   };
 
   // Modal handlers
-  const handleViewBooking = (booking: any) => {
+  const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking);
     setShowBookingModal(true);
   };
@@ -528,7 +721,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleViewDeliveryDetails = (order: any) => {
+  const handleViewDeliveryDetails = (order: { id: string; status: string; [key: string]: unknown }) => {
     setSelectedDeliveryOrder(order);
     setShowDeliveryModal(true);
   };
@@ -539,12 +732,12 @@ export default function AdminDashboard() {
   };
 
   // Subscription management handlers
-  const handleViewSubscription = (subscription: any) => {
+  const handleViewSubscription = (subscription: Subscription) => {
     setSelectedSubscription(subscription);
     setShowSubscriptionModal(true);
   };
 
-  const handleSubscriptionAction = (subscription: any, action: 'pause' | 'resume' | 'cancel') => {
+  const handleSubscriptionAction = (subscription: Subscription, action: 'pause' | 'resume' | 'cancel') => {
     setSelectedSubscription(subscription);
     setSubscriptionAction(action);
     setShowSubscriptionConfirm(true);
@@ -554,28 +747,27 @@ export default function AdminDashboard() {
     if (!selectedSubscription || !subscriptionAction) return;
 
     try {
-      const { updateUserSubscription, pauseUserSubscription, resumeUserSubscription, cancelUserSubscription } = useSupabaseData();
       
       switch (subscriptionAction) {
         case 'pause':
           await pauseUserSubscription(selectedSubscription.id);
           toast({
             title: "Subscription Paused",
-            description: `Subscription for ${selectedSubscription.customerName} has been paused`,
+            description: `Subscription for ${selectedSubscription.customerName || selectedSubscription.customer_name || 'customer'} has been paused`,
           });
           break;
         case 'resume':
           await resumeUserSubscription(selectedSubscription.id);
           toast({
             title: "Subscription Resumed",
-            description: `Subscription for ${selectedSubscription.customerName} has been resumed`,
+            description: `Subscription for ${selectedSubscription.customerName || selectedSubscription.customer_name || 'customer'} has been resumed`,
           });
           break;
         case 'cancel':
           await cancelUserSubscription(selectedSubscription.id);
           toast({
             title: "Subscription Cancelled",
-            description: `Subscription for ${selectedSubscription.customerName} has been cancelled`,
+            description: `Subscription for ${selectedSubscription.customerName || selectedSubscription.customer_name || 'customer'} has been cancelled`,
           });
           break;
       }
@@ -604,7 +796,7 @@ export default function AdminDashboard() {
   };
 
   // Handle Recent Activities card clicks
-  const handleActivityClick = (activity: any) => {
+  const handleActivityClick = (activity: { type: string; id?: string; [key: string]: unknown }) => {
     switch (activity.type) {
       case 'booking':
         setActiveTab('bookings');
@@ -666,56 +858,15 @@ export default function AdminDashboard() {
     });
   };
 
-  // Function to create sample notifications for testing
-  const createSampleNotifications = async () => {
-    try {
-      const sampleNotifications = [
-        {
-          title: 'New Booking Received',
-          message: 'New house cleaning booking from John Doe for tomorrow at 2:00 PM',
-          type: 'booking',
-          priority: 'medium',
-          action_url: '/admin/orders',
-          action_label: 'View Booking'
-        },
-        {
-          title: 'Payment Received',
-          message: 'Payment of $150 received for booking #12345',
-          type: 'payment',
-          priority: 'low',
-          action_url: '/admin/payments',
-          action_label: 'View Payment'
-        },
-        {
-          title: 'Urgent Support Ticket',
-          message: 'High priority support ticket: Customer complaint about service quality',
-          type: 'support',
-          priority: 'high',
-          action_url: '/admin/contact-message',
-          action_label: 'Handle Support'
-        },
-        {
-          title: 'New Contact Message',
-          message: 'New inquiry from Jane Smith about commercial cleaning services',
-          type: 'contact',
-          priority: 'medium',
-          action_url: '/admin/contact-message',
-          action_label: 'View Message'
-        }
-      ];
 
-      for (const notification of sampleNotifications) {
-        await createAdminNotification(notification);
-      }
 
-      showToast('Sample notifications created successfully!', 'success');
-    } catch (error) {
-      console.error('Error creating sample notifications:', error);
-      showToast('Failed to create sample notifications', 'error');
-    }
-  };
-
-  const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
+  const StatCard = ({ title, value, icon: Icon, trend, color }: {
+    title: string;
+    value: string | number;
+    icon: React.ComponentType<{ className?: string }>;
+    trend?: number;
+    color: string;
+  }) => (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-4 sm:p-5 lg:p-6 hover:shadow-xl transition-all duration-300 w-full min-w-0">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0 overflow-hidden">
@@ -769,7 +920,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Primary Stats Grid - Core Business Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 w-full">
         <StatCard
           title="Total Bookings"
           value={state.stats.totalBookings}
@@ -794,7 +945,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Secondary Stats Grid - Additional Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 w-full">
         <StatCard
           title="Total Payments"
           value={state.payments.length}
@@ -829,37 +980,51 @@ export default function AdminDashboard() {
           </div>
         </div>
         <div className="p-6">
-          <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
-              <div 
-                key={activity.id} 
-                onClick={() => handleActivityClick(activity)}
-                className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer group"
-              >
-                <div className={`w-3 h-3 rounded-full shadow-lg ${
-                  activity.type === 'booking' ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-green-500 to-green-600'
-                }`} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{activity.message}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatDate(activity.time)}</p>
-                </div>
-                <span className={`px-3 py-1 text-xs font-medium rounded-full shadow-sm ${
-                  activity.status === 'completed'
-                    ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800'
-                    : activity.status === 'pending'
-                    ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800'
-                    : activity.status === 'in_progress'
-                    ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800'
-                    : 'bg-gradient-to-r from-red-100 to-red-200 text-red-800'
-                }`}>
-                  {activity.status}
-                </span>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Eye className="w-4 h-4 text-gray-400" />
+          {recentActivities.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
+                  <Activity className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                 </div>
               </div>
-            ))}
-          </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Recent Activities</h3>
+              <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                Recent activities will appear here when you have bookings, messages, payments, or other interactions.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentActivities.map((activity, index) => (
+                <div 
+                  key={activity.id} 
+                  onClick={() => handleActivityClick(activity)}
+                  className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer group"
+                >
+                  <div className={`w-3 h-3 rounded-full shadow-lg ${
+                    activity.type === 'booking' ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-green-500 to-green-600'
+                  }`} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{activity.message}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatDate(activity.time)}</p>
+                  </div>
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full shadow-sm ${
+                    activity.status === 'completed'
+                      ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800'
+                      : activity.status === 'pending'
+                      ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800'
+                      : activity.status === 'in_progress'
+                      ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800'
+                      : 'bg-gradient-to-r from-red-100 to-red-200 text-red-800'
+                  }`}>
+                    {activity.status}
+                  </span>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Eye className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -893,6 +1058,59 @@ export default function AdminDashboard() {
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full sm:w-auto px-4 py-3 sm:py-2.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[44px]"
+            >
+              <option value="all">All Dates</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="last7days">Last 7 Days</option>
+              <option value="last30days">Last 30 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          
+          {/* Custom Date Range */}
+          {dateFilter === 'custom' && (
+            <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:space-x-4 mt-4">
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">From:</span>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">To:</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+          
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilterStatus('all');
+                setDateFilter('all');
+                setCustomStartDate('');
+                setCustomEndDate('');
+              }}
+              className="flex items-center justify-center space-x-2 w-full sm:w-auto px-4 py-3 sm:py-2.5 bg-gray-500 text-white text-sm rounded-lg hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 min-h-[44px]"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Clear Filters</span>
+            </button>
           </div>
           <button 
             onClick={() => {
@@ -928,6 +1146,18 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Results Counter */}
+      <div className="mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Showing {filteredBookings.length} of {state.bookings.length} bookings
+          {(searchTerm || filterStatus !== 'all' || dateFilter !== 'all') && (
+            <span className="ml-2 text-blue-600 dark:text-blue-400">
+              (filtered)
+            </span>
+          )}
+        </p>
+      </div>
+
       {/* Mobile Card View */}
       <div className="block sm:hidden space-y-4">
         {filteredBookings.map((booking) => (
@@ -939,10 +1169,10 @@ export default function AdminDashboard() {
             <div className="flex items-start justify-between mb-5">
               <div className="flex-1 min-w-0 pr-3">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white leading-tight mb-1">
-                  {booking.customer_name}
+                  {booking.customer_name || 'N/A'}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 break-words">
-                  {booking.customer_email}
+                  {booking.customer_email || 'N/A'}
                 </p>
               </div>
               <select
@@ -1027,26 +1257,26 @@ export default function AdminDashboard() {
 
       {/* Desktop Table View */}
       <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-hide">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider hidden md:table-cell">
                   Service
                 </th>
-                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Date & Time
                 </th>
-                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Amount
                 </th>
-                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -1066,38 +1296,38 @@ export default function AdminDashboard() {
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                     onClick={() => handleViewBooking(booking)}
                   >
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{booking.customer_name}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{booking.customer_email}</div>
+                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">{booking.customer_name || 'N/A'}</div>
+                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{booking.customer_email || 'N/A'}</div>
                       </div>
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                      <div className="text-sm text-gray-900 dark:text-white">{booking.service_name || booking.service}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{booking.address}</div>
+                    <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 hidden md:table-cell">
+                      <div className="text-xs sm:text-sm text-gray-900 dark:text-white truncate">{booking.service_name || booking.service}</div>
+                      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{booking.address}</div>
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{booking.time}</div>
+                    <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+                      <div className="text-xs sm:text-sm text-gray-900 dark:text-white">{formatDate(booking.date)}</div>
+                      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{booking.time}</div>
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
                       {formatCurrency(booking.total_amount || booking.amount)}
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
                       <select
                         value={booking.status}
                         onChange={(e) => updateBookingStatus(booking.id, e.target.value)}
                         onClick={(e) => e.stopPropagation()}
-                        className={`px-3 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 ${
+                        className={`px-2 sm:px-3 py-1 text-xs rounded-full border-0 focus:ring-2 focus:ring-blue-500 min-w-0 w-full sm:w-auto touch-manipulation ${
                           booking.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
                             : booking.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
                             : booking.status === 'in_progress'
-                            ? 'bg-blue-100 text-blue-800'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
                             : booking.status === 'confirmed'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100'
+                            : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
                         }`}
                       >
                         <option value="pending">Pending</option>
@@ -1107,16 +1337,16 @@ export default function AdminDashboard() {
                         <option value="cancelled">Cancelled</option>
                       </select>
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium">
+                      <div className="flex items-center space-x-1 sm:space-x-2" onClick={(e) => e.stopPropagation()}>
                         <button 
                           onClick={() => handleViewBooking(booking)}
-                          className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          className="p-1.5 sm:p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 touch-manipulation"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
-                        <button className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                          <Edit className="w-4 h-4" />
+                        <button className="p-1.5 sm:p-2 text-green-600 hover:text-green-900 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 touch-manipulation">
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                         <button 
                           onClick={() => handleDeleteBooking(booking.id)}
@@ -1264,6 +1494,7 @@ export default function AdminDashboard() {
                           className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex-shrink-0"
                           title="Delete User"
                           onClick={() => {
+                            console.log('Delete button clicked for user:', user.id, user.full_name || user.email);
                             setUserToDelete(user);
                             setShowDeleteUserConfirm(true);
                           }}
@@ -1350,7 +1581,19 @@ export default function AdminDashboard() {
             </div>
             <div className="p-3 sm:p-4 flex justify-end gap-2">
               <button onClick={() => { setShowDeleteUserConfirm(false); setUserToDelete(null); }} className="px-3 py-2 rounded-lg border dark:border-gray-700 text-sm">Cancel</button>
-              <button onClick={async () => { await deleteUser(userToDelete.id); setShowDeleteUserConfirm(false); setUserToDelete(null); if (selectedUser?.id === userToDelete.id) setShowUserModal(false); }} className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm">Delete</button>
+              <button onClick={async () => { 
+                console.log('Delete button clicked for user:', userToDelete.id);
+                try {
+                  await deleteUser(userToDelete.id); 
+                  console.log('User deletion completed successfully');
+                  setShowDeleteUserConfirm(false); 
+                  setUserToDelete(null); 
+                  if (selectedUser?.id === userToDelete.id) setShowUserModal(false);
+                } catch (error) {
+                  console.error('Error during user deletion:', error);
+                  // You could add a toast notification here for user feedback
+                }
+              }} className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm">Delete</button>
             </div>
           </div>
         </div>
@@ -1363,9 +1606,9 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between p-3 sm:p-4 border-b dark:border-gray-700 flex-shrink-0">
               <div className="min-w-0 flex-1 mr-3">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
-                  Chat: #{selectedTicket.ticket_number}
+                  Chat: #{String(selectedTicket.ticket_number || '')}
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{selectedTicket.subject}</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{String(selectedTicket.subject || '')}</p>
               </div>
               <button
                 onClick={() => {
@@ -1559,7 +1802,7 @@ export default function AdminDashboard() {
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-1 sm:space-x-2">
                         <button 
-                          onClick={() => navigate('/admin/live-chat')}
+                          onClick={() => navigate('/livechat')}
                           className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1"
                           title="Open chat"
                         >
@@ -1617,7 +1860,7 @@ export default function AdminDashboard() {
   };
 
   const renderNotifications = () => {
-    const handleNotificationClick = (notification: any) => {
+    const handleNotificationClick = (notification: AdminNotification) => {
       // Mark notification as read
       handleMarkAsRead(notification.id);
       
@@ -1625,7 +1868,19 @@ export default function AdminDashboard() {
       if (notification.action_url) {
         // If it's an internal route, use navigate
         if (notification.action_url.startsWith('/admin/')) {
-          const route = notification.action_url.replace('/admin/', '');
+          // Convert old admin paths to new clean paths
+          const oldPath = notification.action_url;
+          const newPath = oldPath.replace('/admin/dashboard', '/overview')
+                                 .replace('/admin/orders', '/bookings')
+                                 .replace('/admin/contact-message', '/contacts')
+                                 .replace('/admin/', '/');
+          const tabKey = Object.keys(TAB_ROUTES).find(key => TAB_ROUTES[key] === newPath);
+          if (tabKey) {
+            setActiveTab(tabKey);
+            navigate(newPath);
+          }
+        } else if (notification.action_url.startsWith('/')) {
+          // New clean path format
           const tabKey = Object.keys(TAB_ROUTES).find(key => TAB_ROUTES[key] === notification.action_url);
           if (tabKey) {
             setActiveTab(tabKey);
@@ -1679,13 +1934,6 @@ export default function AdminDashboard() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h2>
-          <button
-            onClick={createSampleNotifications}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
-          >
-            <Bell className="w-4 h-4" />
-            Create Test Notifications
-          </button>
         </div>
         <NotificationsPage
           notifications={state.adminNotifications || []}
@@ -1738,7 +1986,7 @@ export default function AdminDashboard() {
               ) : (
                 state.payments.map((payment) => {
                   const user = state.users.find(u => u.id === payment.user_id);
-                  const method = (payment as any).method || '—';
+                  const method = (payment as { method?: string }).method || '—';
                   const status = payment.status || 'pending';
                   const statusClass =
                     status === 'paid' || status === 'completed'
@@ -1785,7 +2033,7 @@ export default function AdminDashboard() {
     // Apply search and status filters
     const filteredDeliveryOrders = deliveryOrders.filter(order => {
       const matchesSearch = deliverySearchTerm === '' || 
-        order.customer_name?.toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+        order.customerName?.toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
         order.id.toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
         order.address?.toLowerCase().includes(deliverySearchTerm.toLowerCase());
       
@@ -1918,26 +2166,26 @@ export default function AdminDashboard() {
 
         {/* Delivery Orders Table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-hide">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Order Details
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Customer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider hidden md:table-cell">
                     Delivery Address
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Date & Time
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -1961,33 +2209,33 @@ export default function AdminDashboard() {
                 ) : (
                   filteredDeliveryOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">#{order.id.slice(-8).toUpperCase()}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{order.service_name}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{formatCurrency(order.total_amount)}</div>
+                          <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">#{order.id.slice(-8).toUpperCase()}</div>
+                          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{order.service_name}</div>
+                          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{formatCurrency(order.total_amount)}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{order.customer_name}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{order.customer_email}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{order.phone}</div>
+                          <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">{order.customerName || 'N/A'}</div>
+                          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{order.customerEmail || 'N/A'}</div>
+                          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{order.phone}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate" title={order.address}>
+                      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 hidden md:table-cell">
+                        <div className="text-xs sm:text-sm text-gray-900 dark:text-white max-w-xs truncate" title={order.address}>
                           {order.address}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-white">{formatDate(order.date)}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{order.time}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+                        <div className="text-xs sm:text-sm text-gray-900 dark:text-white">{formatDate(order.date)}</div>
+                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{order.time}</div>
+                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
                           Created: {formatDate(order.created_at)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
                         <span className={`px-2 py-1 text-xs rounded-full ${getDeliveryStatusColor(order.delivery_status || 'pending')}`}>
                           {getDeliveryStatusLabel(order.delivery_status || 'pending')}
                         </span>
@@ -2711,7 +2959,7 @@ export default function AdminDashboard() {
                      </td>
                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                        <div className="min-w-0">
-                         <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{order.customer_name}</div>
+                         <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{order.customer_name || 'N/A'}</div>
                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{order.customer_phone}</div>
                        </div>
                      </td>
@@ -2866,7 +3114,7 @@ export default function AdminDashboard() {
                         <div className="flex items-center mt-1">
                           {[...Array(5)].map((_, i) => (
                             <Star
-                              key={i}
+                              key={`${review.id}-star-${i}`}
                               className={`w-4 h-4 ${
                                 i < review.rating
                                   ? 'text-yellow-400 fill-current'
@@ -2929,66 +3177,73 @@ export default function AdminDashboard() {
     </div>
   );
 
+  // Show loading state during initial data fetch, but not if user is already authenticated
+  if (state.loading && !state.isAuthenticated) {
+    return <SecurityLoader message="Please wait while we verify your credentials..." size="lg" />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors flex flex-col">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 flex-shrink-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 sm:h-18">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="p-2 sm:p-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-                <Home className="w-6 h-6 sm:w-6 sm:h-6 text-white" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16 lg:h-18">
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
+              <div className="p-1.5 sm:p-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg sm:rounded-xl shadow-lg flex-shrink-0">
+                <Home className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400 hidden md:block">Cleaning Service Management</p>
-              </div>
-              <div className="sm:hidden">
-                <h1 className="text-lg font-bold text-gray-900 dark:text-white">Admin</h1>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-white truncate">
+                  <span className="hidden sm:inline">Admin Dashboard</span>
+                  <span className="sm:hidden">Admin</span>
+                </h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400 hidden md:block truncate">
+                  Cleaning Service Management
+                </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
               <button 
                 onClick={() => { setActiveTab('notifications'); navigate(TAB_ROUTES['notifications']); }}
-                className="relative p-2.5 sm:p-2 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="relative p-2 sm:p-2.5 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg sm:rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] flex items-center justify-center touch-manipulation"
               >
-                <Bell className="w-5 h-5 sm:w-5 sm:h-5" />
-                {state.adminNotifications && state.adminNotifications.filter(n => n.status === 'unread').length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                    {state.adminNotifications.filter(n => n.status === 'unread').length}
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                {((state.unreadNotifications || 0) + unreadSupportMessagesCount) > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center font-medium text-[10px] sm:text-xs">
+                    {((state.unreadNotifications || 0) + unreadSupportMessagesCount) > 99 ? '99+' : ((state.unreadNotifications || 0) + unreadSupportMessagesCount)}
                   </span>
                 )}
               </button>
               <button 
                 onClick={handleLogout}
-                className="p-2.5 sm:p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2 sm:p-2.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg sm:rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] flex items-center justify-center touch-manipulation"
               >
-                <LogOut className="w-5 h-5 sm:w-5 sm:h-5" />
+                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1 w-full overflow-hidden">
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8 w-full min-w-0">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 lg:py-8 flex-1 w-full overflow-hidden">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-6 lg:gap-8 w-full min-w-0">
           {/* Sidebar */}
-          <div className="lg:w-72">
-            <nav className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 lg:sticky lg:top-24">
+          <div className="lg:w-72 flex-shrink-0">
+            <nav className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6 lg:sticky lg:top-20">
               <div className="mb-3 sm:mb-4 lg:mb-6">
                 <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white mb-2">Navigation</h2>
-                <div className="h-1 w-8 sm:w-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
+                <div className="h-1 w-6 sm:w-8 lg:w-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"></div>
               </div>
               
               {/* Mobile: Comprehensive grid navigation */}
               <div className="lg:hidden">
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-80 overflow-y-auto scrollbar-hide">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 max-h-80 overflow-y-auto scrollbar-hide">
                   {[
                     { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
                     { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
                     { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
-                    { id: 'contacts', label: 'Live Chat', icon: MessageSquare, color: 'from-orange-500 to-orange-600', href: '/admin/contact-message', badge: unreadSupportMessagesCount },
-                    { id: 'notifications', label: 'Alerts', icon: Bell, color: 'from-red-500 to-red-600' },
+                    { id: 'contacts', label: 'Live Chat', icon: MessageSquare, color: 'from-orange-500 to-orange-600' },
+                    { id: 'notifications', label: 'Alerts', icon: Bell, color: 'from-red-500 to-red-600', badge: (state.unreadNotifications || 0) + unreadSupportMessagesCount },
                     { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
                     { id: 'subscriptions', label: 'Subs', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
                     { id: 'laundry', label: 'Laundry', icon: Shirt, color: 'from-teal-500 to-teal-600' },
@@ -2998,41 +3253,41 @@ export default function AdminDashboard() {
                   ].map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => { setActiveTab(item.id); navigate(item.href || TAB_ROUTES[item.id] || '/admin/dashboard'); }}
-                      className={`relative flex flex-col items-center justify-center space-y-2 p-3 rounded-xl text-center transition-all duration-200 min-h-[80px] touch-manipulation active:scale-95 ${
+                      onClick={() => { setActiveTab(item.id); navigate(item.href || TAB_ROUTES[item.id] || '/overview'); }}
+                      className={`relative flex flex-col items-center justify-center space-y-1.5 sm:space-y-2 p-2 sm:p-3 rounded-lg sm:rounded-xl text-center transition-all duration-200 min-h-[70px] sm:min-h-[80px] touch-manipulation active:scale-95 ${
                         activeTab === item.id
                           ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-2 border-blue-200 dark:border-blue-700 shadow-md'
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-transparent hover:border-gray-200 dark:hover:border-gray-600'
                       }`}
                     >
-                      <div className={`relative p-2 rounded-lg transition-all duration-200 ${
+                      <div className={`relative p-1.5 sm:p-2 rounded-md sm:rounded-lg transition-all duration-200 ${
                         activeTab === item.id 
                           ? `bg-gradient-to-r ${item.color} shadow-sm` 
                           : 'bg-gray-100 dark:bg-gray-700'
                       }`}>
-                        <item.icon className={`w-5 h-5 ${
+                        <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${
                           activeTab === item.id ? 'text-white' : 'text-gray-600 dark:text-gray-400'
                         }`} />
                         {item.badge && item.badge > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium shadow-lg">
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center font-medium shadow-lg text-[10px] sm:text-xs">
                             {item.badge > 99 ? '99+' : item.badge}
                           </span>
                         )}
                       </div>
-                      <span className="text-xs font-medium leading-tight px-1">{item.label}</span>
+                      <span className="text-xs font-medium leading-tight px-1 text-center">{item.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Desktop: Vertical navigation */}
-              <ul className="space-y-3 hidden lg:block">
+              <ul className="space-y-2 hidden lg:block">
                 {[
                   { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
                   { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
                   { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
-                  { id: 'contacts', label: 'Live Chat', icon: MessageSquare, color: 'from-orange-500 to-orange-600', href: '/admin/contact-message', badge: unreadSupportMessagesCount },
-                  { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-red-500 to-red-600' },
+                  { id: 'contacts', label: 'Live Chat', icon: MessageSquare, color: 'from-orange-500 to-orange-600' },
+                  { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-red-500 to-red-600', badge: (state.unreadNotifications || 0) + unreadSupportMessagesCount },
                   { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
                   { id: 'subscriptions', label: 'Subscriptions', icon: Repeat, color: 'from-cyan-500 to-cyan-600' },
                   { id: 'laundry', label: 'Laundry Orders', icon: Shirt, color: 'from-teal-500 to-teal-600' },
@@ -3042,20 +3297,20 @@ export default function AdminDashboard() {
                 ].map((item) => (
                   <li key={item.id}>
                     <button
-                      onClick={() => { setActiveTab(item.id); navigate(item.href || TAB_ROUTES[item.id] || '/admin/dashboard'); }}
-                      className={`w-full flex items-center space-x-4 px-4 py-3 rounded-xl text-left transition-all duration-200 group ${
+                      onClick={() => { setActiveTab(item.id); navigate(item.href || TAB_ROUTES[item.id] || '/overview'); }}
+                      className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 group touch-manipulation ${
                         activeTab === item.id
-                          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-lg border border-blue-200/50 scale-105'
-                          : 'text-gray-700 hover:bg-gray-50 hover:shadow-md hover:scale-102'
+                          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-700 dark:text-blue-300 shadow-lg border border-blue-200/50 dark:border-blue-700/50'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md'
                       }`}
                     >
-                      <div className={`relative p-2 rounded-lg ${
+                      <div className={`relative p-2 rounded-lg flex-shrink-0 ${
                         activeTab === item.id 
                           ? `bg-gradient-to-r ${item.color} shadow-lg` 
-                          : 'bg-gray-100 group-hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-gray-700 group-hover:bg-gray-200 dark:group-hover:bg-gray-600'
                       } transition-all duration-200`}>
                         <item.icon className={`w-5 h-5 ${
-                          activeTab === item.id ? 'text-white' : 'text-gray-600'
+                          activeTab === item.id ? 'text-white' : 'text-gray-600 dark:text-gray-400'
                         }`} />
                         {item.badge && item.badge > 0 && (
                           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium shadow-lg">
@@ -3063,7 +3318,7 @@ export default function AdminDashboard() {
                           </span>
                         )}
                       </div>
-                      <span className="font-medium">{item.label}</span>
+                      <span className="font-medium truncate">{item.label}</span>
                     </button>
                   </li>
                 ))}
@@ -3073,7 +3328,7 @@ export default function AdminDashboard() {
 
           {/* Main Content */}
           <div className="flex-1 min-w-0 w-full overflow-hidden">
-            <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 sm:p-4 lg:p-6 min-h-[500px] sm:min-h-[600px] overflow-auto w-full">
+            <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl lg:rounded-2xl shadow-lg sm:shadow-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6 min-h-[400px] sm:min-h-[500px] lg:min-h-[600px] overflow-auto w-full">
               {activeTab === 'overview' && renderOverview()}
         {activeTab === 'bookings' && renderBookings()}
         {activeTab === 'users' && renderUsers()}
@@ -3092,21 +3347,21 @@ export default function AdminDashboard() {
 
       {/* Booking Details Modal */}
       {showBookingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Booking Details</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">Booking Details</h2>
               <button
                 onClick={handleCloseModal}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-manipulation"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
-              <OrderDetails
-                order={selectedBooking}
-                onOrderUpdate={handleOrderUpdate}
+            <div className="overflow-y-auto max-h-[calc(95vh-60px)] sm:max-h-[calc(90vh-80px)]">
+              <PropertyInspectionDetails
+                booking={selectedBooking}
+                onBookingUpdate={handleOrderUpdate}
                 showToast={showToast}
               />
             </div>
@@ -3116,34 +3371,34 @@ export default function AdminDashboard() {
 
       {/* Subscription Details Modal */}
       {showSubscriptionModal && selectedSubscription && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Subscription Details</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">Subscription Details</h2>
               <button
                 onClick={handleCloseSubscriptionModal}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-manipulation"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="overflow-y-auto max-h-[calc(95vh-60px)] sm:max-h-[calc(90vh-80px)] p-3 sm:p-4 lg:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* Customer Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Customer Information</h3>
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Name:</span>
-                      <span className="text-gray-900 dark:text-white font-medium">{selectedSubscription.customer_name}</span>
+                      <span className="text-gray-900 dark:text-white font-medium">{selectedSubscription.customerName || selectedSubscription.customer_name || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Email:</span>
-                      <span className="text-gray-900 dark:text-white">{selectedSubscription.customer_email}</span>
+                      <span className="text-gray-900 dark:text-white">{selectedSubscription.customer_email || selectedSubscription.customerEmail || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Phone:</span>
-                      <span className="text-gray-900 dark:text-white">{selectedSubscription.customer_phone || 'N/A'}</span>
+                      <span className="text-gray-900 dark:text-white">{String(selectedSubscription.customer_phone || selectedSubscription.customerPhone || 'N/A')}</span>
                     </div>
                   </div>
                 </div>
@@ -3154,31 +3409,31 @@ export default function AdminDashboard() {
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Plan:</span>
-                      <span className="text-gray-900 dark:text-white font-medium">{selectedSubscription.plan_name}</span>
+                      <span className="text-gray-900 dark:text-white font-medium">{String(selectedSubscription.plan_name || '')}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Status:</span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        selectedSubscription.status === 'active' 
+                        String(selectedSubscription.status) === 'active' 
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : selectedSubscription.status === 'paused'
+                          : String(selectedSubscription.status) === 'paused'
                           ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                           : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                       }`}>
-                        {selectedSubscription.status}
+                        {String(selectedSubscription.status || '')}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Amount:</span>
-                      <span className="text-gray-900 dark:text-white font-medium">{formatCurrency(selectedSubscription.amount)}</span>
+                      <span className="text-gray-900 dark:text-white font-medium">{formatCurrency(Number(selectedSubscription.amount) || 0)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Frequency:</span>
-                      <span className="text-gray-900 dark:text-white">{selectedSubscription.frequency}</span>
+                      <span className="text-gray-900 dark:text-white">{String(selectedSubscription.frequency || '')}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Next Billing:</span>
-                      <span className="text-gray-900 dark:text-white">{formatDate(selectedSubscription.next_billing_date)}</span>
+                      <span className="text-gray-900 dark:text-white">{formatDate(String(selectedSubscription.next_billing_date || ''))}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Created:</span>
@@ -3189,37 +3444,37 @@ export default function AdminDashboard() {
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
                 {selectedSubscription.status === 'active' && (
                   <button
-                    onClick={() => handleSubscriptionAction('pause')}
-                    className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                    onClick={() => handleSubscriptionAction(selectedSubscription, 'pause')}
+                    className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm touch-manipulation"
                   >
                     <Pause className="w-4 h-4" />
-                    Pause Subscription
+                    <span className="truncate">Pause Subscription</span>
                   </button>
                 )}
                 {selectedSubscription.status === 'paused' && (
                   <button
-                    onClick={() => handleSubscriptionAction('resume')}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    onClick={() => handleSubscriptionAction(selectedSubscription, 'resume')}
+                    className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm touch-manipulation"
                   >
                     <Play className="w-4 h-4" />
-                    Resume Subscription
+                    <span className="truncate">Resume Subscription</span>
                   </button>
                 )}
                 {selectedSubscription.status !== 'cancelled' && (
                   <button
-                    onClick={() => handleSubscriptionAction('cancel')}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    onClick={() => handleSubscriptionAction(selectedSubscription, 'cancel')}
+                    className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm touch-manipulation"
                   >
                     <X className="w-4 h-4" />
-                    Cancel Subscription
+                    <span className="truncate">Cancel Subscription</span>
                   </button>
                 )}
                 <button
                   onClick={handleCloseSubscriptionModal}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm touch-manipulation"
                 >
                   Close
                 </button>
@@ -3231,29 +3486,29 @@ export default function AdminDashboard() {
 
       {/* Subscription Action Confirmation Modal */}
       {showSubscriptionConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <AlertTriangle className="w-6 h-6 text-yellow-500" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl max-w-md w-full">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" />
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white leading-tight">
                   Confirm {subscriptionAction === 'pause' ? 'Pause' : subscriptionAction === 'resume' ? 'Resume' : 'Cancel'} Subscription
                 </h3>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
                 Are you sure you want to {subscriptionAction} this subscription? 
                 {subscriptionAction === 'cancel' && ' This action cannot be undone.'}
               </p>
-              <div className="flex gap-3 justify-end">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
                 <button
                   onClick={() => setShowSubscriptionConfirm(false)}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-sm sm:text-base touch-manipulation"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmSubscriptionAction}
-                  className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                  className={`px-4 py-2 text-white rounded-lg transition-colors text-sm sm:text-base touch-manipulation ${
                     subscriptionAction === 'cancel' 
                       ? 'bg-red-600 hover:bg-red-700' 
                       : subscriptionAction === 'pause'
@@ -3261,7 +3516,7 @@ export default function AdminDashboard() {
                       : 'bg-green-600 hover:bg-green-700'
                   }`}
                 >
-                  {subscriptionAction === 'pause' ? 'Pause' : subscriptionAction === 'resume' ? 'Resume' : 'Cancel'} Subscription
+                  <span className="truncate">{subscriptionAction === 'pause' ? 'Pause' : subscriptionAction === 'resume' ? 'Resume' : 'Cancel'} Subscription</span>
                 </button>
               </div>
             </div>
@@ -3271,24 +3526,24 @@ export default function AdminDashboard() {
 
       {/* Delivery Details Modal */}
       {showDeliveryModal && selectedDeliveryOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="p-3 sm:p-4 lg:p-6">
               {/* Modal Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <div className="flex items-start justify-between mb-4 sm:mb-6">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
                     Delivery Details
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Order #{selectedDeliveryOrder.id.slice(-8).toUpperCase()}
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
+                    Order #{String(selectedDeliveryOrder.id || '').slice(-8).toUpperCase()}
                   </p>
                 </div>
                 <button
                   onClick={handleCloseDeliveryModal}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ml-2"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
 
@@ -3317,7 +3572,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Status Control Buttons */}
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                   {(!selectedDeliveryOrder.delivery_status || selectedDeliveryOrder.delivery_status === 'pending') && (
                     <button
                       onClick={() => {
@@ -3325,10 +3580,10 @@ export default function AdminDashboard() {
                         handleCloseDeliveryModal();
                       }}
                       disabled={isUpdatingDeliveryStatus}
-                      className="flex items-center space-x-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50"
+                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 text-sm touch-manipulation"
                     >
                       <Package className="w-4 h-4" />
-                      <span>Mark as Ready for Delivery</span>
+                      <span className="truncate">Mark as Ready for Delivery</span>
                     </button>
                   )}
                   {selectedDeliveryOrder.delivery_status === 'ready_for_delivery' && (
@@ -3338,10 +3593,10 @@ export default function AdminDashboard() {
                         handleCloseDeliveryModal();
                       }}
                       disabled={isUpdatingDeliveryStatus}
-                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm touch-manipulation"
                     >
                       <Truck className="w-4 h-4" />
-                      <span>Mark as Out for Delivery</span>
+                      <span className="truncate">Mark as Out for Delivery</span>
                     </button>
                   )}
                   {selectedDeliveryOrder.delivery_status === 'out_for_delivery' && (
@@ -3351,38 +3606,38 @@ export default function AdminDashboard() {
                         handleCloseDeliveryModal();
                       }}
                       disabled={isUpdatingDeliveryStatus}
-                      className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm touch-manipulation"
                     >
                       <CheckCircle className="w-4 h-4" />
-                      <span>Mark as Delivered</span>
+                      <span className="truncate">Mark as Delivered</span>
                     </button>
                   )}
                 </div>
               </div>
 
               {/* Customer Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Customer Information</h4>
                   <div className="space-y-2">
                     <div>
                       <span className="text-xs text-gray-500 dark:text-gray-400">Name</span>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedDeliveryOrder.customer_name}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{String(selectedDeliveryOrder.customerName || '')}</p>
                     </div>
                     <div>
                       <span className="text-xs text-gray-500 dark:text-gray-400">Email</span>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{selectedDeliveryOrder.customer_email}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{String(selectedDeliveryOrder.customer_email || '')}</p>
                     </div>
                     <div>
                       <span className="text-xs text-gray-500 dark:text-gray-400">Phone</span>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{selectedDeliveryOrder.phone}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{String(selectedDeliveryOrder.phone || '')}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Delivery Address</h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{selectedDeliveryOrder.address}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{String(selectedDeliveryOrder.address || '')}</p>
                 </div>
               </div>
 
@@ -3392,27 +3647,27 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">Service</span>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedDeliveryOrder.service_name}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{String(selectedDeliveryOrder.service_name || '')}</p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">Total Amount</span>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(selectedDeliveryOrder.total_amount)}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(Number(selectedDeliveryOrder.total_amount) || 0)}</p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">Scheduled Date</span>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{formatDate(selectedDeliveryOrder.date)}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{formatDate(String(selectedDeliveryOrder.date || ''))}</p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">Scheduled Time</span>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{selectedDeliveryOrder.time}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{String(selectedDeliveryOrder.time || '')}</p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">Order Created</span>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{formatDate(selectedDeliveryOrder.created_at)}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{formatDate(String(selectedDeliveryOrder.created_at || ''))}</p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">Payment Status</span>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{selectedDeliveryOrder.payment_status || 'Pending'}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{String(selectedDeliveryOrder.payment_status || 'Pending')}</p>
                   </div>
                 </div>
               </div>
@@ -3421,7 +3676,7 @@ export default function AdminDashboard() {
               {selectedDeliveryOrder.special_instructions && (
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
                   <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Special Instructions</h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{selectedDeliveryOrder.special_instructions}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{String(selectedDeliveryOrder.special_instructions || '')}</p>
                 </div>
               )}
 
