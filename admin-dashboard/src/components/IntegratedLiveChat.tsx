@@ -57,18 +57,29 @@ export default function IntegratedLiveChat() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        await Promise.all([
-          fetchSupportTickets?.(),
-          fetchSupportMessages?.(),
-          fetchAllUsers?.()
-        ]);
+        // Only fetch if functions are available
+        const promises = [];
+        if (fetchSupportTickets) promises.push(fetchSupportTickets());
+        if (fetchSupportMessages) promises.push(fetchSupportMessages());
+        if (fetchAllUsers) promises.push(fetchAllUsers());
+        
+        if (promises.length > 0) {
+          await Promise.all(promises);
+        }
       } catch (error) {
         console.error('Error fetching chat data:', error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchData();
+    
+    // Only fetch if we have the necessary functions
+    if (fetchSupportTickets && fetchSupportMessages && fetchAllUsers) {
+      fetchData();
+    } else {
+      // If functions aren't available yet, just set loading to false
+      setIsLoading(false);
+    }
   }, [fetchSupportTickets, fetchSupportMessages, fetchAllUsers]);
 
   // Build conversations list from tickets + messages + users

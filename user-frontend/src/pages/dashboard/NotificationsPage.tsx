@@ -389,6 +389,17 @@ const NotificationsPage: React.FC = () => {
                             View Booking
                           </button>
                         )}
+                        {(notification.type === 'dry_cleaning' || notification.type === 'laundry') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/dashboard/dry-cleaning');
+                            }}
+                            className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                          >
+                            View Orders
+                          </button>
+                        )}
                         {notification.type === 'payment' && (
                           <button
                             onClick={(e) => {

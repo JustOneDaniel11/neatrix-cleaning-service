@@ -27,19 +27,17 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo });
     console.error('Error caught by boundary:', error, errorInfo);
+    
+    // Handle specific DOM manipulation errors
+    if (error.name === 'NotFoundError' && error.message.includes('removeChild')) {
+      console.warn('DOM manipulation error detected - attempting graceful recovery');
+      // Don't force reload, just log and continue
+    }
   }
 
   handleRetry = () => {
-    // Clear error state
+    // Clear error state and attempt to remount children
     this.setState({ hasError: false, error: null, errorInfo: null });
-    
-    // Attempt to remount children
-    try {
-      window.location.reload();
-    } catch (err) {
-      console.error('Retry failed:', err);
-      this.setState({ hasError: true, error: err });
-    }
   };
 
   render() {
@@ -151,14 +149,10 @@ ReactDOM.createRoot(root).render(
               } />
               <Route path="/livechat" element={
                 <AuthGuard redirectTo="/login">
-                  <AdminLiveChat />
+                  <AdminDashboard />
                 </AuthGuard>
               } />
-              <Route path="/support" element={
-                <AuthGuard redirectTo="/login">
-                  <LiveSupportChat />
-                </AuthGuard>
-              } />
+
               
               {/* Catch all route */}
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -130,8 +130,10 @@ export default function LaundryPage() {
         updateData.status = 'confirmed';
         // Don't set tracking_stage yet - wait for pickup/dropoff confirmation
       } else if (action === 'picked_up') {
-        // Customer brought laundry to us (pickup service) - now start sorting
+        // Customer brought laundry to us (pickup service) - now start tracking
         updateData.status = 'in_progress';
+        updateData.tracking_started = true;
+        updateData.picked_up_at = now;
         updateData.tracking_stage = 'sorting';
         updateData.stage_timestamps = {
           ...order.stage_timestamps,
@@ -139,8 +141,10 @@ export default function LaundryPage() {
           sorting: now
         };
       } else if (action === 'dropped_off') {
-        // Customer dropped off laundry (dropoff service) - now start sorting
+        // Customer dropped off laundry (dropoff service) - now start tracking
         updateData.status = 'in_progress';
+        updateData.tracking_started = true;
+        updateData.dropped_off_at = now;
         updateData.tracking_stage = 'sorting';
         updateData.stage_timestamps = {
           ...order.stage_timestamps,
@@ -156,12 +160,28 @@ export default function LaundryPage() {
 
       if (error) throw error;
 
+      console.log(`✅ Order ${orderId} status updated to:`, updateData.status);
+
+      // Trigger tracking for picked up or dropped off orders
+      if (action === 'picked_up' || action === 'dropped_off') {
+        await triggerTracking(orderId);
+      }
+
       // Create notification for user
       if (order?.user_id) {
+        const isDryCleaningOrder = order.service_type === 'dry_cleaning' || 
+                                  order.service_name?.toLowerCase().includes('dry');
+        
         const notificationMessages = {
-          approve: 'Your laundry order has been approved. Please bring your items to us or we will pick them up.',
-          picked_up: 'We have received your laundry items and processing has started.',
-          dropped_off: 'We have received your laundry items and processing has started.'
+          approve: isDryCleaningOrder 
+            ? 'Your dry cleaning order has been approved. Please bring your items to us or we will pick them up.'
+            : 'Your laundry order has been approved. Please bring your items to us or we will pick them up.',
+          picked_up: isDryCleaningOrder
+            ? 'We have received your dry cleaning items and processing has started.'
+            : 'We have received your laundry items and processing has started.',
+          dropped_off: isDryCleaningOrder
+            ? 'We have received your dry cleaning items and processing has started.'
+            : 'We have received your laundry items and processing has started.'
         };
 
         const message = notificationMessages[action as keyof typeof notificationMessages];
@@ -170,24 +190,49 @@ export default function LaundryPage() {
             .from('notifications')
             .insert({
               user_id: order.user_id,
-              title: `Laundry Order Update`,
+              title: isDryCleaningOrder ? `Dry Cleaning Order Update` : `Laundry Order Update`,
               message,
-              type: 'laundry',
+              type: isDryCleaningOrder ? 'dry_cleaning' : 'laundry',
               status: 'unread',
               priority: 'normal',
-              action_url: '/dashboard/laundry'
+              action_url: '/admin/laundry'
             });
         }
       }
 
       await fetchLaundryOrders();
+      console.log(`🔄 Orders refreshed after ${action} action`);
+      
+      // Debug: Check the updated order state
+      const updatedOrder = state.laundryOrders.find(o => o.id === orderId);
+      if (updatedOrder) {
+        console.log(`📊 Updated order ${orderId}:`, {
+          status: updatedOrder.status,
+          tracking_stage: updatedOrder.tracking_stage,
+          pickup_option: updatedOrder.pickup_option,
+          shouldShowButton: (updatedOrder.status === 'approved' || updatedOrder.status === 'confirmed') && !updatedOrder.tracking_stage
+        });
+      }
+      
+      const actionMessages = {
+        approve: 'Order approved successfully',
+        picked_up: 'Order marked as picked up',
+        dropped_off: 'Order marked as dropped off'
+      };
+      
       toast({
         title: "Order Updated",
-        description: `Order ${action.replace('_', ' ')} successfully`,
+        description: actionMessages[action as keyof typeof actionMessages] || `Order ${action.replace('_', ' ')} successfully`,
       });
 
       if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status: updateData.status, tracking_stage: updateData.tracking_stage });
+        setSelectedOrder({ 
+          ...selectedOrder, 
+          status: updateData.status, 
+          tracking_stage: updateData.tracking_stage,
+          tracking_started: updateData.tracking_started,
+          stage_timestamps: updateData.stage_timestamps
+        });
       }
     } catch (error: any) {
       toast({
@@ -218,6 +263,21 @@ export default function LaundryPage() {
     const completed = state.laundryOrders.filter(o => ['delivered', 'completed'].includes(o.status)).length;
 
     return { total, pending, approved, inProgress, completed };
+  };
+
+  // Approve Order function
+  const approveOrder = async (orderId: string) => {
+    await updateOrderStatus(orderId, 'approve');
+  };
+
+  // Mark as Picked Up function (for pickup orders)
+  const markPickedUp = async (orderId: string) => {
+    await updateOrderStatus(orderId, 'picked_up');
+  };
+
+  // Mark as Dropped Off function (for drop-off orders)
+  const markDroppedOff = async (orderId: string) => {
+    await updateOrderStatus(orderId, 'dropped_off');
   };
 
   const stats = getOrderStats();
@@ -420,48 +480,91 @@ export default function LaundryPage() {
                     <span className="sm:hidden">View</span>
                   </button>
                   
-                  {order.status === 'pending' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateOrderStatus(order.id, 'approve');
-                      }}
-                      disabled={isUpdating}
-                      className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
-                    >
-                      <Check className="w-4 h-4" />
-                      Approve Order
-                    </button>
-                  )}
-                  
-                  {order.status === 'confirmed' && !order.tracking_stage && (
-                    <>
-                      {order.pickup_option === 'pickup' ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateOrderStatus(order.id, 'picked_up');
-                          }}
-                          disabled={isUpdating}
-                          className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
-                        >
-                          <Check className="w-4 h-4" />
-                          Picked Up
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateOrderStatus(order.id, 'dropped_off');
-                          }}
-                          disabled={isUpdating}
-                          className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
-                        >
-                          <Home className="w-4 h-4" />
-                          Dropped Off
-                        </button>
-                      )}
-                    </>
+                  {/* Conditional Action Buttons based on pickup_type */}
+                   {order.pickup_option === 'pickup' && (
+                     <>
+                       {console.log(`🔍 Pickup order ${order.id} button check:`, {
+                         status: order.status,
+                         tracking_stage: order.tracking_stage,
+                         isPending: order.status === 'pending',
+                         isApprovedOrConfirmed: order.status === 'approved' || order.status === 'confirmed',
+                         hasNoTrackingStage: !order.tracking_stage,
+                         shouldShowPickupButton: (order.status === 'approved' || order.status === 'confirmed') && !order.tracking_stage
+                       })}
+                       {order.status === 'pending' && (
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             approveOrder(order.id);
+                           }}
+                           disabled={isUpdating}
+                           className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+                         >
+                           <Check className="w-4 h-4" />
+                           ✅ Approve Order
+                         </button>
+                       )}
+                       {(order.status === 'approved' || order.status === 'confirmed') && !order.tracking_stage && (
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             markPickedUp(order.id);
+                           }}
+                           disabled={isUpdating}
+                           className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+                         >
+                           <Truck className="w-4 h-4" />
+                           🚚 Mark as Picked Up
+                         </button>
+                       )}
+                     </>
+                   )}
+
+                   {order.pickup_option === 'dropoff' && (
+                     <>
+                       {console.log(`🔍 Dropoff order ${order.id} button check:`, {
+                         status: order.status,
+                         tracking_stage: order.tracking_stage,
+                         isPending: order.status === 'pending',
+                         isApprovedOrConfirmed: order.status === 'approved' || order.status === 'confirmed',
+                         hasNoTrackingStage: !order.tracking_stage,
+                         shouldShowDropoffButton: (order.status === 'approved' || order.status === 'confirmed') && !order.tracking_stage
+                       })}
+                       {order.status === 'pending' && (
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             approveOrder(order.id);
+                           }}
+                           disabled={isUpdating}
+                           className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+                         >
+                           <Check className="w-4 h-4" />
+                           ✅ Approve Order
+                         </button>
+                       )}
+                       {(order.status === 'approved' || order.status === 'confirmed') && !order.tracking_stage && (
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             markDroppedOff(order.id);
+                           }}
+                           disabled={isUpdating}
+                           className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+                         >
+                           <Home className="w-4 h-4" />
+                           🏢 Mark as Dropped Off
+                         </button>
+                       )}
+                     </>
+                   )}
+
+                  {/* Show "In Progress" for orders that have started tracking */}
+                  {order.status === 'in_progress' && order.tracking_stage && (
+                    <div className="flex items-center gap-1 px-3 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      ✔ In Progress
+                    </div>
                   )}
                 </div>
               </div>
@@ -586,48 +689,127 @@ export default function LaundryPage() {
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  {selectedOrder.status === 'pending' && (
-                    <button
-                      onClick={() => {
-                        updateOrderStatus(selectedOrder.id, 'approve');
-                        closeOrderModal();
-                      }}
-                      disabled={isUpdating}
-                      className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 touch-manipulation text-sm min-h-[44px]"
-                    >
-                      <Check className="w-4 h-4" />
-                      <span className="truncate">Approve Order</span>
-                    </button>
-                  )}
-                  
-                  {selectedOrder.status === 'confirmed' && !selectedOrder.tracking_stage && (
+                  {/* Conditional Action Buttons based on pickup_type */}
+                  {selectedOrder.pickup_option === 'pickup' && (
                     <>
-                      {selectedOrder.pickup_option === 'pickup' ? (
+                      {selectedOrder.status === 'pending' && (
                         <button
-                          onClick={() => {
-                            updateOrderStatus(selectedOrder.id, 'picked_up');
-                            closeOrderModal();
-                          }}
-                          disabled={isUpdating}
-                          className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 touch-manipulation text-sm min-h-[44px]"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span className="truncate">Picked Up</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            updateOrderStatus(selectedOrder.id, 'dropped_off');
-                            closeOrderModal();
+                          onClick={async () => {
+                            await approveOrder(selectedOrder.id);
+                            // Update selectedOrder state to show next button immediately
+                            setSelectedOrder({ ...selectedOrder, status: 'confirmed' });
+                            // Add a small delay to show the transition
+                            setTimeout(() => {
+                              toast({
+                                title: "Order Approved!",
+                                description: selectedOrder.pickup_option === 'pickup' 
+                                  ? "Now click 'Mark as Picked Up' when customer brings items"
+                                  : "Now click 'Mark as Dropped Off' when customer brings items",
+                              });
+                            }, 500);
                           }}
                           disabled={isUpdating}
                           className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 touch-manipulation text-sm min-h-[44px]"
                         >
-                          <Home className="w-4 h-4" />
-                          <span className="truncate">Dropped Off</span>
+                          {isUpdating ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                          <span className="truncate">
+                            {isUpdating ? 'Approving...' : '✅ Approve Order'}
+                          </span>
+                        </button>
+                      )}
+                      {(selectedOrder.status === 'approved' || selectedOrder.status === 'confirmed') && !selectedOrder.tracking_stage && (
+                        <button
+                          onClick={async () => {
+                            await markPickedUp(selectedOrder.id);
+                            toast({
+                              title: "Order Started!",
+                              description: "Order is now in progress and will appear in the tracking page",
+                            });
+                            setTimeout(() => closeOrderModal(), 1000);
+                          }}
+                          disabled={isUpdating}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 touch-manipulation text-sm min-h-[44px]"
+                        >
+                          {isUpdating ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Truck className="w-4 h-4" />
+                          )}
+                          <span className="truncate">
+                            {isUpdating ? 'Processing...' : '🚚 Mark as Picked Up'}
+                          </span>
                         </button>
                       )}
                     </>
+                  )}
+
+                  {selectedOrder.pickup_option === 'dropoff' && (
+                    <>
+                      {selectedOrder.status === 'pending' && (
+                        <button
+                          onClick={async () => {
+                            await approveOrder(selectedOrder.id);
+                            // Update selectedOrder state to show next button immediately
+                            setSelectedOrder({ ...selectedOrder, status: 'confirmed' });
+                            // Add a small delay to show the transition
+                            setTimeout(() => {
+                              toast({
+                                title: "Order Approved!",
+                                description: selectedOrder.pickup_option === 'pickup' 
+                                  ? "Now click 'Mark as Picked Up' when customer brings items"
+                                  : "Now click 'Mark as Dropped Off' when customer brings items",
+                              });
+                            }, 500);
+                          }}
+                          disabled={isUpdating}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 touch-manipulation text-sm min-h-[44px]"
+                        >
+                          {isUpdating ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                          <span className="truncate">
+                            {isUpdating ? 'Approving...' : '✅ Approve Order'}
+                          </span>
+                        </button>
+                      )}
+                      {(selectedOrder.status === 'approved' || selectedOrder.status === 'confirmed') && !selectedOrder.tracking_stage && (
+                        <button
+                          onClick={async () => {
+                            await markDroppedOff(selectedOrder.id);
+                            toast({
+                              title: "Order Started!",
+                              description: "Order is now in progress and will appear in the tracking page",
+                            });
+                            setTimeout(() => closeOrderModal(), 1000);
+                          }}
+                          disabled={isUpdating}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 touch-manipulation text-sm min-h-[44px]"
+                        >
+                          {isUpdating ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Home className="w-4 h-4" />
+                          )}
+                          <span className="truncate">
+                            {isUpdating ? 'Processing...' : '🏢 Mark as Dropped Off'}
+                          </span>
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Show "In Progress" for orders that have started tracking */}
+                  {selectedOrder.status === 'in_progress' && selectedOrder.tracking_stage && (
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium min-h-[44px]">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="truncate">✔ In Progress</span>
+                    </div>
                   )}
                   
                   <button
@@ -645,3 +827,15 @@ export default function LaundryPage() {
     </div>
   );
 }
+
+// Trigger tracking function - makes orders appear in tracking control panel
+const triggerTracking = async (orderId: string) => {
+  try {
+    // The tracking is handled within the bookings table itself
+    // When we set tracking_stage to 'sorting' and tracking_started to true,
+    // the order will automatically appear in the tracking control panel
+    console.log(`Tracking triggered for order ${orderId}`);
+  } catch (error) {
+    console.error('Error triggering tracking:', error);
+  }
+};

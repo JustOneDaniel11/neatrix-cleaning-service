@@ -46,12 +46,18 @@ export default function AdminLogin() {
       });
       if (error) throw error;
 
+      // Handle remember me and session persistence
       if (remember) {
         localStorage.setItem(rememberedEmailKey, email);
+        // Set session persistence to local storage for auto-login
+        localStorage.setItem("neatrix-admin-remember-session", "true");
       } else {
         localStorage.removeItem(rememberedEmailKey);
+        localStorage.removeItem("neatrix-admin-remember-session");
       }
 
+      // Clear any previous errors on successful login
+      dispatch({ type: "SET_ERROR", payload: null });
       dispatch({ type: "SET_AUTH_USER", payload: data.user });
       dispatch({ type: "SET_CURRENT_USER", payload: data.user });
       navigate("/admin/dashboard");

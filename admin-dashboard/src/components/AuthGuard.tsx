@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSupabaseData } from '@/contexts/SupabaseDataContext';
 import { ShieldCheck } from 'lucide-react';
+import SecurityLoader from './SecurityLoader';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -10,9 +11,25 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children, redirectTo = '/login' }: AuthGuardProps) {
   const { state } = useSupabaseData();
+  const [showLoader, setShowLoader] = useState(true);
 
-  // Show error state if there's an authentication error
-  if (state.error) {
+  // Show SecurityLoader for 2 seconds before proceeding
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLoader(false);
+    }, 2000); // 2 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show sleek security loader for 2 seconds
+  if (showLoader) {
+    return <SecurityLoader message="Verifying Authentication" size="lg" />;
+  }
+
+  // Only show error if user is not authenticated AND there's a critical error
+  // Don't show error page if user is authenticated (even with profile errors)
+  if (state.error && !state.isAuthenticated && !state.authUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
         <div className="text-center max-w-md mx-auto p-6">
@@ -38,7 +55,7 @@ export default function AuthGuard({ children, redirectTo = '/login' }: AuthGuard
     return <Navigate to={redirectTo} replace />;
   }
 
-  // User is authenticated, render children
+  // User is authenticated, render children (ignore non-critical errors like profile fetch failures)
   console.log('✅ AuthGuard: User authenticated, rendering protected content');
   return <>{children}</>;
 }

@@ -86,8 +86,6 @@ const PATH_TO_TAB: Record<string, string> = {
   '/dashboard': 'overview',
   '/bookings': 'bookings',
   '/users': 'users',
-  '/contacts': 'contacts',
-  '/support': 'contacts',
   '/livechat': 'livechat',
   '/notifications': 'notifications',
   '/payments': 'payments',
@@ -156,7 +154,6 @@ export default function AdminDashboard() {
     overview: '/overview',
     bookings: '/bookings',
     users: '/users',
-    contacts: '/support',
     livechat: '/livechat',
     notifications: '/notifications',
     payments: '/payments',
@@ -542,8 +539,12 @@ export default function AdminDashboard() {
     }
   };
 
-  // Filter bookings based on search and status
+  // Filter bookings based on search and status - only show inspection bookings
   const filteredBookings = state.bookings.filter(booking => {
+    // First filter: Only show inspection bookings
+    const isInspectionBooking = booking.service_type === 'inspection';
+    if (!isInspectionBooking) return false;
+    
     const serviceName = (booking.service_name || '').toLowerCase();
     const customerName = (booking.customer_name || '').toLowerCase();
     const customerEmail = (booking.customer_email || '').toLowerCase();
@@ -592,13 +593,14 @@ export default function AdminDashboard() {
   const recentActivities = React.useMemo(() => {
     const activities = [];
     
-    // Only include activities if there's real data
-    if (state.bookings.length > 0) {
-      activities.push(...state.bookings.slice(-3).map(booking => ({
+    // Only include inspection bookings in activities
+    const inspectionBookings = state.bookings.filter(booking => booking.service_type === 'inspection');
+    if (inspectionBookings.length > 0) {
+      activities.push(...inspectionBookings.slice(-3).map(booking => ({
         id: `booking-${booking.id}`,
         originalId: booking.id,
         type: 'booking' as const,
-        message: `New booking for ${booking.service_name}`,
+        message: `New inspection booking for ${booking.service_name}`,
         time: booking.created_at,
         status: booking.status
       })));
@@ -1153,7 +1155,9 @@ export default function AdminDashboard() {
           </div>
           <button 
             onClick={() => {
-              const csvData = state.bookings.map(booking => ({
+              // Only export inspection bookings
+              const inspectionBookings = state.bookings.filter(booking => booking.service_type === 'inspection');
+              const csvData = inspectionBookings.map(booking => ({
                 ID: booking.id,
                 Customer: booking.customer_name || 'N/A',
                 Service: booking.service_name,
@@ -1173,7 +1177,7 @@ export default function AdminDashboard() {
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = `bookings-${new Date().toISOString().split('T')[0]}.csv`;
+              a.download = `inspection-bookings-${new Date().toISOString().split('T')[0]}.csv`;
               a.click();
               window.URL.revokeObjectURL(url);
             }}
@@ -1188,7 +1192,7 @@ export default function AdminDashboard() {
       {/* Results Counter */}
       <div className="mb-4">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Showing {filteredBookings.length} of {state.bookings.length} bookings
+          Showing {filteredBookings.length} of {state.bookings.filter(booking => booking.service_type === 'inspection').length} inspection bookings
           {(searchTerm || filterStatus !== 'all' || dateFilter !== 'all') && (
             <span className="ml-2 text-blue-600 dark:text-blue-400">
               (filtered)
@@ -1960,6 +1964,7 @@ export default function AdminDashboard() {
           navigate(TAB_ROUTES['delivery']);
           break;
         case 'laundry':
+        case 'dry_cleaning':
           setActiveTab('laundry');
           navigate(TAB_ROUTES['laundry']);
           break;
@@ -3287,7 +3292,6 @@ export default function AdminDashboard() {
                     { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
                     { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
                     { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
-                    { id: 'contacts', label: 'Support', icon: Mail, color: 'from-orange-500 to-orange-600' },
                     { id: 'livechat', label: 'Live Chat', icon: MessageCircle, color: 'from-pink-500 to-pink-600' },
                     { id: 'notifications', label: 'Alerts', icon: Bell, color: 'from-red-500 to-red-600' },
                     { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
@@ -3332,7 +3336,6 @@ export default function AdminDashboard() {
                   { id: 'overview', label: 'Overview', icon: BarChart3, color: 'from-blue-500 to-blue-600' },
                   { id: 'bookings', label: 'Bookings', icon: Calendar, color: 'from-green-500 to-green-600' },
                   { id: 'users', label: 'Users', icon: Users, color: 'from-purple-500 to-purple-600' },
-                  { id: 'contacts', label: 'Support', icon: Mail, color: 'from-orange-500 to-orange-600' },
                   { id: 'livechat', label: 'Live Chat', icon: MessageCircle, color: 'from-pink-500 to-pink-600' },
                   { id: 'notifications', label: 'Notifications', icon: Bell, color: 'from-red-500 to-red-600' },
                   { id: 'payments', label: 'Payments', icon: CreditCard, color: 'from-emerald-500 to-emerald-600' },
@@ -3379,7 +3382,6 @@ export default function AdminDashboard() {
               {activeTab === 'overview' && renderOverview()}
         {activeTab === 'bookings' && renderBookings()}
         {activeTab === 'users' && renderUsers()}
-        {activeTab === 'contacts' && renderContactMessages()}
         {activeTab === 'livechat' && <IntegratedLiveChat />}
         {activeTab === 'notifications' && renderNotifications()}
         {activeTab === 'payments' && renderPayments()}

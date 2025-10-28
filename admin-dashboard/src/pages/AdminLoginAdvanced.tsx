@@ -113,14 +113,19 @@ export default function AdminLoginAdvanced() {
 
       console.log("✅ Authentication successful!", data);
 
-      // Handle remember me
+      // Handle remember me and session persistence
       if (remember) {
         localStorage.setItem(rememberedEmailKey, email);
+        // Set session persistence to local storage for auto-login
+        localStorage.setItem("neatrix-admin-remember-session", "true");
       } else {
         localStorage.removeItem(rememberedEmailKey);
+        localStorage.removeItem("neatrix-admin-remember-session");
       }
 
       console.log("🔄 Dispatching auth actions...");
+      // Clear any previous errors on successful login
+      dispatch({ type: "SET_ERROR", payload: null });
       dispatch({ type: "SET_AUTH_USER", payload: data.user });
       // Do not set currentUser here – provider will fetch typed profile
       

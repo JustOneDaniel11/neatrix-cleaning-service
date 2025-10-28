@@ -324,17 +324,20 @@ const initialState: AppState = {
 function calculateStats(state: AppState): AppState['stats'] {
   const today = new Date().toISOString().split('T')[0];
   
-  // Calculate total revenue from both regular bookings and laundry orders
-  const bookingsRevenue = state.bookings.reduce((sum, booking) => sum + (booking.total_amount || 0), 0);
+  // Filter only inspection bookings
+  const inspectionBookings = state.bookings.filter(booking => booking.service_type === 'inspection');
+  
+  // Calculate total revenue from inspection bookings and laundry orders
+  const inspectionRevenue = inspectionBookings.reduce((sum, booking) => sum + (booking.total_amount || 0), 0);
   const laundryRevenue = state.laundryOrders.reduce((sum, order) => sum + (order.total_amount || order.amount || 0), 0);
   
   return {
-    totalBookings: state.bookings.length,
-    totalRevenue: bookingsRevenue + laundryRevenue,
+    totalBookings: inspectionBookings.length,
+    totalRevenue: inspectionRevenue + laundryRevenue,
     activeUsers: state.users.length,
-    pendingBookings: state.bookings.filter(booking => booking.status === 'pending').length,
-    completedBookings: state.bookings.filter(booking => booking.status === 'completed').length,
-    todayBookings: state.bookings.filter(booking => booking.date === today).length,
+    pendingBookings: inspectionBookings.filter(booking => booking.status === 'pending').length,
+    completedBookings: inspectionBookings.filter(booking => booking.status === 'completed').length,
+    todayBookings: inspectionBookings.filter(booking => booking.date === today).length,
     activeSubscriptions: state.subscriptions.filter(sub => sub.status === 'active').length,
     pendingOrders: state.laundryOrders.filter(order => order.status === 'pending').length,
     unreadNotifications: state.adminNotifications.filter(notif => notif.status === 'unread').length,
@@ -429,7 +432,11 @@ function reducer(state: AppState, action: Action): AppState {
       newState = { ...state, supportMessages: action.payload };
       break;
     case 'ADD_SUPPORT_MESSAGE':
-      newState = { ...state, supportMessages: [...state.supportMessages, action.payload] };
+      // Check if message already exists to prevent duplicates
+      const messageExists = state.supportMessages.some(msg => msg.id === action.payload.id);
+      newState = messageExists 
+        ? state 
+        : { ...state, supportMessages: [...state.supportMessages, action.payload] };
       break;
     case 'SET_AUTH_USER': 
       return { ...state, authUser: action.payload, isAuthenticated: !!action.payload };
@@ -503,7 +510,6 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
   const debounceInProgress = useRef<Record<string, boolean>>({});
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
   const initializingRef = useRef(false);
-  const usersAbortControllerRef = useRef<AbortController | null>(null);
   const bookingsAbortControllerRef = useRef<AbortController | null>(null);
   const contactMessagesAbortControllerRef = useRef<AbortController | null>(null);
   const pickupDeliveriesAbortControllerRef = useRef<AbortController | null>(null);
@@ -579,9 +585,18 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           throw sessionError;
         }
 
+        // Check if user has enabled session persistence (remember me)
+        const hasRememberSession = localStorage.getItem("neatrix-admin-remember-session") === "true";
+        
         if (session?.user) {
           console.log("🔑 Found existing session:", session.user.id);
+          if (hasRememberSession) {
+            console.log("🔄 Auto-login enabled - restoring session");
+          }
+          
           if (mounted) {
+            // Clear any previous errors on successful authentication
+            dispatch({ type: "SET_ERROR", payload: null });
             dispatch({ type: "SET_AUTH_USER", payload: session.user });
             
             // Fetch user profile
@@ -599,6 +614,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
                 // Don't set current user to null for AbortErrors
               } else {
                 // Keep user authenticated even if profile fetch fails
+                console.log('⚠️ Profile fetch failed but user is still authenticated');
                 dispatch({ type: "SET_CURRENT_USER", payload: null });
               }
             } else if (profile) {
@@ -608,6 +624,11 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           }
         } else {
           console.log("ℹ️ No existing session found");
+          if (hasRememberSession) {
+            console.log("⚠️ Remember session enabled but no active session - clearing flag");
+            localStorage.removeItem("neatrix-admin-remember-session");
+          }
+          
           if (mounted) {
             dispatch({ type: "SET_AUTH_USER", payload: null });
             dispatch({ type: "SET_CURRENT_USER", payload: null });
@@ -623,6 +644,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             if (session?.user) {
               console.log("✅ User authenticated:", session.user.id);
+              // Clear any previous errors on successful authentication
+              dispatch({ type: "SET_ERROR", payload: null });
               dispatch({ type: "SET_AUTH_USER", payload: session.user });
               
               try {
@@ -646,7 +669,9 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
                   // Don't dispatch error for AbortErrors
                   return;
                 } else {
-                  dispatch({ type: "SET_ERROR", payload: "Failed to load user profile" });
+                  console.log('⚠️ Profile fetch failed but user is still authenticated');
+                  // Don't set error for profile fetch failures when user is authenticated
+                  dispatch({ type: "SET_CURRENT_USER", payload: null });
                 }
               }
             }
@@ -782,10 +807,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         // Support messages
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
           if (mounted && payload.new) {
-            // Immediate UI update for new messages
+            // Immediate UI update for new messages - no debounced fetch to avoid race condition
             dispatch({ type: 'ADD_SUPPORT_MESSAGE', payload: payload.new as SupportMessage });
-            // Also trigger a debounced fetch to ensure consistency
-            debounceFetch('support_messages', fetchSupportMessages);
           }
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'support_messages' }, () => {
@@ -1007,10 +1030,6 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_REALTIME_CONNECTED', payload: false });
         
         // Cleanup all AbortController references to prevent memory leaks
-        if (usersAbortControllerRef.current) {
-          usersAbortControllerRef.current.abort();
-          usersAbortControllerRef.current = null;
-        }
         if (bookingsAbortControllerRef.current) {
           bookingsAbortControllerRef.current.abort();
           bookingsAbortControllerRef.current = null;
@@ -1091,28 +1110,58 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Initial data fetching after authentication
+  useEffect(() => {
+    console.log('🔄 useEffect triggered - authUser:', state.authUser, 'isAuthenticated:', state.isAuthenticated, 'loading:', state.loading);
+    
+    const loadInitialData = async () => {
+      // Only fetch data if user is authenticated
+      if (state.authUser) {
+        console.log('🚀 Loading initial dashboard data for user:', state.authUser.id);
+        
+        try {
+          console.log('📊 Fetching users...');
+          await fetchAllUsers();
+          console.log('📊 Fetching bookings...');
+          await fetchAllBookings();
+          console.log('📊 Fetching payments...');
+          await fetchPayments();
+          console.log('📊 Fetching admin notifications...');
+          await fetchAdminNotifications();
+          console.log('📊 Fetching contact messages...');
+          await fetchContactMessages();
+          console.log('📊 Fetching reviews...');
+          await fetchReviews();
+          console.log('📊 Fetching support tickets...');
+          await fetchSupportTickets();
+          console.log('📊 Fetching user subscriptions...');
+          await fetchUserSubscriptions();
+          console.log('📊 Fetching subscription plans...');
+          await fetchSubscriptionPlans();
+          
+          console.log('✅ Initial dashboard data loaded successfully');
+          dispatch({ type: 'SET_LOADING', payload: false });
+        } catch (error) {
+          console.error('❌ Error loading initial data:', error);
+          dispatch({ type: 'SET_ERROR', payload: 'Failed to load dashboard data' });
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
+      } else {
+        console.log('⚠️ No authenticated user, skipping data fetch');
+      }
+    };
+
+    loadInitialData();
+  }, [state.authUser]); // Trigger when authentication state changes
+
   const fetchAllUsers = async () => {
-    // Cancel any ongoing request
-    if (usersAbortControllerRef.current) {
-      usersAbortControllerRef.current.abort();
-    }
-    
-    // Create new AbortController for this request
-    usersAbortControllerRef.current = new AbortController();
-    
     try {
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .order('created_at', { ascending: false })
-        .abortSignal(usersAbortControllerRef.current.signal);
+        .order('created_at', { ascending: false });
       
       if (error) {
-        // Check if it's a transient AbortError that can be ignored
-        if (error.message.includes('AbortError') || error.message.includes('signal is aborted')) {
-          console.log('⚠️ Transient AbortError detected in fetchAllUsers, ignoring...');
-          return;
-        }
         console.error('❌ Error fetching users:', error);
         dispatch({ type: 'SET_ERROR', payload: `Failed to load users: ${error.message}` });
         return;
@@ -1120,11 +1169,6 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       
       dispatch({ type: 'SET_USERS', payload: data || [] });
     } catch (error: any) {
-      // Check if it's a transient AbortError that can be ignored
-      if (error.message?.includes('AbortError') || error.message?.includes('signal is aborted')) {
-        console.log('⚠️ Transient AbortError detected in fetchAllUsers catch, ignoring...');
-        return;
-      }
       console.error('❌ Unexpected error in fetchAllUsers:', error);
       dispatch({ type: 'SET_ERROR', payload: `Failed to load users: ${error.message}` });
     }
@@ -1772,9 +1816,18 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
 
   // Admin mutations
   const signOut = async () => {
+    console.log("🚪 Signing out user...");
+    
+    // Clean up session persistence and remembered credentials
+    localStorage.removeItem("neatrix-admin-remember-session");
+    localStorage.removeItem("neatrix-admin-remembered-email");
+    
     await supabase.auth.signOut();
     dispatch({ type: 'SET_AUTH_USER', payload: null });
     dispatch({ type: 'SET_CURRENT_USER', payload: null });
+    dispatch({ type: 'SET_ERROR', payload: null }); // Clear any errors on sign out
+    
+    console.log("✅ User signed out and session cleaned up");
   };
 
   const updateBooking = async (id: string, updates: Partial<Booking>) => {
@@ -1795,9 +1848,10 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         
         let notificationTitle = '';
         let notificationMessage = '';
-        const notificationType = 'booking';
+        const isLaundryOrder = currentBooking.service_type === 'laundry' || currentBooking.service_type === 'dry_cleaning';
+        const notificationType = isLaundryOrder ? 'laundry' : 'booking';
         let priority = 'medium';
-        const actionUrl = `/admin/orders`;
+        const actionUrl = isLaundryOrder ? '/admin/laundry' : '/admin/orders';
 
         switch (updates.status) {
           case 'confirmed':
@@ -1846,8 +1900,41 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    const { error } = await supabase.from('users').update(updates).eq('id', id);
-    if (!error) await fetchAllUsers();
+    console.log('Attempting to update user with ID:', id, 'Updates:', updates);
+    try {
+      // Perform the update without select to avoid RLS issues
+      const { error: updateError } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', id);
+      
+      if (updateError) {
+        console.error('Error updating user:', updateError);
+        throw updateError;
+      }
+      
+      // Fetch the updated user data separately
+      const { data: updatedUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError) {
+        console.error('Error fetching updated user:', fetchError);
+        // Update was successful, but we couldn't fetch the updated data
+        // Still refresh the users list and return a basic response
+        await fetchAllUsers();
+        return { id, ...updates };
+      }
+      
+      console.log('User updated successfully:', updatedUser);
+      await fetchAllUsers();
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      throw error;
+    }
   };
   const deleteUser = async (id: string) => {
     console.log('Attempting to delete user with ID:', id);

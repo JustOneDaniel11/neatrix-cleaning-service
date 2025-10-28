@@ -123,6 +123,7 @@ export default function NotificationsPage({
         'review': '/admin/reviews',
         'delivery': '/admin/delivery',
         'laundry': '/admin/laundry',
+        'dry_cleaning': '/admin/laundry',
       };
       
       const route = routeMap[notificationType || 'general'] || '/admin/dashboard';
