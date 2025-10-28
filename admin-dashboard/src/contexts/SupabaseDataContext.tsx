@@ -525,6 +525,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
   const reviewsAbortControllerRef = useRef<AbortController | null>(null);
   const supportTicketsAbortControllerRef = useRef<AbortController | null>(null);
   const supportMessagesAbortControllerRef = useRef<AbortController | null>(null);
+  const usersAbortControllerRef = useRef<AbortController | null>(null);
   
   const debounceFetch = (
     key: string,
@@ -1090,6 +1091,10 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           supportMessagesAbortControllerRef.current.abort();
           supportMessagesAbortControllerRef.current = null;
         }
+        if (usersAbortControllerRef.current) {
+          usersAbortControllerRef.current.abort();
+          usersAbortControllerRef.current = null;
+        }
         
         // Clear debounce timers
         Object.keys(debounceTimers.current).forEach(key => {
@@ -1156,10 +1161,31 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
 
   const fetchAllUsers = async () => {
     try {
+      // Cancel any ongoing request
+      if (usersAbortControllerRef.current) {
+        usersAbortControllerRef.current.abort();
+        usersAbortControllerRef.current = null;
+      }
+      
+      // Create new AbortController
+      usersAbortControllerRef.current = new AbortController();
+      const controller = usersAbortControllerRef.current;
+      
+      // Check if already aborted before making the request
+      if (controller.signal.aborted) {
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .abortSignal(controller.signal);
+      
+      // Check if the request was aborted after completion
+      if (controller.signal.aborted) {
+        return;
+      }
       
       if (error) {
         console.error('❌ Error fetching users:', error);
@@ -1169,6 +1195,10 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       
       dispatch({ type: 'SET_USERS', payload: data || [] });
     } catch (error: any) {
+      // Ignore AbortError as it's expected when cancelling requests
+      if (error.name === 'AbortError' || error.message?.includes('signal is aborted') || error.message?.includes('aborted')) {
+        return; // Silently ignore abort errors
+      }
       console.error('❌ Unexpected error in fetchAllUsers:', error);
       dispatch({ type: 'SET_ERROR', payload: `Failed to load users: ${error.message}` });
     }
