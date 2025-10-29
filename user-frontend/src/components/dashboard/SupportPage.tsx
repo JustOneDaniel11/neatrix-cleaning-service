@@ -130,6 +130,12 @@ const SupportPage: React.FC = () => {
         if (!activeTicketId) throw new Error('Unable to create chat ticket');
       }
       
+      // Check if this is the user's first message in this ticket
+      const existingMessages = supportMessages.filter(
+        msg => msg.ticket_id === activeTicketId && msg.sender_type === 'user'
+      );
+      const isFirstMessage = existingMessages.length === 0;
+      
       // Create support message for the chat
       await createSupportMessage({
         ticket_id: activeTicketId!,
@@ -139,6 +145,25 @@ const SupportPage: React.FC = () => {
         message_type: 'text',
         is_read: false
       });
+
+      // If this is the first message, send automatic welcome message
+      if (isFirstMessage) {
+        // Small delay to ensure user message is processed first
+        setTimeout(async () => {
+          try {
+            await createSupportMessage({
+              ticket_id: activeTicketId!,
+              sender_id: 'system', // Use 'system' as sender_id for automated messages
+              sender_type: 'admin',
+              message: "Hello! 👋 Thanks for reaching out. Please drop your message and one of our customer service representatives will get back to you soon.",
+              message_type: 'text',
+              is_read: false
+            });
+          } catch (error) {
+            console.error('Error sending welcome message:', error);
+          }
+        }, 500);
+      }
       
       setNewMessage('');
     } catch (error) {
@@ -147,28 +172,6 @@ const SupportPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  // One-off cleanup: delete default admin welcome messages for Daniel's account
-  useEffect(() => {
-    const cleanupDefaults = async () => {
-      const targetEmail = 'danielayomidepaul@gmail.com';
-      if (!currentUser || currentUser.email !== targetEmail) return;
-      try {
-        await deleteDefaultAdminMessagesForUser(targetEmail);
-        // Refresh messages after deletion
-        if (ticketId) {
-          await fetchSupportMessages(ticketId);
-        } else {
-          await fetchSupportTickets(currentUser.id);
-        }
-      } catch (e) {
-        console.error('Failed to delete default admin messages:', e);
-      }
-    };
-    cleanupDefaults();
-    // Run once for the target email
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.email, ticketId]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -373,106 +376,375 @@ const SupportPage: React.FC = () => {
       {/* Tab Content */}
       <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-800">
         {activeTab === 'chat' && (
-          <div className="p-3 sm:p-6">
-            {/* Conversations header */}
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100">Your Conversations</h3>
-              <button
-                onClick={startNewChat}
-                disabled={isLoading}
-                className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Send us a message</span>
-              </button>
-            </div>
+          <div className="h-[600px] md:h-[700px] flex flex-col">
+            {/* Mobile: Show either chat list or conversation, not both */}
+            <div className="md:hidden">
+              {!ticketId ? (
+                /* Mobile Chat List */
+                <div className="h-full flex flex-col">
+                  {/* Chat List Header */}
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Your Conversations</h3>
+                      <button
+                        onClick={startNewChat}
+                        disabled={isLoading}
+                        className="flex items-center space-x-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-xs"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>New Chat</span>
+                      </button>
+                    </div>
+                  </div>
 
-            {/* Ticket Cards */}
-            {Array.isArray((state as any).supportTickets) && (state as any).supportTickets.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                {(state as any).supportTickets.map((t: any) => {
-                  const messagesForTicket = ((state as any).supportMessages || []).filter((m: any) => m.ticket_id === t.id);
-                  const lastMsg = messagesForTicket.slice(-1)[0];
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setTicketId(t.id)}
-                      className={`text-left border rounded-lg p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition ${ticketId === t.id ? 'border-blue-500' : 'border-gray-200 dark:border-gray-800'}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">{t.subject || 'Support Ticket'}</span>
-                        <span className="text-[10px] sm:text-xs text-gray-500">{formatDate(t.created_at)}</span>
+                  {/* Mobile Chat List */}
+                  <div className="flex-1 overflow-y-auto p-2">
+                    {Array.isArray((state as any).supportTickets) && (state as any).supportTickets.length > 0 ? (
+                      <div className="space-y-2">
+                        {(state as any).supportTickets.map((ticket: any) => {
+                          const messagesForTicket = ((state as any).supportMessages || []).filter((m: any) => m.ticket_id === ticket.id);
+                          const lastMsg = messagesForTicket.slice(-1)[0];
+                          const isOpen = ticket.status === 'open' || ticket.status === 'in_progress';
+                          
+                          return (
+                            <button
+                              key={ticket.id}
+                              onClick={() => setTicketId(ticket.id)}
+                              className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                  {ticket.subject || 'Support Ticket'}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  isOpen 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                }`}>
+                                  {isOpen ? 'Open' : 'Closed'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                {lastMsg ? lastMsg.message : 'No messages yet'}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                {formatDate(ticket.created_at)}
+                              </p>
+                            </button>
+                          );
+                        })}
                       </div>
-                      <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 truncate">
-                        {lastMsg ? lastMsg.message : 'No messages yet'}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 max-h-80 sm:max-h-96 overflow-y-auto">
-              {currentMessages.length === 0 ? (
-                <div className="text-center py-8 sm:py-12">
-                  <MessageCircle className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-1 sm:mb-2">Start a conversation</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-300 px-4">Send us a message and we'll get back to you as soon as possible.</p>
-                  <div className="mt-4">
-                    <button
-                      onClick={startNewChat}
-                      disabled={isLoading}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      Send us a message
-                    </button>
+                    ) : (
+                      <div className="text-center py-8">
+                        <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">No conversations yet</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Start a new chat to get help</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
-                currentMessages.map((message: any) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 rounded-lg ${
-                        message.sender_type === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                      }`}
-                    >
-                      <p className="text-xs sm:text-sm">{message.message}</p>
-                      <p className={`text-xs mt-1 ${
-                        message.sender_type === 'user' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
-                      }`}>
-                        {formatTime(message.created_at)}
-                      </p>
-                    </div>
+                /* Mobile Conversation View */
+                <div className="h-full flex flex-col">
+                  {/* Mobile Conversation Header with Back Button */}
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                    {(() => {
+                      const selectedTicket = ((state as any).supportTickets || []).find((t: any) => t.id === ticketId);
+                      const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress';
+                      
+                      return (
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => setTicketId(null)}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                          >
+                            ← Back
+                          </button>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                              {selectedTicket?.subject || 'Support Ticket'}
+                            </h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Status: <span className={`${isOpen ? 'text-green-600' : 'text-gray-600'}`}>
+                                {isOpen ? 'Open' : 'Closed'}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
-                ))
+
+                  {/* Mobile Messages Area */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {currentMessages.length === 0 ? (
+                      <div className="text-center py-8">
+                        <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">No messages in this conversation</p>
+                      </div>
+                    ) : (
+                      currentMessages.map((message: any) => (
+                        <div
+                          key={message.id}
+                          className={`flex ${message.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[85%] px-3 py-2 rounded-lg text-sm ${
+                              message.sender_type === 'user'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                            }`}
+                          >
+                            <p className="break-words">{message.message}</p>
+                            <p className={`text-xs mt-1 ${
+                              message.sender_type === 'user' 
+                                ? 'text-blue-100' 
+                                : 'text-gray-500 dark:text-gray-400'
+                            }`}>
+                              {formatTime(message.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  {/* Mobile Message Input */}
+                  {(() => {
+                    const selectedTicket = ((state as any).supportTickets || []).find((t: any) => t.id === ticketId);
+                    const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress';
+                    
+                    return (
+                      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+                        {isOpen ? (
+                          <form onSubmit={handleSendMessage} className="flex space-x-2">
+                            <input
+                              type="text"
+                              value={newMessage}
+                              onChange={(e) => setNewMessage(e.target.value)}
+                              placeholder="Type your message..."
+                              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
+                              disabled={isLoading}
+                            />
+                            <button
+                              type="submit"
+                              disabled={isLoading || !newMessage.trim()}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <Send className="h-4 w-4" />
+                            </button>
+                          </form>
+                        ) : (
+                          <div className="text-center">
+                            <button
+                              onClick={startNewChat}
+                              disabled={isLoading}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                            >
+                              Start New Chat
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
               )}
-              <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
-            <div className="border-t border-gray-200 dark:border-gray-800 pt-3 sm:pt-4">
-              <div className="flex space-x-2 sm:space-x-4">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type your message..."
-                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                  disabled={isLoading}
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!newMessage.trim() || isLoading}
-                  className="px-3 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 sm:space-x-2 min-h-[40px] sm:min-h-[44px]"
-                >
-                  <Send className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline text-xs sm:text-sm">Send</span>
-                </button>
+            {/* Desktop: Two-panel layout */}
+            <div className="hidden md:flex md:flex-row h-full">
+              {/* Left Panel - Chat List */}
+              <div className="w-1/3 border-r border-gray-200 dark:border-gray-800 flex flex-col">
+                {/* Chat List Header */}
+                <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Your Conversations</h3>
+                    <button
+                      onClick={startNewChat}
+                      disabled={isLoading}
+                      className="flex items-center space-x-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-xs"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>New Chat</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Chat List */}
+                <div className="flex-1 overflow-y-auto p-2">
+                  {Array.isArray((state as any).supportTickets) && (state as any).supportTickets.length > 0 ? (
+                    <div className="space-y-2">
+                      {(state as any).supportTickets.map((ticket: any) => {
+                        const messagesForTicket = ((state as any).supportMessages || []).filter((m: any) => m.ticket_id === ticket.id);
+                        const lastMsg = messagesForTicket.slice(-1)[0];
+                        const isOpen = ticket.status === 'open' || ticket.status === 'in_progress';
+                        const isSelected = ticketId === ticket.id;
+                        
+                        return (
+                          <button
+                            key={ticket.id}
+                            onClick={() => setTicketId(ticket.id)}
+                            className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                              isSelected 
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                                : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                {ticket.subject || 'Support Ticket'}
+                              </span>
+                              <div className="flex items-center space-x-1">
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  isOpen 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                }`}>
+                                  {isOpen ? 'Open' : 'Closed'}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                              {lastMsg ? lastMsg.message : 'No messages yet'}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              {formatDate(ticket.created_at)}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">No conversations yet</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">Start a new chat to get help</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Panel - Conversation View */}
+              <div className="flex-1 flex flex-col">
+                {ticketId ? (
+                  <>
+                    {/* Conversation Header */}
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                      {(() => {
+                        const selectedTicket = ((state as any).supportTickets || []).find((t: any) => t.id === ticketId);
+                        const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress';
+                        
+                        return (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                {selectedTicket?.subject || 'Support Ticket'}
+                              </h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Status: <span className={`${isOpen ? 'text-green-600' : 'text-gray-600'}`}>
+                                  {isOpen ? 'Open' : 'Closed'}
+                                </span>
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => setTicketId(null)}
+                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Messages Area */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                      {currentMessages.length === 0 ? (
+                        <div className="text-center py-8">
+                          <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No messages in this conversation</p>
+                        </div>
+                      ) : (
+                        currentMessages.map((message: any) => (
+                          <div
+                            key={message.id}
+                            className={`flex ${message.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-[80%] px-4 py-2 rounded-lg ${
+                                message.sender_type === 'user'
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                              }`}
+                            >
+                              <p className="break-words">{message.message}</p>
+                              <p className={`text-xs mt-1 ${
+                                message.sender_type === 'user' 
+                                  ? 'text-blue-100' 
+                                  : 'text-gray-500 dark:text-gray-400'
+                              }`}>
+                                {formatTime(message.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Message Input */}
+                    {(() => {
+                      const selectedTicket = ((state as any).supportTickets || []).find((t: any) => t.id === ticketId);
+                      const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress';
+                      
+                      return (
+                        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+                          {isOpen ? (
+                            <form onSubmit={handleSendMessage} className="flex space-x-3">
+                              <input
+                                type="text"
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                placeholder="Type your message..."
+                                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                                disabled={isLoading}
+                              />
+                              <button
+                                type="submit"
+                                disabled={isLoading || !newMessage.trim()}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                              >
+                                <Send className="h-4 w-4" />
+                                <span>Send</span>
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="text-center">
+                              <button
+                                onClick={startNewChat}
+                                disabled={isLoading}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                Start New Chat
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  /* Default state - no conversation selected */
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Select a conversation</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Choose a conversation from the list to start chatting</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

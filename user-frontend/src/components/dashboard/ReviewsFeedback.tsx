@@ -41,44 +41,8 @@ const ReviewsFeedback = () => {
   const [filterService, setFilterService] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock data for past reviews
-  const [pastReviews] = useState<Review[]>([
-    {
-      id: '1',
-      serviceType: 'dry-cleaning',
-      rating: 5,
-      title: 'Excellent dry cleaning service!',
-      comment: 'My suits came back perfectly cleaned and pressed. The pickup and delivery was right on time. Very professional service.',
-      date: '2024-01-15',
-      serviceDate: '2024-01-10',
-      orderNumber: 'DC-2024-001',
-      response: {
-        message: 'Thank you so much for your kind words! We\'re thrilled that you\'re happy with our service. We look forward to serving you again.',
-        date: '2024-01-16',
-        responder: 'Sarah - Customer Service Manager'
-      }
-    },
-    {
-      id: '2',
-      serviceType: 'inspection',
-      rating: 4,
-      title: 'Thorough property inspection',
-      comment: 'The inspector was very detailed and professional. Provided a comprehensive report with photos. Only minor issue was they arrived 15 minutes late.',
-      date: '2024-01-08',
-      serviceDate: '2024-01-05',
-      orderNumber: 'INS-2024-003'
-    },
-    {
-      id: '3',
-      serviceType: 'dry-cleaning',
-      rating: 5,
-      title: 'Great stain removal',
-      comment: 'Had a tough wine stain on my favorite dress. They managed to remove it completely! Amazing work.',
-      date: '2024-01-02',
-      serviceDate: '2023-12-28',
-      orderNumber: 'DC-2023-089'
-    }
-  ]);
+  // Past reviews - will be loaded from real data
+  const [pastReviews] = useState<Review[]>([]);
 
   const serviceTypes = [
     { value: 'dry-cleaning', label: 'Dry Cleaning' },

@@ -99,18 +99,18 @@ const ProfileSettings = () => {
     }
   }, [currentUser]);
 
-  // Mock preferences data
+  // User preferences - will be loaded from real data
   const [preferences, setPreferences] = useState<Preferences>({
     notifications: {
-      email: true,
-      sms: true,
-      push: true,
+      email: false,
+      sms: false,
+      push: false,
       marketing: false
     },
     services: {
       preferredCleaner: undefined,
       defaultPickupTime: '09:00',
-      specialInstructions: 'Please handle delicate items with care'
+      specialInstructions: ''
     },
     privacy: {
       profileVisibility: 'private',

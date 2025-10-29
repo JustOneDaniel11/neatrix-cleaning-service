@@ -7,7 +7,7 @@ import DryCleaningPage from "@/components/dashboard/DryCleaningPage";
 import BookInspectionPage from "@/components/dashboard/BookInspectionPage";
 
 
-import SupportPage from "@/components/dashboard/SupportChatMock";
+import SupportPage from "@/components/dashboard/SupportPage";
 import ProfileSettings from "@/components/dashboard/ProfileSettings";
 import PaymentPage from "@/components/dashboard/PaymentPage";
 import NotificationsPage from "@/pages/dashboard/NotificationsPage";
