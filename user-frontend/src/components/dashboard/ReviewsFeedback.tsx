@@ -8,8 +8,12 @@ import {
   User,
   ThumbsUp,
   Filter,
-  Search
+  Search,
+  AlertCircle,
+  Loader2
 } from "lucide-react";
+import { useDarkMode } from "@/contexts/DarkModeContext";
+import { useSupabaseData } from "@/contexts/SupabaseDataContext";
 
 interface Review {
   id: string;
@@ -28,6 +32,9 @@ interface Review {
 }
 
 const ReviewsFeedback = () => {
+  const { isDarkMode } = useDarkMode();
+  const { createReview, state } = useSupabaseData();
+  
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
   const [newReview, setNewReview] = useState({
     serviceType: '',
@@ -38,11 +45,16 @@ const ReviewsFeedback = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [filterService, setFilterService] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Past reviews - will be loaded from real data
-  const [pastReviews] = useState<Review[]>([]);
+  // Character limits
+  const TITLE_LIMIT = 100;
+  const COMMENT_LIMIT = 500;
+
+  // Past reviews - using state from context
+  const pastReviews = state.reviews || [];
 
   const serviceTypes = [
     { value: 'dry-cleaning', label: 'Dry Cleaning' },
@@ -52,27 +64,41 @@ const ReviewsFeedback = () => {
 
   const handleRatingClick = (rating: number) => {
     setNewReview(prev => ({ ...prev, rating }));
+    setSubmitError(null); // Clear error when user interacts
   };
 
   const validateForm = () => {
-    return newReview.serviceType && 
-           newReview.orderNumber && 
-           newReview.rating > 0 && 
-           newReview.title.trim() && 
-           newReview.comment.trim();
+    if (!newReview.serviceType) return { isValid: false, error: 'Please select a service type' };
+    if (!newReview.orderNumber.trim()) return { isValid: false, error: 'Please enter an order number' };
+    if (newReview.rating === 0) return { isValid: false, error: 'Please provide a rating' };
+    if (!newReview.title.trim()) return { isValid: false, error: 'Please enter a review title' };
+    if (newReview.title.length > TITLE_LIMIT) return { isValid: false, error: `Title must be ${TITLE_LIMIT} characters or less` };
+    if (!newReview.comment.trim()) return { isValid: false, error: 'Please write your review' };
+    if (newReview.comment.length > COMMENT_LIMIT) return { isValid: false, error: `Review must be ${COMMENT_LIMIT} characters or less` };
+    
+    return { isValid: true, error: null };
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      alert('Please fill in all required fields');
+    const validation = validateForm();
+    if (!validation.isValid) {
+      setSubmitError(validation.error);
       return;
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     
     try {
-      // Here you would submit to your backend
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create review using the existing API
+      await createReview({
+        service_type: newReview.serviceType as 'dry-cleaning' | 'inspection' | 'regular-cleaning',
+        order_number: newReview.orderNumber.trim(),
+        rating: newReview.rating,
+        title: newReview.title.trim(),
+        comment: newReview.comment.trim(),
+        user_id: state.authUser?.id || ''
+      });
       
       setSubmitSuccess(true);
       
@@ -90,10 +116,15 @@ const ReviewsFeedback = () => {
       
     } catch (error) {
       console.error('Error submitting review:', error);
-      alert('Failed to submit review. Please try again.');
+      setSubmitError('Failed to submit review. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setNewReview(prev => ({ ...prev, [field]: value }));
+    setSubmitError(null); // Clear error when user types
   };
 
   const getServiceTypeLabel = (type: string) => {
@@ -102,11 +133,20 @@ const ReviewsFeedback = () => {
   };
 
   const getServiceTypeColor = (type: string) => {
-    switch (type) {
-      case 'dry-cleaning': return 'bg-blue-100 text-blue-800';
-      case 'inspection': return 'bg-green-100 text-green-800';
-      case 'regular-cleaning': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+    if (isDarkMode) {
+      switch (type) {
+        case 'dry-cleaning': return 'bg-blue-900/30 text-blue-300 border border-blue-700';
+        case 'inspection': return 'bg-green-900/30 text-green-300 border border-green-700';
+        case 'regular-cleaning': return 'bg-purple-900/30 text-purple-300 border border-purple-700';
+        default: return 'bg-gray-800/30 text-gray-300 border border-gray-600';
+      }
+    } else {
+      switch (type) {
+        case 'dry-cleaning': return 'bg-blue-100 text-blue-800';
+        case 'inspection': return 'bg-green-100 text-green-800';
+        case 'regular-cleaning': return 'bg-purple-100 text-purple-800';
+        default: return 'bg-gray-100 text-gray-800';
+      }
     }
   };
 
@@ -130,8 +170,8 @@ const ReviewsFeedback = () => {
             className={`${size} ${
               star <= rating 
                 ? 'text-yellow-400 fill-current' 
-                : 'text-gray-300'
-            } ${interactive ? 'hover:text-yellow-400 cursor-pointer' : 'cursor-default'}`}
+                : isDarkMode ? 'text-gray-600' : 'text-gray-300'
+            } ${interactive ? 'hover:text-yellow-400 cursor-pointer transition-colors' : 'cursor-default'}`}
           >
             <Star className="w-full h-full" />
           </button>
@@ -140,20 +180,47 @@ const ReviewsFeedback = () => {
     );
   };
 
+  // Dynamic input classes for dark mode
+  const inputClasses = `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+    isDarkMode 
+      ? 'bg-gray-800 border-gray-600 text-gray-100 focus:bg-gray-700 focus:border-blue-400 [&::placeholder]:text-gray-400 [&::placeholder]:opacity-100' 
+      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+  }`;
+
+  const selectClasses = "w-full rounded-lg border border-gray-300 p-2 text-gray-900 placeholder-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-400 dark:shadow-[0_0_5px_rgba(255,255,255,0.05)] focus:ring-2 focus:ring-blue-500 focus:outline-none dark:focus:ring-blue-400";
+
+  const textareaClasses = "w-full rounded-lg border border-gray-300 p-2 text-gray-900 placeholder-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-400 dark:shadow-[0_0_5px_rgba(255,255,255,0.05)] focus:ring-2 focus:ring-blue-500 focus:outline-none dark:focus:ring-blue-400 resize-none";
+
   if (submitSuccess) {
     return (
       <div className="space-y-6">
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Reviews & Feedback</h1>
-          <p className="text-gray-600">Share your experience and help us improve our services</p>
+        <div className={`rounded-lg p-6 border ${
+          isDarkMode 
+            ? 'bg-gray-800 border-gray-700' 
+            : 'bg-white border-gray-200'
+        }`}>
+          <h1 className={`text-2xl font-bold mb-2 ${
+            isDarkMode ? 'text-gray-100' : 'text-gray-900'
+          }`}>Reviews & Feedback</h1>
+          <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+            Share your experience and help us improve our services
+          </p>
         </div>
 
-        <div className="bg-white rounded-lg p-8 border border-gray-200 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="h-8 w-8 text-green-600" />
+        <div className={`rounded-lg p-8 border text-center ${
+          isDarkMode 
+            ? 'bg-gray-800 border-gray-700' 
+            : 'bg-white border-gray-200'
+        }`}>
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Review Submitted!</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className={`text-2xl font-bold mb-2 ${
+            isDarkMode ? 'text-gray-100' : 'text-gray-900'
+          }`}>Review Submitted!</h2>
+          <p className={`mb-6 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>
             Thank you for your feedback! Your review helps us improve our services and assists other customers.
           </p>
           <div className="flex justify-center space-x-4">
@@ -168,7 +235,11 @@ const ReviewsFeedback = () => {
                 setSubmitSuccess(false);
                 setActiveTab('new');
               }}
-              className="border border-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-50 transition-colors"
+              className={`border px-6 py-2 rounded-md transition-colors ${
+                isDarkMode 
+                  ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
             >
               Write Another Review
             </button>
@@ -181,14 +252,28 @@ const ReviewsFeedback = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Reviews & Feedback</h1>
-        <p className="text-gray-600">Share your experience and help us improve our services</p>
+      <div className={`rounded-lg p-6 border ${
+        isDarkMode 
+          ? 'bg-gray-800 border-gray-700' 
+          : 'bg-white border-gray-200'
+      }`}>
+        <h1 className={`text-2xl font-bold mb-2 ${
+          isDarkMode ? 'text-gray-100' : 'text-gray-900'
+        }`}>Reviews & Feedback</h1>
+        <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+          Share your experience and help us improve our services
+        </p>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="border-b border-gray-200">
+      <div className={`rounded-lg border ${
+        isDarkMode 
+          ? 'bg-gray-800 border-gray-700' 
+          : 'bg-white border-gray-200'
+      }`}>
+        <div className={`border-b ${
+          isDarkMode ? 'border-gray-700' : 'border-gray-200'
+        }`}>
           <nav className="flex space-x-8 px-6">
             {[
               { id: 'new', label: 'Write Review', icon: MessageSquare },
@@ -197,10 +282,12 @@ const ReviewsFeedback = () => {
               <button
                 key={id}
                 onClick={() => setActiveTab(id as any)}
-                className={`py-4 px-2 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                className={`py-4 px-2 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${
                   activeTab === id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : isDarkMode 
+                      ? 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -215,21 +302,41 @@ const ReviewsFeedback = () => {
           {activeTab === 'new' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Write a New Review</h3>
+                <h3 className={`text-lg font-medium mb-4 ${
+                  isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                }`}>Write a New Review</h3>
+                
+                {/* Error Message */}
+                {submitError && (
+                  <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                    <div className="flex items-center">
+                      <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
+                      <p className="text-red-700 dark:text-red-400 text-sm">{submitError}</p>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Service Type *
                     </label>
                     <select
                       value={newReview.serviceType}
-                      onChange={(e) => setNewReview(prev => ({ ...prev, serviceType: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => handleInputChange('serviceType', e.target.value)}
+                      className={selectClasses}
                     >
-                      <option value="">Select service type</option>
+                      <option value="" className="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+                        Select service type
+                      </option>
                       {serviceTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
+                        <option 
+                          key={type.value} 
+                          value={type.value}
+                          className="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100"
+                        >
                           {type.label}
                         </option>
                       ))}
@@ -237,68 +344,98 @@ const ReviewsFeedback = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Order Number *
                     </label>
                     <input
                       type="text"
                       value={newReview.orderNumber}
-                      onChange={(e) => setNewReview(prev => ({ ...prev, orderNumber: e.target.value }))}
+                      onChange={(e) => handleInputChange('orderNumber', e.target.value)}
                       placeholder="e.g., DC-2024-001"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={inputClasses}
                     />
                   </div>
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className={`block text-sm font-medium mb-3 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
                     Overall Rating *
                   </label>
                   <div className="flex items-center space-x-4">
                     {renderStars(newReview.rating, true, 'w-8 h-8')}
-                    <span className="text-sm text-gray-600">
+                    <span className={`text-sm ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
                       {newReview.rating > 0 ? `${newReview.rating} out of 5 stars` : 'Click to rate'}
                     </span>
                   </div>
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Review Title *
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Review Title * ({newReview.title.length}/{TITLE_LIMIT})
                   </label>
                   <input
                     type="text"
                     value={newReview.title}
-                    onChange={(e) => setNewReview(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
                     placeholder="Summarize your experience in a few words"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    maxLength={TITLE_LIMIT}
+                    className={inputClasses}
                   />
+                  {newReview.title.length > TITLE_LIMIT * 0.9 && (
+                    <p className={`text-xs mt-1 ${
+                      newReview.title.length >= TITLE_LIMIT ? 'text-red-500' : 'text-yellow-500'
+                    }`}>
+                      {TITLE_LIMIT - newReview.title.length} characters remaining
+                    </p>
+                  )}
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Review *
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Your Review * ({newReview.comment.length}/{COMMENT_LIMIT})
                   </label>
                   <textarea
                     value={newReview.comment}
-                    onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
+                    onChange={(e) => handleInputChange('comment', e.target.value)}
                     rows={5}
-                    placeholder="Tell us about your experience. What went well? What could be improved?"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Write your review…"
+                    maxLength={COMMENT_LIMIT}
+                    className={textareaClasses}
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    {newReview.comment.length}/500 characters
-                  </p>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className={`text-sm ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      {newReview.comment.length}/{COMMENT_LIMIT} characters
+                    </p>
+                    {newReview.comment.length > COMMENT_LIMIT * 0.9 && (
+                      <p className={`text-xs ${
+                        newReview.comment.length >= COMMENT_LIMIT ? 'text-red-500' : 'text-yellow-500'
+                      }`}>
+                        {COMMENT_LIMIT - newReview.comment.length} characters remaining
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !validateForm()}
+                  disabled={isSubmitting || !validateForm().isValid}
                   className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       Submitting Review...
                     </>
                   ) : (
@@ -319,13 +456,15 @@ const ReviewsFeedback = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-400'
+                    }`} />
                     <input
                       type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Search reviews..."
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`pl-10 pr-3 py-2 ${inputClasses.replace('px-3', '')}`}
                     />
                   </div>
                 </div>
@@ -334,11 +473,17 @@ const ReviewsFeedback = () => {
                   <select
                     value={filterService}
                     onChange={(e) => setFilterService(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={selectClasses}
                   >
-                    <option value="all">All Services</option>
+                    <option value="all" className={isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-900'}>
+                      All Services
+                    </option>
                     {serviceTypes.map((type) => (
-                      <option key={type.value} value={type.value}>
+                      <option 
+                        key={type.value} 
+                        value={type.value}
+                        className={isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-900'}
+                      >
                         {type.label}
                       </option>
                     ))}
@@ -349,11 +494,17 @@ const ReviewsFeedback = () => {
               {/* Reviews List */}
               {filteredReviews.length === 0 ? (
                 <div className="text-center py-12">
-                  <Star className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <Star className={`w-16 h-16 mx-auto mb-4 ${
+                    isDarkMode ? 'text-gray-600' : 'text-gray-400'
+                  }`} />
+                  <h3 className={`text-lg font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                  }`}>
                     {searchTerm || filterService !== 'all' ? 'No reviews found' : 'No reviews yet'}
                   </h3>
-                  <p className="text-gray-600 mb-6">
+                  <p className={`mb-6 ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
                     {searchTerm || filterService !== 'all' 
                       ? 'Try adjusting your search or filter criteria'
                       : 'Your reviews will appear here after you submit them'
@@ -371,18 +522,26 @@ const ReviewsFeedback = () => {
               ) : (
                 <div className="space-y-6">
                   {filteredReviews.map((review) => (
-                    <div key={review.id} className="border border-gray-200 rounded-lg p-6">
+                    <div key={review.id} className={`border rounded-lg p-6 ${
+                      isDarkMode 
+                        ? 'border-gray-700 bg-gray-800/50' 
+                        : 'border-gray-200 bg-white'
+                    }`}>
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">
+                            <h3 className={`text-lg font-semibold ${
+                              isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                            }`}>
                               {review.title}
                             </h3>
                             <span className={`px-2 py-1 text-xs rounded-full ${getServiceTypeColor(review.serviceType)}`}>
                               {getServiceTypeLabel(review.serviceType)}
                             </span>
                           </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+                          <div className={`flex items-center space-x-4 text-sm mb-3 ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                          }`}>
                             <div className="flex items-center space-x-1">
                               {renderStars(review.rating)}
                               <span className="ml-1">{review.rating}/5</span>
@@ -393,41 +552,65 @@ const ReviewsFeedback = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="text-right text-sm text-gray-500">
+                        <div className={`text-right text-sm ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
                           <p>Order: {review.orderNumber}</p>
                           <p>Service: {new Date(review.serviceDate).toLocaleDateString()}</p>
                         </div>
                       </div>
 
-                      <p className="text-gray-700 mb-4">{review.comment}</p>
+                      <p className={`mb-4 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>{review.comment}</p>
 
                       {review.response && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className={`border rounded-lg p-4 ${
+                          isDarkMode 
+                            ? 'bg-blue-900/20 border-blue-800' 
+                            : 'bg-blue-50 border-blue-200'
+                        }`}>
                           <div className="flex items-start space-x-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <User className="w-4 h-4 text-blue-600" />
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              isDarkMode 
+                                ? 'bg-blue-800/50' 
+                                : 'bg-blue-100'
+                            }`}>
+                              <User className={`w-4 h-4 ${
+                                isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                              }`} />
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-medium text-blue-900">Response from {review.response.responder}</span>
-                                <span className="text-sm text-blue-600">
+                                <span className={`font-medium ${
+                                  isDarkMode ? 'text-blue-300' : 'text-blue-900'
+                                }`}>Response from {review.response.responder}</span>
+                                <span className={`text-sm ${
+                                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                                }`}>
                                   {new Date(review.response.date).toLocaleDateString()}
                                 </span>
                               </div>
-                              <p className="text-blue-800">{review.response.message}</p>
+                              <p className={isDarkMode ? 'text-blue-200' : 'text-blue-800'}>
+                                {review.response.message}
+                              </p>
                             </div>
                           </div>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <button className="flex items-center space-x-1 hover:text-blue-600">
+                      <div className={`flex items-center justify-between mt-4 pt-4 border-t ${
+                        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                      }`}>
+                        <div className={`flex items-center space-x-4 text-sm ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          <button className="flex items-center space-x-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                             <ThumbsUp className="w-4 h-4" />
                             <span>Helpful</span>
                           </button>
                         </div>
-                        <button className="text-sm text-blue-600 hover:text-blue-800">
+                        <button className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                           Edit Review
                         </button>
                       </div>

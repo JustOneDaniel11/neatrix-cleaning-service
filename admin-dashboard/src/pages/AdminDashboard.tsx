@@ -7,11 +7,8 @@ import { useDarkMode } from '../contexts/DarkModeContext';
 import { supabase } from '../lib/supabase';
 import MessengerOrderTracking from '../components/MessengerOrderTracking';
 import NotificationsPage from '../components/NotificationsPage';
-import AdminLiveChat from './AdminLiveChat';
 import LaundryPage from '../components/LaundryPage';
 import IntegratedLiveChat from '../components/IntegratedLiveChat';
-
-import LiveSupportChat from './LiveSupportChat';
 import { 
   Users, 
   Calendar, 
@@ -122,6 +119,7 @@ export default function AdminDashboard() {
     deleteAdminNotification,
     markNotificationAsRead,
     createAdminNotification,
+    createTestNotifications,
     fetchLaundryOrders,
     fetchPayments,
     fetchSubscriptions,
@@ -197,6 +195,10 @@ export default function AdminDashboard() {
   const [showSubscriptionActions, setShowSubscriptionActions] = useState<string | null>(null);
   const [subscriptionAction, setSubscriptionAction] = useState<'pause' | 'resume' | 'cancel' | null>(null);
   const [showSubscriptionConfirm, setShowSubscriptionConfirm] = useState(false);
+
+  // Review modal state
+  const [selectedReview, setSelectedReview] = useState<any>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   
   // Toast hook
   const { toast } = useToast();
@@ -233,13 +235,11 @@ export default function AdminDashboard() {
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('all');
   const [isUpdatingDeliveryStatus, setIsUpdatingDeliveryStatus] = useState(false);
 
-  // Calculate unread support messages count
-  const unreadSupportMessagesCount = React.useMemo(() => {
-    const supportMessages = state.supportMessages || [];
-    return supportMessages.filter(message => 
-      message.sender_type === 'user' && !message.is_read
-    ).length;
-  }, [state.supportMessages]);
+  // Laundry order selection for notification clicks
+  const [selectedLaundryOrderId, setSelectedLaundryOrderId] = useState<string | null>(null);
+  const [autoOpenLaundryModal, setAutoOpenLaundryModal] = useState(false);
+
+  // Note: Support messages now create admin notifications, so we don't need separate counting
 
   // Authentication is now handled by AuthGuard component
 
@@ -419,10 +419,12 @@ export default function AdminDashboard() {
 
   // Handle notification actions
   const handleMarkAsRead = async (notificationId: string) => {
+    console.log('📖 Marking notification as read:', notificationId);
     try {
       await markNotificationAsRead(notificationId);
+      console.log('✅ Successfully marked notification as read:', notificationId);
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('❌ Error marking notification as read:', error);
     }
   };
 
@@ -1888,24 +1890,189 @@ export default function AdminDashboard() {
     );
   };
 
-  const renderContactMessages = () => {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Live Support Chat</h2>
-            <p className="text-gray-600 dark:text-gray-400">View and reply to all user support messages</p>
-          </div>
-        </div>
-        <LiveSupportChat />
-      </div>
-    );
-  };
+
 
   const renderNotifications = () => {
     const handleNotificationClick = (notification: AdminNotification) => {
+      console.log('🔔 Notification clicked:', notification);
+      
       // Mark notification as read
       handleMarkAsRead(notification.id);
+      
+      // Check if this is a review notification with a review ID
+      if (notification.type === 'review' && notification.action_label?.startsWith('review_id:')) {
+        const reviewId = notification.action_label.replace('review_id:', '');
+        console.log('⭐ Extracted review ID:', reviewId);
+        
+        // Debug: Log current state of reviews
+        console.log('📊 Current reviews in state:', {
+          count: state.reviews.length,
+          reviewIds: state.reviews.map(r => r.id),
+          targetReviewId: reviewId,
+          reviewsWithSimilarIds: state.reviews.filter(r => r.id.includes(reviewId.slice(-8)))
+        });
+        
+        // Find the review in the current state
+        const review = state.reviews.find(r => r.id === reviewId);
+        console.log('🔍 Found review in state:', review);
+        
+        if (review) {
+          console.log('✅ Opening review modal for review:', review.id);
+          console.log('🎯 Setting selectedReview and showReviewModal');
+          
+          // Set the review modal states to open the modal
+          setSelectedReview(review);
+          setShowReviewModal(true);
+          
+          // Navigate to reviews page
+          console.log('⭐ Navigating to reviews section');
+          setActiveTab('reviews');
+          navigate(TAB_ROUTES['reviews']);
+          
+          return;
+        } else {
+          console.log('❌ Review not found in state');
+          console.log('🔄 Attempting to refetch reviews...');
+          
+          // Try to refetch reviews in case they're not loaded
+          fetchReviews().then(() => {
+            console.log('🔄 Reviews refetched, checking again...');
+            const refreshedReview = state.reviews.find(r => r.id === reviewId);
+            if (refreshedReview) {
+              console.log('✅ Found review after refetch:', refreshedReview.id);
+              setSelectedReview(refreshedReview);
+              setShowReviewModal(true);
+              setActiveTab('reviews');
+              navigate(TAB_ROUTES['reviews']);
+            } else {
+              console.log('❌ Review still not found after refetch');
+            }
+          }).catch(error => {
+            console.error('❌ Error refetching reviews:', error);
+          });
+        }
+      }
+      
+      // Check if this is a laundry/dry cleaning notification with a booking ID
+      if ((notification.type === 'laundry' || notification.type === 'dry_cleaning' || notification.type === 'booking') && notification.action_label?.startsWith('booking_id:')) {
+        const bookingId = notification.action_label.replace('booking_id:', '');
+        console.log('📋 Extracted booking ID:', bookingId);
+        
+        // Debug: Log current state of bookings
+        console.log('📊 Current bookings in state:', {
+          count: state.bookings.length,
+          bookingIds: state.bookings.map(b => b.id),
+          targetBookingId: bookingId,
+          bookingsWithSimilarIds: state.bookings.filter(b => b.id.includes(bookingId.slice(-8)))
+        });
+        
+        // Find the booking in the current state
+        const booking = state.bookings.find(b => b.id === bookingId);
+        console.log('🔍 Found booking in state:', booking);
+        
+        if (booking) {
+          console.log('✅ Opening laundry order for booking:', booking.id);
+          console.log('🎯 Setting selectedLaundryOrderId to:', booking.id);
+          console.log('🎯 Setting autoOpenLaundryModal to true');
+          
+          // Set the laundry order states to auto-open the modal
+          setSelectedLaundryOrderId(booking.id);
+          setAutoOpenLaundryModal(true);
+          
+          // Navigate to laundry page
+          console.log('👕 Navigating to laundry section');
+          setActiveTab('laundry');
+          navigate(TAB_ROUTES['laundry']);
+          
+          // Reset the auto-open flag after a short delay to allow the LaundryPage to process it
+          setTimeout(() => {
+            setAutoOpenLaundryModal(false);
+          }, 1000);
+          return;
+        } else {
+          console.log('❌ Booking not found in state');
+          console.log('🔄 Attempting to refetch bookings...');
+          
+          // Try to refetch bookings in case they're not loaded
+          fetchAllBookings().then(() => {
+            console.log('🔄 Bookings refetched, checking again...');
+            const refreshedBooking = state.bookings.find(b => b.id === bookingId);
+            if (refreshedBooking) {
+              console.log('✅ Found booking after refetch:', refreshedBooking.id);
+              setSelectedLaundryOrderId(refreshedBooking.id);
+              setAutoOpenLaundryModal(true);
+              setActiveTab('laundry');
+              navigate(TAB_ROUTES['laundry']);
+              
+              // Reset the auto-open flag after a short delay
+              setTimeout(() => {
+                setAutoOpenLaundryModal(false);
+              }, 1000);
+            } else {
+              console.log('❌ Booking still not found after refetch');
+            }
+          }).catch(error => {
+            console.error('❌ Error refetching bookings:', error);
+          });
+        }
+      }
+      
+      // Check if this is a support notification with a ticket ID
+      if (notification.type === 'support' && notification.action_label?.startsWith('ticket_id:')) {
+        const ticketId = notification.action_label.replace('ticket_id:', '');
+        console.log('🎫 Extracted ticket ID:', ticketId);
+        
+        // Debug: Log current state of support tickets
+        console.log('📊 Current support tickets in state:', {
+          count: state.supportTickets.length,
+          ticketIds: state.supportTickets.map(t => t.id),
+          targetTicketId: ticketId,
+          ticketsWithSimilarIds: state.supportTickets.filter(t => t.id.includes(ticketId.slice(-8)))
+        });
+        
+        // Find the ticket in the current state
+        const ticket = state.supportTickets.find(t => t.id === ticketId);
+        console.log('🔍 Found ticket in state:', ticket);
+        
+        if (ticket) {
+          console.log('✅ Opening livechat for ticket:', ticket.id);
+          console.log('🎯 Setting selectedTicketId and navigating to livechat');
+          
+          // Navigate to livechat page - the livechat component should handle opening the specific ticket
+          setActiveTab('livechat');
+          navigate(TAB_ROUTES['livechat']);
+          
+          // Store the ticket ID in localStorage so the livechat component can pick it up
+          localStorage.setItem('openTicketId', ticketId);
+          
+          return;
+        } else {
+          console.log('❌ Ticket not found in state');
+          console.log('🔄 Attempting to refetch support tickets...');
+          
+          // Try to refetch support tickets in case they're not loaded
+          fetchSupportTickets().then(() => {
+            console.log('🔄 Support tickets refetched, checking again...');
+            const refreshedTicket = state.supportTickets.find(t => t.id === ticketId);
+            if (refreshedTicket) {
+              console.log('✅ Found ticket after refetch:', refreshedTicket.id);
+              setActiveTab('livechat');
+              navigate(TAB_ROUTES['livechat']);
+              localStorage.setItem('openTicketId', ticketId);
+            } else {
+              console.log('❌ Ticket still not found after refetch');
+              // Still navigate to livechat page even if ticket not found
+              setActiveTab('livechat');
+              navigate(TAB_ROUTES['livechat']);
+            }
+          }).catch(error => {
+            console.error('❌ Error refetching support tickets:', error);
+            // Still navigate to livechat page even if error
+            setActiveTab('livechat');
+            navigate(TAB_ROUTES['livechat']);
+          });
+        }
+      }
       
       // Use action URL if available, otherwise fall back to type-based routing
       if (notification.action_url) {
@@ -1951,9 +2118,12 @@ export default function AdminDashboard() {
           navigate(TAB_ROUTES['users']);
           break;
         case 'complaint':
-        case 'support':
           setActiveTab('contacts');
           navigate(TAB_ROUTES['contacts']);
+          break;
+        case 'support':
+          setActiveTab('livechat');
+          navigate(TAB_ROUTES['livechat']);
           break;
         case 'review':
           setActiveTab('reviews');
@@ -1974,10 +2144,26 @@ export default function AdminDashboard() {
       }
     };
 
+    const handleCreateTestNotifications = async () => {
+      try {
+        await createTestNotifications();
+        console.log('✅ Test notifications created successfully');
+      } catch (error) {
+        console.error('❌ Error creating test notifications:', error);
+      }
+    };
+
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h2>
+          <button
+            onClick={handleCreateTestNotifications}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <Bell className="w-4 h-4" />
+            Create Test Notifications
+          </button>
         </div>
         <NotificationsPage
           notifications={state.adminNotifications || []}
@@ -3142,83 +3328,60 @@ export default function AdminDashboard() {
             </div>
           ) : (
             state.reviews.slice(0, 10).map((review) => (
-              <div key={review.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
+              <div 
+                key={review.id} 
+                onClick={() => {
+                  setSelectedReview(review);
+                  setShowReviewModal(true);
+                }}
+                className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
                     <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                      <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
                         {review.customerName?.charAt(0).toUpperCase() || 'U'}
                       </span>
                     </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{review.customerName || 'Unknown Customer'}</p>
-                        <div className="flex items-center mt-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={`${review.id}-star-${i}`}
-                              className={`w-4 h-4 ${
-                                i < review.rating
-                                  ? 'text-yellow-400 fill-current'
-                                  : 'text-gray-300 dark:text-gray-600'
-                              }`}
-                            />
-                          ))}
-                          <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                            {review.rating}/5
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {formatDate(review.created_at)}
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                        {review.customerName || 'Unknown Customer'}
+                      </h4>
+                      <div className="flex items-center mt-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={`${review.id}-star-${i}`}
+                            className={`w-4 h-4 ${
+                              i < review.rating
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300 dark:text-gray-600'
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                          {review.rating}/5
                         </span>
-                        <div className="mt-1">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            review.status === 'approved'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : review.status === 'rejected'
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                          }`}>
-                            {review.status}
-                          </span>
-                        </div>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{review.comment}</p>
-                    <div className="flex items-center justify-between mt-3">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Service: {review.serviceName || 'Unknown Service'}
-                      </div>
-                      <div className="flex space-x-2">
-                        {review.status === 'pending' && (
-                          <>
-                            <button 
-                              onClick={() => handleApproveReview(review.id)}
-                              className="flex items-center space-x-1 text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 text-xs transition-colors"
-                            >
-                              <ThumbsUp className="w-3 h-3" />
-                              <span>Approve</span>
-                            </button>
-                            <button 
-                              onClick={() => handleRejectReview(review.id)}
-                              className="flex items-center space-x-1 text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 text-xs transition-colors"
-                            >
-                              <ThumbsDown className="w-3 h-3" />
-                              <span>Reject</span>
-                            </button>
-                          </>
-                        )}
-                        <button className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 text-xs">
-                          View Details
-                        </button>
-                      </div>
-                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      review.status === 'approved'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : review.status === 'rejected'
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                    }`}>
+                      {review.status.charAt(0).toUpperCase() + review.status.slice(1)}
+                    </span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {formatDate(review.created_at)}
+                    </p>
                   </div>
                 </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 truncate">
+                  "{review.comment}"
+                </p>
               </div>
             ))
           )}
@@ -3226,6 +3389,127 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
+
+  // Review Modal Component
+  const ReviewModal = () => {
+    if (!selectedReview || !showReviewModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Review Details
+              </h3>
+              <button
+                onClick={() => {
+                  setShowReviewModal(false);
+                  setSelectedReview(null);
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Customer Info */}
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                <span className="text-xl font-semibold text-gray-600 dark:text-gray-300">
+                  {selectedReview.customerName?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {selectedReview.customerName || 'Unknown Customer'}
+                </h4>
+                <div className="flex items-center mt-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={`modal-star-${i}`}
+                      className={`w-5 h-5 ${
+                        i < selectedReview.rating
+                          ? 'text-yellow-400 fill-current'
+                          : 'text-gray-300 dark:text-gray-600'
+                      }`}
+                    />
+                  ))}
+                  <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {selectedReview.rating}/5 Stars
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {formatDate(selectedReview.created_at)}
+                </p>
+              </div>
+            </div>
+
+            {/* Review Content */}
+            <div className="mb-6">
+              <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Review Comment:</h5>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                  "{selectedReview.comment}"
+                </p>
+              </div>
+            </div>
+
+            {/* Service Info */}
+            <div className="mb-6">
+              <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Service:</h5>
+              <p className="text-gray-800 dark:text-gray-200">
+                {selectedReview.serviceName || 'Unknown Service'}
+              </p>
+            </div>
+
+            {/* Status */}
+            <div className="mb-6">
+              <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status:</h5>
+              <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                selectedReview.status === 'approved'
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  : selectedReview.status === 'rejected'
+                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+              }`}>
+                {selectedReview.status.charAt(0).toUpperCase() + selectedReview.status.slice(1)}
+              </span>
+            </div>
+
+            {/* Action Buttons - only show for pending reviews */}
+            {selectedReview.status === 'pending' && (
+              <div className="flex space-x-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                <button 
+                  onClick={() => {
+                    handleApproveReview(selectedReview.id);
+                    setShowReviewModal(false);
+                    setSelectedReview(null);
+                  }}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 shadow-sm"
+                >
+                  <ThumbsUp className="w-5 h-5" />
+                  <span className="font-medium">Approve Review</span>
+                </button>
+                <button 
+                  onClick={() => {
+                    handleRejectReview(selectedReview.id);
+                    setShowReviewModal(false);
+                    setSelectedReview(null);
+                  }}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 shadow-sm"
+                >
+                  <ThumbsDown className="w-5 h-5" />
+                  <span className="font-medium">Reject Review</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Show loading state during initial data fetch, but not if user is already authenticated
   if (state.loading && !state.isAuthenticated) {
@@ -3258,9 +3542,9 @@ export default function AdminDashboard() {
                 className="relative p-2 sm:p-2.5 text-gray-700 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg sm:rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] flex items-center justify-center touch-manipulation"
               >
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                {((state.unreadNotifications || 0) + unreadSupportMessagesCount) > 0 && (
+                {(state.unreadNotifications || 0) > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center font-medium text-[10px] sm:text-xs">
-                    {((state.unreadNotifications || 0) + unreadSupportMessagesCount) > 99 ? '99+' : ((state.unreadNotifications || 0) + unreadSupportMessagesCount)}
+                    {(state.unreadNotifications || 0) > 99 ? '99+' : (state.unreadNotifications || 0)}
                   </span>
                 )}
               </button>
@@ -3386,7 +3670,7 @@ export default function AdminDashboard() {
         {activeTab === 'notifications' && renderNotifications()}
         {activeTab === 'payments' && renderPayments()}
         {activeTab === 'subscriptions' && renderSubscriptions()}
-        {activeTab === 'laundry' && <LaundryPage />}
+        {activeTab === 'laundry' && <LaundryPage selectedOrderId={selectedLaundryOrderId} autoOpenModal={autoOpenLaundryModal} />}
         {activeTab === 'delivery' && renderDelivery()}
         {activeTab === 'reviews' && renderReviews()}
         {activeTab === 'tracking' && renderOrderTracking()}
@@ -3409,11 +3693,19 @@ export default function AdminDashboard() {
               </button>
             </div>
             <div className="overflow-y-auto max-h-[calc(95vh-60px)] sm:max-h-[calc(90vh-80px)]">
-              <PropertyInspectionDetails
-                booking={selectedBooking}
-                onBookingUpdate={handleOrderUpdate}
-                showToast={showToast}
-              />
+              {selectedBooking?.service_type === 'dry_cleaning' || selectedBooking?.service_type === 'wash_and_fold' ? (
+                <OrderDetails
+                  order={selectedBooking}
+                  onOrderUpdate={handleOrderUpdate}
+                  showToast={showToast}
+                />
+              ) : (
+                <PropertyInspectionDetails
+                  booking={selectedBooking}
+                  onBookingUpdate={handleOrderUpdate}
+                  showToast={showToast}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -3748,6 +4040,9 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Review Modal */}
+      <ReviewModal />
 
     </div>
   );

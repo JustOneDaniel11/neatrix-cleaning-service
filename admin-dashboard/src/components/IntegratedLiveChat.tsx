@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MessageCircle, Send, User, Clock, Wifi } from 'lucide-react';
+import { Search, MessageCircle, Send, User, Clock, Wifi, ArrowLeft } from 'lucide-react';
 import { useSupabaseData } from '@/contexts/SupabaseDataContext';
 
 // Type definitions from the context
@@ -39,12 +39,16 @@ const IntegratedLiveChat: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Supabase context - using existing data without refetching
   const { 
     state, 
-    sendSupportMessage 
+    sendSupportMessage,
+    updateSupportTicket 
   } = useSupabaseData();
 
   const { supportTickets, supportMessages, users } = state;
@@ -53,6 +57,38 @@ const IntegratedLiveChat: React.FC = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [supportMessages, selectedTicket]);
+
+  // Sync selectedTicket with updated data from context (only when supportTickets changes, not selectedTicket)
+  useEffect(() => {
+    if (selectedTicket) {
+      const updatedTicket = supportTickets.find(ticket => ticket.id === selectedTicket.id);
+      if (updatedTicket && updatedTicket.status !== selectedTicket.status) {
+        console.log('Syncing selectedTicket from context:', updatedTicket.status);
+        setSelectedTicket(updatedTicket);
+      }
+    }
+  }, [supportTickets]); // Removed selectedTicket dependency to prevent conflicts
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showStatusDropdown) {
+        setShowStatusDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showStatusDropdown]);
+
+  // Debug selectedTicket status changes
+  useEffect(() => {
+    if (selectedTicket) {
+      console.log('selectedTicket status changed:', selectedTicket.status, 'Ticket ID:', selectedTicket.id);
+    }
+  }, [selectedTicket?.status, selectedTicket?.id]);
 
   // Filter tickets based on search
   const filteredTickets = supportTickets.filter(ticket => {
@@ -95,6 +131,62 @@ const IntegratedLiveChat: React.FC = () => {
     }
   };
 
+  // Handle status change
+  const handleStatusChange = async (newStatus: string) => {
+    console.log('handleStatusChange called with:', newStatus);
+    setShowStatusDropdown(false);
+    
+    if (newStatus === 'resolved') {
+      console.log('Setting completion modal to true');
+      setShowCompletionModal(true);
+    } else {
+      console.log('Updating ticket status to:', newStatus);
+      await updateTicketStatus(newStatus);
+    }
+  };
+
+  // Update ticket status
+  const updateTicketStatus = async (status: string) => {
+    if (!selectedTicket) {
+      console.log('No selected ticket');
+      return;
+    }
+    
+    console.log('Updating ticket:', selectedTicket.id, 'to status:', status);
+    try {
+      await updateSupportTicket(selectedTicket.id, { status: status as any });
+      console.log('Ticket status updated successfully');
+      
+      // Update the local selectedTicket state to reflect the new status
+      console.log('Before state update - selectedTicket.status:', selectedTicket.status);
+      setSelectedTicket(prev => {
+        const updated = prev ? { ...prev, status: status as any } : null;
+        console.log('After state update - new selectedTicket.status:', updated?.status);
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error updating ticket status:', error);
+    }
+  };
+
+  // Handle completion confirmation
+  const handleCompletionConfirm = async () => {
+    setShowCompletionModal(false);
+    await updateTicketStatus('resolved');
+  };
+
+  // Get status label for display
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'resolved': return 'Completed';
+      case 'in_progress': return 'In Progress';
+      case 'pending': return 'Pending';
+      case 'open': return 'Open';
+      case 'closed': return 'Closed';
+      default: return status.replace('_', ' ');
+    }
+  };
+
   // Format time
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString([], { 
@@ -106,7 +198,7 @@ const IntegratedLiveChat: React.FC = () => {
   return (
     <div className="flex h-full bg-gray-900">
       {/* Left Panel - Conversations List */}
-      <div className="w-1/3 border-r border-gray-700 flex flex-col bg-gray-800">
+      <div className={`${showMobileChat ? 'hidden' : 'block'} w-full md:w-1/3 border-r border-gray-700 flex flex-col bg-gray-800`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center justify-between mb-4">
@@ -148,7 +240,10 @@ const IntegratedLiveChat: React.FC = () => {
                 return (
                   <button
                     key={ticket.id}
-                    onClick={() => setSelectedTicket(ticket)}
+                    onClick={() => {
+                      setSelectedTicket(ticket);
+                      setShowMobileChat(true);
+                    }}
                     className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
                       selectedTicket?.id === ticket.id
                         ? 'bg-blue-600 border border-blue-500'
@@ -193,12 +288,19 @@ const IntegratedLiveChat: React.FC = () => {
       </div>
 
       {/* Right Panel - Chat Area */}
-      <div className="flex-1 flex flex-col bg-gray-900">
+      <div className={`${showMobileChat ? 'block' : 'hidden md:block'} w-full md:flex-1 flex flex-col bg-gray-900`}>
         {selectedTicket ? (
           <>
             {/* Chat Header */}
             <div className="p-4 border-b border-gray-700 bg-gray-800">
               <div className="flex items-center gap-3">
+                {/* Mobile Back Button */}
+                <button
+                  onClick={() => setShowMobileChat(false)}
+                  className="md:hidden p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-300" />
+                </button>
                 <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
                   <User className="w-5 h-5 text-gray-300" />
                 </div>
@@ -208,15 +310,62 @@ const IntegratedLiveChat: React.FC = () => {
                   </h3>
                   <p className="text-sm text-gray-400">{selectedTicket.subject}</p>
                 </div>
-                <div className="ml-auto">
-                  <span className={`px-3 py-1 text-xs rounded-full ${
-                    selectedTicket.status === 'open' ? 'bg-green-900 text-green-200' :
-                    selectedTicket.status === 'in_progress' ? 'bg-blue-900 text-blue-200' :
-                    selectedTicket.status === 'resolved' ? 'bg-purple-900 text-purple-200' :
-                    'bg-gray-600 text-gray-200'
-                  }`}>
-                    {selectedTicket.status.replace('_', ' ')}
-                  </span>
+                <div className="ml-auto relative">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowStatusDropdown(!showStatusDropdown);
+                      console.log('Status button clicked, current status:', selectedTicket.status);
+                    }}
+                    className={`px-3 py-1 text-xs rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
+                      selectedTicket.status === 'open' ? 'bg-green-900 text-green-200' :
+                      selectedTicket.status === 'in_progress' ? 'bg-blue-900 text-blue-200' :
+                      selectedTicket.status === 'resolved' ? 'bg-purple-900 text-purple-200' :
+                      'bg-gray-600 text-gray-200'
+                    }`}
+                  >
+                    {getStatusLabel(selectedTicket.status)}
+                  </button>
+                  {showStatusDropdown && (
+                    <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px]">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange('open');
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 first:rounded-t-lg"
+                      >
+                        Open
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange('in_progress');
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-gray-50"
+                      >
+                        In Progress
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange('pending');
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-gray-50"
+                      >
+                        Pending
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange('resolved');
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 last:rounded-b-lg"
+                      >
+                        Completed
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -277,6 +426,34 @@ const IntegratedLiveChat: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Completion Confirmation Modal */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Complete Chat Session</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to mark this chat as completed? This action will close the conversation.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowCompletionModal(false)}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCompletionConfirm}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Complete Chat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

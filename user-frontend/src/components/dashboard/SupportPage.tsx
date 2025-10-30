@@ -187,7 +187,7 @@ const SupportPage: React.FC = () => {
     try {
       await createReview({
         user_id: currentUser.id,
-        booking_id: '',
+        booking_id: null,
         rating: newReview.rating,
         comment: newReview.comment.trim(),
         service_type: newReview.service_type.trim(),
@@ -404,7 +404,7 @@ const SupportPage: React.FC = () => {
                         {(state as any).supportTickets.map((ticket: any) => {
                           const messagesForTicket = ((state as any).supportMessages || []).filter((m: any) => m.ticket_id === ticket.id);
                           const lastMsg = messagesForTicket.slice(-1)[0];
-                          const isOpen = ticket.status === 'open' || ticket.status === 'in_progress';
+                          const isOpen = ticket.status === 'open' || ticket.status === 'in_progress' || ticket.status === 'pending';
                           
                           return (
                             <button
@@ -450,7 +450,7 @@ const SupportPage: React.FC = () => {
                   <div className="p-4 border-b border-gray-200 dark:border-gray-800">
                     {(() => {
                       const selectedTicket = ((state as any).supportTickets || []).find((t: any) => t.id === ticketId);
-                      const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress';
+                      const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress' || selectedTicket?.status === 'pending';
                       
                       return (
                         <div className="flex items-center space-x-3">
@@ -513,7 +513,7 @@ const SupportPage: React.FC = () => {
                   {/* Mobile Message Input */}
                   {(() => {
                     const selectedTicket = ((state as any).supportTickets || []).find((t: any) => t.id === ticketId);
-                    const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress';
+                    const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress' || selectedTicket?.status === 'pending';
                     
                     return (
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
@@ -579,7 +579,7 @@ const SupportPage: React.FC = () => {
                       {(state as any).supportTickets.map((ticket: any) => {
                         const messagesForTicket = ((state as any).supportMessages || []).filter((m: any) => m.ticket_id === ticket.id);
                         const lastMsg = messagesForTicket.slice(-1)[0];
-                        const isOpen = ticket.status === 'open' || ticket.status === 'in_progress';
+                        const isOpen = ticket.status === 'open' || ticket.status === 'in_progress' || ticket.status === 'pending';
                         const isSelected = ticketId === ticket.id;
                         
                         return (
@@ -634,7 +634,7 @@ const SupportPage: React.FC = () => {
                     <div className="p-4 border-b border-gray-200 dark:border-gray-800">
                       {(() => {
                         const selectedTicket = ((state as any).supportTickets || []).find((t: any) => t.id === ticketId);
-                        const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress';
+                        const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress' || selectedTicket?.status === 'pending';
                         
                         return (
                           <div className="flex items-center justify-between">
@@ -697,7 +697,7 @@ const SupportPage: React.FC = () => {
                     {/* Message Input */}
                     {(() => {
                       const selectedTicket = ((state as any).supportTickets || []).find((t: any) => t.id === ticketId);
-                      const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress';
+                      const isOpen = selectedTicket?.status === 'open' || selectedTicket?.status === 'in_progress' || selectedTicket?.status === 'pending';
                       
                       return (
                         <div className="p-4 border-t border-gray-200 dark:border-gray-800">
@@ -801,18 +801,18 @@ const SupportPage: React.FC = () => {
 
             {/* Review Form */}
             {showReviewForm && (
-              <div className="border border-gray-200 rounded-lg p-4 sm:p-6 bg-gray-50">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Write Your Review</h3>
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 bg-gray-50 dark:bg-gray-800">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Write Your Review</h3>
                 
                 {/* Service Type */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Service Type
                   </label>
                   <select
                     value={newReview.service_type}
                     onChange={(e) => setNewReview({ ...newReview, service_type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="">Select a service</option>
                     <option value="Office Cleaning">Office Cleaning</option>
@@ -829,7 +829,7 @@ const SupportPage: React.FC = () => {
 
                 {/* Rating */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Rating
                   </label>
                   <div className="flex items-center space-x-1">
@@ -847,7 +847,7 @@ const SupportPage: React.FC = () => {
                         <Star className="h-6 w-6 fill-current" />
                       </button>
                     ))}
-                    <span className="ml-2 text-sm text-gray-600">
+                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">
                       {newReview.rating > 0 ? `${newReview.rating}/5` : 'Select rating'}
                     </span>
                   </div>
@@ -855,7 +855,7 @@ const SupportPage: React.FC = () => {
 
                 {/* Comment */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Your Review
                   </label>
                   <textarea
@@ -863,7 +863,7 @@ const SupportPage: React.FC = () => {
                     onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                     placeholder="Share your experience with our service..."
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                   />
                 </div>
 
@@ -875,7 +875,7 @@ const SupportPage: React.FC = () => {
                       setShowReviewForm(false);
                       setNewReview({ rating: 0, comment: '', service_type: '' });
                     }}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
                   >
                     Cancel
                   </button>

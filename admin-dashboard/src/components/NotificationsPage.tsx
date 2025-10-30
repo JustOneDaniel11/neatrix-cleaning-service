@@ -79,7 +79,8 @@ export default function NotificationsPage({
       case 'support': return { text: 'View Support Ticket', icon: AlertTriangle };
       case 'review': return { text: 'View Review Details', icon: Star };
       case 'delivery': return { text: 'View Delivery Details', icon: Truck };
-      case 'laundry': return { text: 'View Laundry Order', icon: Shirt };
+      case 'laundry': 
+      case 'dry_cleaning': return { text: 'View Order Details', icon: Shirt };
       default: return { text: 'View Details', icon: Eye };
     }
   };
@@ -165,6 +166,17 @@ export default function NotificationsPage({
     new Date(n.created_at).toDateString() === new Date().toDateString()
   ).length || 0;
 
+  // Separate counts by notification type
+  const reviewNotifications = notifications?.filter(n => n.type === 'review') || [];
+  const supportNotifications = notifications?.filter(n => n.type === 'support') || [];
+  const contactNotifications = notifications?.filter(n => n.type === 'contact') || [];
+  const otherNotifications = notifications?.filter(n => !['review', 'support', 'contact'].includes(n.type || '')) || [];
+
+  const reviewCount = reviewNotifications.length;
+  const supportCount = supportNotifications.length;
+  const contactCount = contactNotifications.length;
+  const otherCount = otherNotifications.length;
+
   return (
     <div className="w-full overflow-hidden space-y-4 sm:space-y-6">
       {/* Header */}
@@ -186,7 +198,7 @@ export default function NotificationsPage({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4">
           <div className="flex items-center">
             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
@@ -200,8 +212,45 @@ export default function NotificationsPage({
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4">
           <div className="flex items-center">
+            <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+              <Star className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Reviews</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{reviewCount}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4">
+          <div className="flex items-center">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <AlertTriangle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Support</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{supportCount}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Contact</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{contactCount}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+              <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</p>
@@ -211,12 +260,23 @@ export default function NotificationsPage({
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Today</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">{todayCount}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border dark:border-gray-700 p-4">
+          <div className="flex items-center">
+            <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Other</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{otherCount}</p>
             </div>
           </div>
         </div>
@@ -281,16 +341,6 @@ export default function NotificationsPage({
                             title="View details"
                           >
                             <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleActionClick(notification.action_url, notification.type);
-                            }}
-                            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                            title={getContextualActionText(notification.type || 'general').text}
-                          >
-                            <ExternalLink className="w-4 h-4" />
                           </button>
                           {notification.status === 'unread' && (
                             <button

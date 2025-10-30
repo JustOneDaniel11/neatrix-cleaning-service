@@ -8,8 +8,6 @@ import AuthGuard from './components/AuthGuard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLoginAdvanced from './pages/AdminLoginAdvanced';
 import AdminResetPassword from './pages/AdminResetPassword';
-import AdminLiveChat from './pages/AdminLiveChat';
-import LiveSupportChat from './pages/LiveSupportChat';
 import './index.css';
 import { Toaster } from './components/ui/toaster';
 

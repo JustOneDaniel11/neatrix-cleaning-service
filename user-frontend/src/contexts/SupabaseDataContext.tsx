@@ -261,6 +261,7 @@ export interface Review {
   comment: string;
   created_at: string;
   service_type: string;
+  status: 'pending' | 'approved' | 'rejected';
   // Computed fields
   user_name?: string;
 }
@@ -1803,13 +1804,17 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const createReview = async (review: Omit<Review, 'id' | 'created_at' | 'user_name'>) => {
+  const createReview = async (review: Omit<Review, 'id' | 'created_at' | 'user_name' | 'status'>) => {
     if (!state.authUser) throw new Error('User not authenticated');
 
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const payload = { ...review, user_id: review.user_id || state.authUser.id } as Omit<Review, 'id' | 'created_at' | 'user_name'> & { user_id: string };
+      const payload = { 
+        ...review, 
+        user_id: review.user_id || state.authUser.id,
+        status: 'pending' as const
+      } as Omit<Review, 'id' | 'created_at' | 'user_name'> & { user_id: string };
 
       const { data, error } = await supabase
         .from('reviews')

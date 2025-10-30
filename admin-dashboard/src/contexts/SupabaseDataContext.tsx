@@ -496,6 +496,7 @@ interface SupabaseDataContextType {
   deleteAdminNotification: (id: string) => Promise<void>;
   markNotificationAsRead: (id: string) => Promise<void>;
   createAdminNotification: (payload: { title: string; message: string; type?: string; priority?: string; action_url?: string; action_label?: string }) => Promise<void>;
+  createTestNotifications: () => Promise<void>;
   updateSupportTicket: (id: string, updates: Partial<SupportTicket>) => Promise<void>;
   sendSupportMessage: (payload: Omit<SupportMessage, 'id' | 'created_at'>) => Promise<void>;
   markMessageAsRead: (id: string) => Promise<void>;
@@ -792,7 +793,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
                 message: `New ${newTicket.priority || 'normal'} priority ticket: ${newTicket.subject || 'No subject'}`,
                 type: 'support',
                 priority: priority,
-                action_url: '/admin/support'
+                action_url: '/livechat',
+                action_label: `ticket_id:${newTicket.id}`
               });
             } catch (error) {
               console.error('Failed to create support ticket notification:', error);
@@ -806,10 +808,27 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           if (mounted) debounceFetch('support_tickets', fetchSupportTickets);
         })
         // Support messages
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, async (payload) => {
           if (mounted && payload.new) {
             // Immediate UI update for new messages - no debounced fetch to avoid race condition
             dispatch({ type: 'ADD_SUPPORT_MESSAGE', payload: payload.new as SupportMessage });
+            
+            // Create admin notification for new support message from users (not admin responses)
+            try {
+              const newMessage = payload.new as SupportMessage;
+              if (newMessage.sender_type === 'user') {
+                await createAdminNotification({
+                  title: 'New Support Message',
+                  message: `New message received in support ticket ${newMessage.ticket_id.slice(-6).toUpperCase()}`,
+                  type: 'support',
+                  priority: 'medium',
+                  action_url: '/livechat',
+                  action_label: `ticket_id:${newMessage.ticket_id}`
+                });
+              }
+            } catch (error) {
+              console.error('Failed to create support message notification:', error);
+            }
           }
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'support_messages' }, () => {
@@ -994,7 +1013,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
                 message: `New ${newReview.rating}-star review from ${newReview.customerName || 'customer'}`,
                 type: 'review',
                 priority: newReview.rating <= 2 ? 'high' : 'medium',
-                action_url: '/admin/reviews'
+                action_url: '/admin/reviews',
+                action_label: `review_id:${newReview.id}`
               });
             } catch (error) {
               console.error('Failed to create review notification:', error);
@@ -1006,6 +1026,72 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reviews' }, () => {
           if (mounted) debounceFetch('reviews', fetchReviews);
+        })
+        // Users (signup notifications)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('users', fetchAllUsers);
+            
+            // Create admin notification for new user signup
+            try {
+              const newUser = payload.new as User;
+              await createAdminNotification({
+                title: 'New User Signup',
+                message: `New user registered: ${newUser.full_name || newUser.email || 'Unknown user'}`,
+                type: 'signup',
+                priority: 'low',
+                action_url: '/admin/customers',
+                action_label: `user_id:${newUser.id}`
+              });
+            } catch (error) {
+              console.error('Failed to create signup notification:', error);
+            }
+          }
+        })
+        // Payments
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('payments', fetchPayments);
+            
+            // Create admin notification for new payment
+            try {
+              const newPayment = payload.new as Payment;
+              await createAdminNotification({
+                title: 'New Payment Received',
+                message: `Payment of $${newPayment.amount} received from user ${newPayment.user_id.slice(-6).toUpperCase()}`,
+                type: 'payment',
+                priority: 'medium',
+                action_url: '/admin/payments',
+                action_label: `payment_id:${newPayment.id}`
+              });
+            } catch (error) {
+              console.error('Failed to create payment notification:', error);
+            }
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'payments' }, async (payload) => {
+          if (mounted) {
+            debounceFetch('payments', fetchPayments);
+            
+            // Create admin notification for payment status changes
+            try {
+              const updatedPayment = payload.new as Payment;
+              const oldPayment = payload.old as Payment;
+              
+              if (oldPayment.status !== updatedPayment.status && updatedPayment.status === 'failed') {
+                await createAdminNotification({
+                  title: 'Payment Failed',
+                  message: `Payment of $${updatedPayment.amount} failed for user ${updatedPayment.user_id.slice(-6).toUpperCase()}`,
+                  type: 'payment',
+                  priority: 'high',
+                  action_url: '/admin/payments',
+                  action_label: `payment_id:${updatedPayment.id}`
+                });
+              }
+            } catch (error) {
+              console.error('Failed to create payment update notification:', error);
+            }
+          }
         })
         .subscribe((status) => {
           if (!mounted) return;
@@ -1778,12 +1864,24 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
       
       const { data, error } = await supabase
         .from('reviews')
-        .select('*')
+        .select(`
+          *,
+          users!inner(
+            id,
+            full_name,
+            email
+          )
+        `)
         .order('created_at', { ascending: false })
         .abortSignal(reviewsAbortControllerRef.current.signal);
       
       if (!error) {
-        dispatch({ type: 'SET_REVIEWS', payload: data || [] });
+        // Map the data to include customerName from the joined users table
+        const reviewsWithCustomerNames = (data || []).map(review => ({
+          ...review,
+          customerName: review.users?.full_name || review.customerName || 'Unknown Customer'
+        }));
+        dispatch({ type: 'SET_REVIEWS', payload: reviewsWithCustomerNames });
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') {
@@ -1913,7 +2011,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
               message: notificationMessage,
               type: notificationType,
               priority: priority,
-              action_url: actionUrl
+              action_url: actionUrl,
+              action_label: `booking_id:${id}` // Include booking ID for opening specific order details
             });
           } catch (notificationError) {
             console.error('Failed to create admin notification:', notificationError);
@@ -2063,6 +2162,108 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     debounceFetch('admin_notifications', fetchAdminNotifications);
   };
 
+  const createTestNotifications = async () => {
+    try {
+      console.log('Creating test notifications for all types...');
+      
+      // Test notifications for all types
+      const testNotifications = [
+        {
+          title: 'New Booking Received',
+          message: 'John Doe has booked a Standard Cleaning service for Dec 25, 2024',
+          type: 'booking',
+          priority: 'high',
+          action_url: '/laundry',
+          action_label: 'booking_id:test-booking-123'
+        },
+        {
+          title: 'New Laundry Order',
+          message: 'Jane Smith has placed a new laundry order (5 items)',
+          type: 'laundry',
+          priority: 'medium',
+          action_url: '/laundry',
+          action_label: 'booking_id:test-laundry-456'
+        },
+        {
+          title: 'New Dry Cleaning Order',
+          message: 'Mike Johnson has placed a dry cleaning order (3 suits)',
+          type: 'dry_cleaning',
+          priority: 'medium',
+          action_url: '/laundry',
+          action_label: 'booking_id:test-dry-789'
+        },
+        {
+          title: 'New Review Submitted',
+          message: 'Sarah Wilson left a 5-star review for her recent cleaning service',
+          type: 'review',
+          priority: 'low',
+          action_url: '/reviews',
+          action_label: 'review_id:test-review-101'
+        },
+        {
+          title: 'New Support Ticket',
+          message: 'Customer needs help with rescheduling their appointment',
+          type: 'support',
+          priority: 'high',
+          action_url: '/livechat',
+          action_label: 'ticket_id:test-ticket-202'
+        },
+        {
+          title: 'New User Signup',
+          message: 'Alex Brown has created a new account',
+          type: 'signup',
+          priority: 'low',
+          action_url: '/customers',
+          action_label: 'user_id:test-user-303'
+        },
+        {
+          title: 'Payment Received',
+          message: 'Payment of $150.00 received from Emma Davis',
+          type: 'payment',
+          priority: 'medium',
+          action_url: '/payments',
+          action_label: 'payment_id:test-payment-404'
+        },
+        {
+          title: 'Payment Failed',
+          message: 'Payment of $200.00 failed for Robert Miller - card declined',
+          type: 'payment',
+          priority: 'high',
+          action_url: '/payments',
+          action_label: 'payment_id:test-payment-505'
+        },
+        {
+          title: 'New Subscription',
+          message: 'Lisa Anderson subscribed to the Premium Monthly plan',
+          type: 'subscription',
+          priority: 'medium',
+          action_url: '/subscriptions',
+          action_label: 'subscription_id:test-sub-606'
+        },
+        {
+          title: 'Subscription Cancelled',
+          message: 'Tom Wilson cancelled his Weekly Basic subscription',
+          type: 'subscription',
+          priority: 'medium',
+          action_url: '/subscriptions',
+          action_label: 'subscription_id:test-sub-707'
+        }
+      ];
+
+      // Create all test notifications
+      for (const notification of testNotifications) {
+        await createAdminNotification(notification);
+        // Small delay to ensure proper ordering
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      console.log('All test notifications created successfully!');
+    } catch (error) {
+      console.error('Error creating test notifications:', error);
+      throw error;
+    }
+  };
+
   // Review management
   const updateReview = async (id: string, updates: Partial<Review>) => {
     const { error } = await supabase.from('reviews').update(updates).eq('id', id);
@@ -2139,6 +2340,7 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
     deleteAdminNotification,
     markNotificationAsRead,
     createAdminNotification,
+    createTestNotifications,
     updateSupportTicket,
     sendSupportMessage,
     markMessageAsRead,

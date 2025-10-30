@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSupabaseData } from '../contexts/SupabaseDataContext';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { useToast } from '../hooks/use-toast';
@@ -62,12 +62,28 @@ interface LaundryOrder {
   tracking_history?: any;
 }
 
-export default function LaundryPage() {
+interface LaundryPageProps {
+  selectedOrderId?: string;
+  autoOpenModal?: boolean;
+}
+
+export default function LaundryPage({ selectedOrderId, autoOpenModal }: LaundryPageProps = {}) {
   const { state, fetchLaundryOrders } = useSupabaseData();
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<LaundryOrder | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Auto-open modal when selectedOrderId is provided
+  useEffect(() => {
+    if (selectedOrderId && autoOpenModal && state.laundryOrders.length > 0) {
+      const order = state.laundryOrders.find(o => o.id === selectedOrderId || o.booking_id === selectedOrderId);
+      if (order) {
+        setSelectedOrder(order);
+        setShowOrderModal(true);
+      }
+    }
+  }, [selectedOrderId, autoOpenModal, state.laundryOrders]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
