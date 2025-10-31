@@ -91,6 +91,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
     const pickupOption = data.pickup_option || 'pickup';
     const stageTimestamps = data.stage_timestamps || {};
     const stageNotes = data.stage_notes || {};
+    
     // Choose sensible default stage based on booking status
     if (!currentStage) {
       const status = (booking.status || '').toLowerCase();
@@ -103,10 +104,14 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
       }
     }
     
-    // Intake stage (Picked Up / Dropped Off)
-    const intakeStage = [
-      { name: 'intake', label: 'Picked Up / Dropped Off' }
-    ];
+    // Dynamic first stage based on pickup_option
+    // Only show if tracking has started (tracking_stage exists)
+    const intakeStage = data.tracking_stage ? [
+      { 
+        name: 'intake', 
+        label: pickupOption === 'pickup' ? 'Picked Up' : 'Dropped Off'
+      }
+    ] : [];
 
     // Define the standard processing stages
     const standardStages = [
@@ -148,9 +153,19 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
 
   // Create fallback tracking stages when database function is not available
   const createFallbackTrackingStages = (): TrackingStage[] => {
-    // Intake + processing stages
-    const intakeAndProcessing = [
-      { name: 'intake', label: 'Picked Up / Dropped Off' },
+    const pickupOption = (booking as any).pickup_option || 'pickup';
+    const hasTrackingStage = (booking as any).tracking_stage;
+    
+    // Dynamic first stage - only show if tracking has started
+    const intakeStage = hasTrackingStage ? [
+      { 
+        name: 'intake', 
+        label: pickupOption === 'pickup' ? 'Picked Up' : 'Dropped Off'
+      }
+    ] : [];
+    
+    // Processing stages
+    const processingStages = [
       { name: 'sorting', label: 'Sorting' },
       { name: 'stain_removing', label: 'Stain Removal' },
       { name: 'washing', label: 'Washing' },
@@ -159,9 +174,8 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
       { name: 'packing', label: 'Packing' }
     ];
 
-    // Choose branch based on pickup_option (if available on booking)
-    const pickupOption = (booking as any).pickup_option || 'pickup';
-    const branch = pickupOption === 'pickup'
+    // Choose branch based on pickup_option
+    const finalStages = pickupOption === 'pickup'
       ? [
           { name: 'ready_for_pickup', label: 'Ready for Pickup' },
           { name: 'picked_up', label: 'Picked Up' }
@@ -171,20 +185,22 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
           { name: 'delivered', label: 'Delivered' }
         ];
 
-    const allStages = [...intakeAndProcessing, ...branch];
+    const allStages = [...intakeStage, ...processingStages, ...finalStages];
     
-    // For fallback, show first stage as current and rest as pending
+    // For fallback, show appropriate stages as completed based on tracking status
     const isCompleted = (booking.status || '').toLowerCase() === 'completed';
+    const hasStartedTracking = hasTrackingStage;
+    
     return allStages.map((stage, index) => ({
       stage_name: stage.name,
       stage_label: stage.label,
-      completed: isCompleted ? true : index === 0,
+      completed: isCompleted ? true : (hasStartedTracking && index === 0),
       timestamp: isCompleted && index === allStages.length - 1
         ? (booking as any).updated_at || booking.created_at
-        : (index === 0 ? booking.created_at : null),
+        : (hasStartedTracking && index === 0 ? booking.created_at : null),
       notes: isCompleted && index === allStages.length - 1
         ? 'Order completed'
-        : (index === 0 ? 'Order received and processing started' : '')
+        : (hasStartedTracking && index === 0 ? 'Order received and processing started' : '')
     }));
   };
 
@@ -342,7 +358,8 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
         booking_id: booking.id,
         rating: typeof rating === 'number' ? rating : 5,
         comment: reviewText.trim(),
-        service_type: booking.service_type
+        service_type: booking.service_type,
+        status: 'pending'
       });
       handleCloseReview();
       alert('Thanks! Your review has been submitted for approval.');
@@ -367,23 +384,23 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Order #{booking.id.slice(-6).toUpperCase()}
             </h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               {booking.service_name} • {new Date(booking.service_date).toLocaleDateString()}
             </p>
           </div>
           <div className="mt-2 sm:mt-0">
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
               progressPercentage === 100 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-blue-100 text-blue-800'
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' 
+                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
             }`}>
               {progressPercentage === 100 ? 'Completed' : 'In Progress'}
             </span>
@@ -391,20 +408,20 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
         </div>
 
         {/* Current Stage Info */}
-        <div className="bg-white rounded-lg p-4 border border-gray-100 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-100 dark:border-gray-600 mb-6 shadow-sm">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               {progressPercentage === 100 ? (
-                <CheckCircle className="w-6 h-6 text-green-500" />
+                <CheckCircle className="w-6 h-6 text-green-500 dark:text-green-400" />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center animate-pulse">
+                <div className="w-6 h-6 rounded-full bg-purple-500 dark:bg-purple-600 flex items-center justify-center animate-pulse">
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
               )}
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-900">{currentStage.label}</p>
-              <p className="text-sm text-gray-600">{currentStage.description}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{currentStage.label}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{currentStage.description}</p>
             </div>
           </div>
         </div>
@@ -472,92 +489,188 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
 
           {/* Desktop: Horizontal Progress Tracker */}
           <div className="hidden sm:block">
-            <div className="relative">
+            <div className="relative px-6 py-4">
               {/* Progress Line Background */}
-              <div className="absolute top-8 left-6 right-6 h-0.5 bg-gray-200 rounded-full"></div>
+              <div className="absolute top-12 left-12 right-12 h-1 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
               
-              {/* Animated Progress Line */}
+              {/* Animated Progress Line with Gradient */}
               <div 
-                className="absolute top-8 h-0.5 bg-gradient-to-r from-green-400 to-purple-500 rounded-full transition-all duration-1000 ease-out"
+                className="absolute top-12 h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-out shadow-lg"
                 style={{ 
-                  left: '1.5rem',
-                  width: `calc(${Math.max(0, (progressPercentage / 100) * 100)}% - 3rem)`,
-                  maxWidth: 'calc(100% - 3rem)'
+                  left: '3rem',
+                  width: `calc(${Math.max(0, (progressPercentage / 100) * (trackingStages.length > 1 ? ((trackingStages.length - 1) / trackingStages.length) * 100 : 0))}% - 0rem)`,
+                  maxWidth: 'calc(100% - 6rem)',
+                  boxShadow: '0 0 20px rgba(147, 51, 234, 0.4)'
                 }}
               ></div>
 
-              {/* Stage Nodes */}
-              <div className="flex justify-between items-center relative">
+              {/* Stage Nodes Container with Proper Grid Layout */}
+              <div className="grid grid-cols-auto gap-0 relative" style={{ gridTemplateColumns: `repeat(${trackingStages.length}, 1fr)` }}>
                 {trackingStages.map((stage, index) => {
                   const isCompleted = stage.completed;
                   const isCurrent = index === currentStageIndex;
                   const timestamp = formatTimestamp(stage.timestamp);
+                  const isInactive = !isCompleted && !isCurrent;
 
                   return (
                     <div key={stage.stage_name} className="flex flex-col items-center group relative">
-                      {/* Stage Node */}
-                      <div className={`
-                        relative w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 transform hover:scale-110 cursor-pointer
-                        ${isCompleted 
-                          ? 'bg-green-500 border-green-500 text-white shadow-lg' 
-                          : isCurrent 
-                            ? 'bg-purple-500 border-purple-500 text-white shadow-lg shadow-purple-500/50 animate-pulse' 
-                            : 'bg-gray-100 border-gray-300 text-gray-400'
-                        }
-                      `}>
-                        {isCompleted ? (
-                          <CheckCircle className="w-7 h-7" />
-                        ) : isCurrent ? (
-                          <div className="w-4 h-4 bg-white rounded-full animate-ping"></div>
-                        ) : (
-                          <div className="w-6 h-6">
-                            {getStageIcon(stage, index)}
-                          </div>
-                        )}
+                      {/* Stage Node with Enhanced Styling */}
+                       <div className={`
+                         relative w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 transform hover:scale-110 cursor-pointer z-10
+                         ${isCompleted 
+                           ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-500 text-white shadow-lg shadow-green-500/30' 
+                           : isCurrent 
+                             ? 'bg-gradient-to-br from-purple-500 to-blue-600 border-purple-400 text-white shadow-lg shadow-purple-500/50' 
+                             : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 opacity-60 dark:opacity-40'
+                         }
+                       `}>
+                         {isCompleted ? (
+                           <CheckCircle className="w-6 h-6" />
+                         ) : isCurrent ? (
+                           <div className="relative">
+                             <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                             <div className="absolute inset-0 w-3 h-3 bg-white rounded-full animate-ping opacity-75"></div>
+                           </div>
+                         ) : (
+                           <div className="w-5 h-5">
+                             {getStageIcon(stage, index)}
+                           </div>
+                         )}
                         
-                        {/* Glow effect for current stage */}
+                        {/* Enhanced Glow Effect for Current Stage */}
                         {isCurrent && (
-                          <div className="absolute inset-0 rounded-full bg-purple-500 opacity-30 animate-ping"></div>
+                          <>
+                            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 opacity-40 animate-pulse"></div>
+                            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 opacity-20 animate-ping"></div>
+                          </>
                         )}
                       </div>
 
-                      {/* Stage Label */}
-                      <div className="mt-4 text-center max-w-24">
-                        <p className={`text-sm font-medium transition-colors duration-300 leading-tight ${
+                      {/* Stage Label with Better Typography */}
+                      <div className="mt-4 text-center w-full px-2">
+                        <p className={`text-xs font-semibold transition-all duration-300 leading-tight break-words ${
                           isCompleted 
-                            ? 'text-green-700' 
+                            ? 'text-green-700 dark:text-green-400' 
                             : isCurrent 
-                              ? 'text-purple-700' 
-                              : 'text-gray-500'
+                              ? 'text-purple-700 dark:text-purple-400' 
+                              : 'text-gray-500 dark:text-gray-400 opacity-60'
                         }`}>
                           {stage.stage_label}
                         </p>
                         
-                        {/* Timestamp */}
-                        {timestamp && (
-                          <p className="text-xs text-gray-400 mt-1">
+                        {/* Timestamp with Better Styling */}
+                        {timestamp && (isCompleted || isCurrent) && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-medium">
                             {timestamp.time}
                           </p>
                         )}
                       </div>
 
-                      {/* Tooltip */}
-                      {timestamp && (
-                        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                          <div className="text-center">
-                            <div className="font-medium">{stage.stage_label}</div>
-                            <div className="text-gray-300">{timestamp.date}</div>
-                            <div className="text-gray-300">{timestamp.time}</div>
-                            {stage.notes && (
-                              <div className="text-gray-300 text-xs mt-1 max-w-32 break-words">{stage.notes}</div>
-                            )}
+                      {/* Enhanced Tooltip with Stage Descriptions */}
+                      <div className="absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-xl px-4 py-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-20 shadow-2xl border border-gray-700">
+                        <div className="text-center">
+                          <div className="font-semibold text-white">{stage.stage_label}</div>
+                          <div className="text-gray-300 mt-1">
+                            {stage.stage_name === 'intake' && 'Items received and logged'}
+                            {stage.stage_name === 'sorting' && 'Clothes are being categorized'}
+                            {stage.stage_name === 'stain_removing' && 'Treating stains and spots'}
+                            {stage.stage_name === 'washing' && 'Deep cleaning in progress'}
+                            {stage.stage_name === 'drying' && 'Items are being dried'}
+                            {stage.stage_name === 'ironing' && 'Pressing and finishing'}
+                            {stage.stage_name === 'packing' && 'Carefully packaging items'}
+                            {stage.stage_name === 'ready_for_pickup' && 'Ready for collection'}
+                            {stage.stage_name === 'picked_up' && 'Successfully collected'}
+                            {stage.stage_name === 'ready_for_delivery' && 'Prepared for delivery'}
+                            {stage.stage_name === 'delivered' && 'Successfully delivered'}
                           </div>
-                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                          {timestamp && (
+                            <>
+                              <div className="text-gray-400 text-xs mt-2">{timestamp.date}</div>
+                              <div className="text-gray-400 text-xs">{timestamp.time}</div>
+                            </>
+                          )}
+                          {stage.notes && (
+                            <div className="text-gray-300 text-xs mt-2 max-w-40 break-words">{stage.notes}</div>
+                          )}
                         </div>
-                      )}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-6 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                      </div>
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Mobile: Responsive Horizontal Scrolling */}
+            <div className="sm:hidden">
+              <div className="overflow-x-auto pb-4">
+                <div className="flex space-x-8 px-4 min-w-max">
+                  {trackingStages.map((stage, index) => {
+                    const isCompleted = stage.completed;
+                    const isCurrent = index === currentStageIndex;
+                    const timestamp = formatTimestamp(stage.timestamp);
+                    const isInactive = !isCompleted && !isCurrent;
+
+                    return (
+                      <div key={stage.stage_name} className="flex flex-col items-center group relative">
+                        {/* Mobile Stage Node */}
+                         <div className={`
+                           relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-500 transform active:scale-95
+                           ${isCompleted 
+                             ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-500 text-white shadow-lg shadow-green-500/30' 
+                             : isCurrent 
+                               ? 'bg-gradient-to-br from-purple-500 to-blue-600 border-purple-400 text-white shadow-lg shadow-purple-500/50' 
+                               : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 opacity-60'
+                           }
+                         `}>
+                           {isCompleted ? (
+                             <CheckCircle className="w-5 h-5" />
+                           ) : isCurrent ? (
+                             <div className="relative">
+                               <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                               <div className="absolute inset-0 w-3 h-3 bg-white rounded-full animate-ping opacity-75"></div>
+                             </div>
+                           ) : (
+                             <div className="w-4 h-4">
+                               {getStageIcon(stage, index)}
+                             </div>
+                           )}
+                          
+                          {/* Mobile Glow Effect */}
+                          {isCurrent && (
+                            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 opacity-30 animate-pulse"></div>
+                          )}
+                        </div>
+
+                        {/* Mobile Stage Label */}
+                        <div className="mt-3 text-center w-20">
+                          <p className={`text-xs font-semibold transition-colors duration-300 leading-tight ${
+                            isCompleted 
+                              ? 'text-green-700 dark:text-green-400' 
+                              : isCurrent 
+                                ? 'text-purple-700 dark:text-purple-400' 
+                                : 'text-gray-500 dark:text-gray-400 opacity-60'
+                            }`}>
+                            {stage.stage_label}
+                          </p>
+                          
+                          {timestamp && (isCompleted || isCurrent) && (
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                              {timestamp.time}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Connection Line for Mobile */}
+                        {index < trackingStages.length - 1 && (
+                          <div className={`absolute top-7 left-14 w-8 h-0.5 transition-colors duration-500 ${
+                            isCompleted ? 'bg-green-400' : 'bg-gray-300 dark:bg-gray-600'
+                          }`}></div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -565,11 +678,11 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
       </div>
 
       {/* Order Details */}
-      <div className="bg-gray-50 p-4 sm:p-6 border-t border-gray-200">
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <h5 className="text-sm font-medium text-gray-900 mb-2">Order Details</h5>
-            <div className="space-y-1 text-sm text-gray-600">
+            <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Order Details</h5>
+            <div className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
               <p>Items: {booking.item_count || 1} pieces</p>
               <p>Service: {booking.service_name}</p>
               <p>Total: {formatCurrencyNGN(booking.total_amount)}</p>
@@ -577,8 +690,8 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
           </div>
           
           <div>
-            <h5 className="text-sm font-medium text-gray-900 mb-2">Delivery Info</h5>
-            <div className="space-y-1 text-sm text-gray-600">
+            <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Delivery Info</h5>
+            <div className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
               <div className="flex items-center">
                 {(booking as any).pickup_option === 'delivery' ? (
                   <Truck className="w-4 h-4 mr-1" />
@@ -595,12 +708,12 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
           {/* Track Delivery Button - Only show for delivery orders that are completed or ready */}
           {shouldShowTrackDelivery() && (
             <button 
               onClick={handleTrackDelivery}
-              className="flex items-center justify-center px-6 py-3 text-sm font-medium text-white bg-green-600 border border-green-600 rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors min-h-[44px] touch-manipulation shadow-sm"
+              className="flex items-center justify-center px-6 py-3 text-sm font-medium text-white bg-green-600 dark:bg-green-700 border border-green-600 dark:border-green-700 rounded-lg hover:bg-green-700 dark:hover:bg-green-800 active:bg-green-800 dark:active:bg-green-900 transition-colors min-h-[44px] touch-manipulation shadow-sm"
             >
               <Navigation className="w-5 h-5 mr-2" />
               Track Delivery
@@ -609,14 +722,14 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ booking }) => {
           
           <button 
              onClick={() => window.open('tel:+2349034842430', '_self')}
-             className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors min-h-[44px] touch-manipulation"
+             className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 active:bg-blue-200 dark:active:bg-blue-900/40 transition-colors min-h-[44px] touch-manipulation"
            >
             <Phone className="w-5 h-5 mr-2" />
             Call Support
           </button>
           <button 
             onClick={() => navigate('/support')}
-            className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors min-h-[44px] touch-manipulation"
+            className="flex items-center justify-center px-6 py-3 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 active:bg-blue-200 dark:active:bg-blue-900/40 transition-colors min-h-[44px] touch-manipulation"
           >
             <MessageSquare className="w-5 h-5 mr-2" />
             Send Message

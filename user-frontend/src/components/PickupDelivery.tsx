@@ -156,9 +156,12 @@ const PickupDelivery: React.FC = () => {
           </h4>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+              <label htmlFor="pickup-customer-name" className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
               <input
                 type="text"
+                id="pickup-customer-name"
+                name="customerName"
+                autoComplete="name"
                 value={formData.customerName}
                 onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -166,9 +169,12 @@ const PickupDelivery: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+              <label htmlFor="pickup-phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
               <input
                 type="tel"
+                id="pickup-phone"
+                name="phone"
+                autoComplete="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -178,9 +184,12 @@ const PickupDelivery: React.FC = () => {
             </div>
           </div>
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <label htmlFor="pickup-email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
             <input
               type="email"
+              id="pickup-email"
+              name="email"
+              autoComplete="email"
               value={formData.email}
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -188,11 +197,14 @@ const PickupDelivery: React.FC = () => {
             />
           </div>
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="pickup-address" className="block text-sm font-medium text-gray-700 mb-2">
               <MapPin className="w-4 h-4 inline mr-1" />
               Pickup/Delivery Address
             </label>
             <textarea
+              id="pickup-address"
+              name="address"
+              autoComplete="street-address"
               value={formData.address}
               onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
               rows={3}
@@ -208,9 +220,10 @@ const PickupDelivery: React.FC = () => {
           <h4 className="font-semibold text-gray-800 mb-4">Service Type</h4>
           <div className="grid md:grid-cols-2 gap-4">
             {serviceTypes.map((service) => (
-              <label key={service.id} className="flex items-start p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-white transition-colors">
+              <label key={service.id} htmlFor={`service-${service.id}`} className="flex items-start p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-white transition-colors">
                 <input
                   type="radio"
+                  id={`service-${service.id}`}
                   name="serviceType"
                   value={service.id}
                   checked={formData.serviceType === service.id}
@@ -236,9 +249,11 @@ const PickupDelivery: React.FC = () => {
           </h4>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pickup Date</label>
+              <label htmlFor="pickup-date" className="block text-sm font-medium text-gray-700 mb-2">Pickup Date</label>
               <input
                 type="date"
+                id="pickup-date"
+                name="pickupDate"
                 value={formData.pickupDate}
                 min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setFormData(prev => ({ ...prev, pickupDate: e.target.value }))}
@@ -247,8 +262,10 @@ const PickupDelivery: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pickup Time</label>
+              <label htmlFor="pickup-time" className="block text-sm font-medium text-gray-700 mb-2">Pickup Time</label>
               <select
+                id="pickup-time"
+                name="pickupTime"
                 value={formData.pickupTime}
                 onChange={(e) => setFormData(prev => ({ ...prev, pickupTime: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -271,9 +288,11 @@ const PickupDelivery: React.FC = () => {
           </h4>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Date</label>
+              <label htmlFor="delivery-date" className="block text-sm font-medium text-gray-700 mb-2">Delivery Date</label>
               <input
                 type="date"
+                id="delivery-date"
+                name="deliveryDate"
                 value={formData.deliveryDate}
                 min={formData.pickupDate || new Date().toISOString().split('T')[0]}
                 onChange={(e) => setFormData(prev => ({ ...prev, deliveryDate: e.target.value }))}
@@ -282,8 +301,10 @@ const PickupDelivery: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Time</label>
+              <label htmlFor="delivery-time" className="block text-sm font-medium text-gray-700 mb-2">Delivery Time</label>
               <select
+                id="delivery-time"
+                name="deliveryTime"
                 value={formData.deliveryTime}
                 onChange={(e) => setFormData(prev => ({ ...prev, deliveryTime: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -303,8 +324,10 @@ const PickupDelivery: React.FC = () => {
           <h4 className="font-semibold text-gray-800 mb-4">Additional Information</h4>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Items Description</label>
+              <label htmlFor="pickup-items" className="block text-sm font-medium text-gray-700 mb-2">Items Description</label>
               <textarea
+                id="pickup-items"
+                name="items"
                 value={formData.items}
                 onChange={(e) => setFormData(prev => ({ ...prev, items: e.target.value }))}
                 rows={3}
@@ -314,8 +337,10 @@ const PickupDelivery: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
+              <label htmlFor="pickup-instructions" className="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
               <textarea
+                id="pickup-instructions"
+                name="specialInstructions"
                 value={formData.specialInstructions}
                 onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
                 rows={2}
@@ -324,8 +349,10 @@ const PickupDelivery: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Service Urgency</label>
+              <label htmlFor="pickup-urgency" className="block text-sm font-medium text-gray-700 mb-2">Service Urgency</label>
               <select
+                id="pickup-urgency"
+                name="urgency"
                 value={formData.urgency}
                 onChange={(e) => setFormData(prev => ({ ...prev, urgency: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -361,6 +388,8 @@ const PickupDelivery: React.FC = () => {
           <div className="flex-1 min-w-0">
             <input
               type="text"
+              id="tracking-id"
+              name="trackingId"
               value={trackingId}
               onChange={(e) => setTrackingId(e.target.value)}
               placeholder="Enter tracking ID (e.g., NTX001)"

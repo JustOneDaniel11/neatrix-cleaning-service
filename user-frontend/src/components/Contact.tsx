@@ -144,7 +144,9 @@ const Contact = () => {
                 <div className="space-y-4">
                   <input
                     type="text"
+                    id="contact-name"
                     name="name"
+                    autoComplete="name"
                     placeholder="Your Name"
                     value={formData.name}
                     onChange={handleInputChange}
@@ -153,7 +155,9 @@ const Contact = () => {
                   />
                   <input
                     type="email"
+                    id="contact-email"
                     name="email"
+                    autoComplete="email"
                     placeholder="Your Email"
                     value={formData.email}
                     onChange={handleInputChange}
@@ -162,7 +166,9 @@ const Contact = () => {
                   />
                   <input
                     type="tel"
+                    id="contact-phone"
                     name="phone"
+                    autoComplete="tel"
                     placeholder="Phone Number (e.g., +234 903 484 2430)"
                     value={formData.phone}
                     onChange={handleInputChange}
@@ -170,6 +176,7 @@ const Contact = () => {
                     className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                   <select 
+                    id="contact-service-type"
                     name="serviceType"
                     value={formData.serviceType}
                     onChange={handleInputChange}
@@ -184,6 +191,7 @@ const Contact = () => {
                     <option value="other">Other</option>
                   </select>
                   <textarea
+                    id="contact-message"
                     name="message"
                     placeholder="Tell us about your cleaning needs..."
                     rows={4}

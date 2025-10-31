@@ -27,6 +27,11 @@ export default function AuthGuard({ children, redirectTo = '/login' }: AuthGuard
     return <SecurityLoader message="Verifying Authentication" size="lg" />;
   }
 
+  // Show loading while authentication is being initialized
+  if (state.loading) {
+    return <SecurityLoader message="Checking Authentication" size="lg" />;
+  }
+
   // Only show error if user is not authenticated AND there's a critical error
   // Don't show error page if user is authenticated (even with profile errors)
   if (state.error && !state.isAuthenticated && !state.authUser) {
@@ -49,8 +54,17 @@ export default function AuthGuard({ children, redirectTo = '/login' }: AuthGuard
     );
   }
 
-  // Redirect to login if not authenticated
+  // Check for session persistence flag as backup
+  const hasRememberSession = localStorage.getItem("neatrix-admin-remember-session") === "true";
+  
+  // Redirect to login if not authenticated and no session persistence
   if (!state.isAuthenticated || !state.authUser) {
+    // If we have a remember session flag but no auth state, wait a bit longer for initialization
+    if (hasRememberSession && !state.loading) {
+      console.log('🔄 AuthGuard: Session persistence detected, waiting for auth initialization...');
+      return <SecurityLoader message="Restoring Session" size="lg" />;
+    }
+    
     console.log('🔄 AuthGuard: Redirecting to login - not authenticated');
     return <Navigate to={redirectTo} replace />;
   }

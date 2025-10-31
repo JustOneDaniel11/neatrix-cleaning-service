@@ -2,11 +2,28 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Menu, X, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSupabaseData } from "@/contexts/SupabaseDataContext";
-import { useState } from "react";
+import { useDarkMode } from "@/contexts/DarkModeContext";
+import { useState, useEffect } from "react";
 
 const Header = () => {
   const { state, signOut } = useSupabaseData();
+  const { isDarkMode } = useDarkMode();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Apply/remove dark class to document root based on dark mode state
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  // Choose logo based on theme
+  const logoSrc = isDarkMode 
+    ? "/Neatrix_logo_transparent_white.png" 
+    : "/Neatrix_logo_transparent.png";
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -41,10 +58,9 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <img
-              src="/Neatrix_logo_transparent.png"
+              src={logoSrc}
               alt="Neatrix Logo"
               className="h-8 w-auto md:h-10 max-w-[160px] select-none"
-              onError={(e) => { e.currentTarget.src = '/Neatrix_logo_transparent_white.png'; }}
             />
           </div>
 

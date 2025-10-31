@@ -1591,16 +1591,40 @@ export default function AdminDashboard() {
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-gray-500">Full Name</label>
-                    <input value={userForm.full_name} onChange={e => setUserForm(prev => ({ ...prev, full_name: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
+                    <label htmlFor="user-full-name" className="text-xs text-gray-500">Full Name</label>
+                    <input 
+                      type="text"
+                      id="user-full-name"
+                      name="full_name"
+                      autoComplete="name"
+                      value={userForm.full_name} 
+                      onChange={e => setUserForm(prev => ({ ...prev, full_name: e.target.value }))} 
+                      className="mt-1 w-full px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" 
+                    />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">Email</label>
-                    <input value={userForm.email} onChange={e => setUserForm(prev => ({ ...prev, email: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
+                    <label htmlFor="user-email" className="text-xs text-gray-500">Email</label>
+                    <input 
+                      type="email"
+                      id="user-email"
+                      name="email"
+                      autoComplete="email"
+                      value={userForm.email} 
+                      onChange={e => setUserForm(prev => ({ ...prev, email: e.target.value }))} 
+                      className="mt-1 w-full px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" 
+                    />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">Phone</label>
-                    <input value={userForm.phone} onChange={e => setUserForm(prev => ({ ...prev, phone: e.target.value }))} className="mt-1 w-full px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" />
+                    <label htmlFor="user-phone" className="text-xs text-gray-500">Phone</label>
+                    <input 
+                      type="tel"
+                      id="user-phone"
+                      name="phone"
+                      autoComplete="tel"
+                      value={userForm.phone} 
+                      onChange={e => setUserForm(prev => ({ ...prev, phone: e.target.value }))} 
+                      className="mt-1 w-full px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900 text-sm" 
+                    />
                   </div>
                 </div>
               )}

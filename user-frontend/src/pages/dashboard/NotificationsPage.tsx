@@ -439,16 +439,34 @@ const NotificationsPage: React.FC = () => {
         <div className="mt-8 bg-gray-50 dark:bg-gray-900 rounded-lg p-6 border border-transparent dark:border-gray-800">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Notification Preferences</h3>
           <div className="space-y-3">
-            <label className="flex items-center">
-              <input type="checkbox" defaultChecked className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500" />
+            <label htmlFor="email-notifications" className="flex items-center">
+              <input 
+                type="checkbox" 
+                id="email-notifications"
+                name="email_notifications"
+                defaultChecked 
+                className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500" 
+              />
               <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Email notifications for bookings</span>
             </label>
-            <label className="flex items-center">
-              <input type="checkbox" defaultChecked className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500" />
+            <label htmlFor="sms-notifications" className="flex items-center">
+              <input 
+                type="checkbox" 
+                id="sms-notifications"
+                name="sms_notifications"
+                defaultChecked 
+                className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500" 
+              />
               <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS notifications for urgent updates</span>
             </label>
-            <label className="flex items-center">
-              <input type="checkbox" defaultChecked className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500" />
+            <label htmlFor="push-notifications" className="flex items-center">
+              <input 
+                type="checkbox" 
+                id="push-notifications"
+                name="push_notifications"
+                defaultChecked 
+                className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500" 
+              />
               <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Push notifications for promotions</span>
             </label>
           </div>

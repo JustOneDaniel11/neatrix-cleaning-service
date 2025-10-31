@@ -587,49 +587,50 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
           throw sessionError;
         }
 
-        // Check if user has enabled session persistence (remember me)
-        const hasRememberSession = localStorage.getItem("neatrix-admin-remember-session") === "true";
-        
         if (session?.user) {
           console.log("🔑 Found existing session:", session.user.id);
-          if (hasRememberSession) {
-            console.log("🔄 Auto-login enabled - restoring session");
-          }
           
           if (mounted) {
             // Clear any previous errors on successful authentication
             dispatch({ type: "SET_ERROR", payload: null });
             dispatch({ type: "SET_AUTH_USER", payload: session.user });
             
-            // Fetch user profile
-            const { data: profile, error: profileError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
+            // Set session persistence flag to maintain login state
+            localStorage.setItem("neatrix-admin-remember-session", "true");
             
-            if (profileError) {
-              console.error("❌ Profile fetch error:", profileError);
-              // Check if it's a transient AbortError that can be ignored
-              if (profileError.message.includes('AbortError') || profileError.message.includes('signal is aborted')) {
-                console.log('⚠️ Transient AbortError in initial profile fetch, ignoring...');
-                // Don't set current user to null for AbortErrors
-              } else {
-                // Keep user authenticated even if profile fetch fails
-                console.log('⚠️ Profile fetch failed but user is still authenticated');
-                dispatch({ type: "SET_CURRENT_USER", payload: null });
+            // Fetch user profile
+            try {
+              const { data: profile, error: profileError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (profileError) {
+                console.error("❌ Profile fetch error:", profileError);
+                // Check if it's a transient AbortError that can be ignored
+                if (profileError.message.includes('AbortError') || profileError.message.includes('signal is aborted')) {
+                  console.log('⚠️ Transient AbortError in initial profile fetch, ignoring...');
+                  // Don't set current user to null for AbortErrors
+                } else {
+                  // Keep user authenticated even if profile fetch fails
+                  console.log('⚠️ Profile fetch failed but user is still authenticated');
+                  dispatch({ type: "SET_CURRENT_USER", payload: null });
+                }
+              } else if (profile) {
+                console.log("👤 Loaded user profile:", profile.email);
+                dispatch({ type: "SET_CURRENT_USER", payload: profile });
               }
-            } else if (profile) {
-              console.log("👤 Loaded user profile:", profile.email);
-              dispatch({ type: "SET_CURRENT_USER", payload: profile });
+            } catch (err) {
+              console.error("❌ Profile fetch error:", err);
+              // Don't fail authentication if profile fetch fails
+              dispatch({ type: "SET_CURRENT_USER", payload: null });
             }
           }
         } else {
           console.log("ℹ️ No existing session found");
-          if (hasRememberSession) {
-            console.log("⚠️ Remember session enabled but no active session - clearing flag");
-            localStorage.removeItem("neatrix-admin-remember-session");
-          }
+          // Clear session persistence flag when no session exists
+          localStorage.removeItem("neatrix-admin-remember-session");
           
           if (mounted) {
             dispatch({ type: "SET_AUTH_USER", payload: null });
@@ -649,6 +650,9 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
               // Clear any previous errors on successful authentication
               dispatch({ type: "SET_ERROR", payload: null });
               dispatch({ type: "SET_AUTH_USER", payload: session.user });
+              
+              // Maintain session persistence on successful auth
+              localStorage.setItem("neatrix-admin-remember-session", "true");
               
               try {
                 const { data: profile, error: profileError } = await supabase
@@ -679,6 +683,8 @@ export function SupabaseDataProvider({ children }: { children: ReactNode }) {
             }
           } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
             console.log("👋 User signed out");
+            // Clear session persistence on sign out
+            localStorage.removeItem("neatrix-admin-remember-session");
             dispatch({ type: "SET_AUTH_USER", payload: null });
             dispatch({ type: "SET_CURRENT_USER", payload: null });
           }
